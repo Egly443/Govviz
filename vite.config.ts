@@ -12,4 +12,18 @@ export default defineConfig(({ command }) => ({
     react(),
     tailwindcss(),
   ],
+  build: {
+    // Stable (non-hashed) asset filenames. GitHub Pages edge-caches index.html;
+    // with hashed names a slightly-stale cached index can reference bundles a
+    // newer deploy has already purged -> 404 -> blank page (even in incognito).
+    // Stable names are overwritten in place each deploy, so a stale index still
+    // resolves to existing files.
+    rollupOptions: {
+      output: {
+        entryFileNames: "assets/[name].js",
+        chunkFileNames: "assets/[name].js",
+        assetFileNames: "assets/[name][extname]",
+      },
+    },
+  },
 }));
