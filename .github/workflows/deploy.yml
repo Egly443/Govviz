@@ -35,10 +35,8 @@ jobs:
       - name: Build
         run: npm run build
 
-      # GitHub Pages has no SPA fallback: serving 404.html (a copy of
-      # index.html) lets deep links like /Govviz/dhsc boot the router.
-      - name: Add SPA fallback
-        run: cp dist/index.html dist/404.html
+      # SPA deep-link fallback is provided by public/404.html (Vite copies it
+      # into dist/), which redirects unknown paths back into the app.
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
