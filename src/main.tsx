@@ -2,9 +2,13 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { RouterProvider, createRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
-import "./index.css";
+import "./styles.css";
 
-const router = createRouter({ routeTree });
+// Match the Vite `base` so routes resolve under the GitHub Pages subpath
+// (e.g. /Govviz) in production and at root in dev.
+const basepath = import.meta.env.BASE_URL.replace(/\/+$/, "") || "/";
+
+const router = createRouter({ routeTree, basepath });
 
 declare module "@tanstack/react-router" {
   interface Register {
