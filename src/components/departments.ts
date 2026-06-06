@@ -22,6 +22,7 @@ export type Department = {
   rating: string;
   synthesis: string;
   themes: string[];
+  spendBn: number; // illustrative departmental total managed expenditure, £bn
   hero: TrendSeries;
   core: TrendSeries[];
   supporting?: TrendSeries[];
@@ -880,6 +881,7 @@ export const departments: Department[] = [
   {
     code: "dhsc",
     name: "DHSC",
+    spendBn: 190,
     fullName: "Health & Social Care",
     blurb:
       "Decades of monthly data on how the department is performing against its stated objectives. Headline numbers in context, not in isolation.",
@@ -894,6 +896,7 @@ export const departments: Department[] = [
   {
     code: "dfe",
     name: "DfE",
+    spendBn: 90,
     fullName: "Education",
     blurb:
       "How the schools system is performing on the measures that families and economists both care about: outcomes, retention, financial sustainability, and pipeline.",
@@ -907,6 +910,7 @@ export const departments: Department[] = [
   {
     code: "home-office",
     name: "Home Office",
+    spendBn: 22,
     fullName: "Home Office",
     blurb:
       "Operational throughput on the highest-volume, highest-salience flows: asylum, visas, and the costs of contingency.",
@@ -920,6 +924,7 @@ export const departments: Department[] = [
   {
     code: "moj",
     name: "MoJ",
+    spendBn: 12,
     fullName: "Justice",
     blurb:
       "The throughput, cost, and capacity of the criminal-justice system. Hard to fudge: courts list cases publicly and prisons publish costs.",
@@ -933,6 +938,7 @@ export const departments: Department[] = [
   {
     code: "mod",
     name: "MoD",
+    spendBn: 55,
     fullName: "Defence",
     blurb:
       "Whether the armed forces are at the size, mix, and readiness that the National Security Strategy requires, and whether equipment programmes deliver on time and on budget.",
@@ -946,6 +952,7 @@ export const departments: Department[] = [
   {
     code: "dwp",
     name: "DWP",
+    spendBn: 250,
     fullName: "Work & Pensions",
     blurb:
       "Whether claimants get decisions promptly, whether work coaches have manageable caseloads, and whether the system is losing money to fraud and error.",
@@ -959,6 +966,7 @@ export const departments: Department[] = [
   {
     code: "dft",
     name: "DfT",
+    spendBn: 28,
     fullName: "Transport",
     blurb:
       "Daily reliability and long-term asset health: cancellations passengers see, agency backlogs drivers see, and capital programmes taxpayers pay for.",

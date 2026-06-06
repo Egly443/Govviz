@@ -5,11 +5,7 @@ export function TopNav() {
   return (
     <header className="sticky top-0 z-40 h-16 border-b border-border/60 bg-background/80 backdrop-blur-xl">
       <div className="mx-auto flex h-full max-w-7xl items-center justify-between px-4 sm:px-6">
-        <Link
-          to="/$dept"
-          params={{ dept: "dhsc" }}
-          className="flex items-center gap-2.5"
-        >
+        <Link to="/overview" className="flex items-center gap-2.5">
           <span className="grid h-7 w-7 place-items-center rounded-md bg-primary/15 text-primary">
             <BarChart3 className="h-4 w-4" />
           </span>

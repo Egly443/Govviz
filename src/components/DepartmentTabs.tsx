@@ -12,6 +12,17 @@ export function DepartmentTabs({ active }: Props) {
         className="-mb-px flex gap-1 overflow-x-auto py-1"
         aria-label="Departments"
       >
+        <Link
+          to="/overview"
+          className={`whitespace-nowrap rounded-t-md px-3 py-2.5 text-sm font-medium transition-colors ${
+            active === "overview"
+              ? "border-b-2 border-primary text-foreground"
+              : "border-b-2 border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+          aria-current={active === "overview" ? "page" : undefined}
+        >
+          Overview
+        </Link>
         {departments.map((d) => {
           const isActive = d.code === active;
           return (
