@@ -1,0 +1,590 @@
+export type Point = { date: string; value: number };
+export type Annotation = { date: string; label: string };
+
+export type SeriesUnit =
+  | "people"
+  | "percent"
+  | "years"
+  | "gbp"
+  | "days"
+  | "beds"
+  | "count"
+  | "currency";
+
+export type TrendSeries = {
+  id: string;
+  title: string;
+  subtitle?: string;
+  unit: SeriesUnit;
+  format: (v: number) => string;
+  shortFormat: (v: number) => string;
+  /** Optional y-axis tick formatter (overrides built-in). */
+  yFormat?: (v: number) => string;
+  /** Optional delta formatter (overrides built-in). Receives signed delta. */
+  deltaFormat?: (v: number) => string;
+  goodDirection: "up" | "down";
+  target?: { value: number; label: string };
+  source: string;
+  sourceUrl: string;
+  cadence: "monthly" | "quarterly" | "annual";
+  points: Point[];
+  annotations: Annotation[];
+};
+
+// Deterministic pseudo-noise
+export function noise(seed: number) {
+  let s = seed * 9301 + 49297;
+  return () => {
+    s = (s * 9301 + 49297) % 233280;
+    return s / 233280 - 0.5;
+  };
+}
+
+function monthsBetween(startISO: string, endISO: string): string[] {
+  const out: string[] = [];
+  const d = new Date(startISO);
+  const end = new Date(endISO);
+  while (d <= end) {
+    out.push(
+      `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-01`,
+    );
+    d.setUTCMonth(d.getUTCMonth() + 1);
+  }
+  return out;
+}
+
+export function trajectory(
+  anchors: [string, number][],
+  startISO: string,
+  endISO: string,
+  seed: number,
+  noiseAmp: number,
+  seasonalAmp = 0,
+): Point[] {
+  const months = monthsBetween(startISO, endISO);
+  const rnd = noise(seed);
+  const anchorTimes = anchors.map(([d, v]) => [new Date(d).getTime(), v] as const);
+
+  return months.map((iso) => {
+    const t = new Date(iso).getTime();
+    let v = anchorTimes[0][1];
+    for (let i = 0; i < anchorTimes.length - 1; i++) {
+      const [t0, v0] = anchorTimes[i];
+      const [t1, v1] = anchorTimes[i + 1];
+      if (t >= t0 && t <= t1) {
+        const k = (t - t0) / (t1 - t0);
+        v = v0 + (v1 - v0) * k;
+        break;
+      }
+      if (t > t1) v = v1;
+    }
+    const month = new Date(iso).getUTCMonth();
+    const seasonal = Math.sin((month / 12) * Math.PI * 2) * seasonalAmp;
+    return { date: iso, value: +(v + seasonal + rnd() * noiseAmp).toFixed(3) };
+  });
+}
+
+const fmtMillions = (v: number) => `${v.toFixed(2)}M`;
+const fmtMillionsShort = (v: number) => `${v.toFixed(1)}M`;
+const fmtPct = (v: number) => `${v.toFixed(1)}%`;
+const fmtYears = (v: number) => `${v.toFixed(1)} yrs`;
+const fmtGbp = (v: number) => `£${v.toFixed(2)}bn`;
+const fmtGbpShort = (v: number) => `£${v.toFixed(1)}bn`;
+const fmtBeds = (v: number) => `${(v / 1000).toFixed(1)}k beds/day`;
+const fmtBedsShort = (v: number) => `${(v / 1000).toFixed(1)}k`;
+
+// ============================================================
+// Headline waiting list (kept as hero)
+// ============================================================
+export const waitingList: TrendSeries = {
+  id: "waiting-list",
+  title: "Elective care waiting list",
+  subtitle: "Incomplete RTT pathways",
+  unit: "people",
+  format: fmtMillions,
+  shortFormat: fmtMillionsShort,
+  goodDirection: "down",
+  source: "NHS England RTT, monthly",
+  sourceUrl:
+    "https://www.england.nhs.uk/statistics/statistical-work-areas/rtt-waiting-times/",
+  cadence: "monthly",
+  points: trajectory(
+    [
+      ["2007-08-01", 4.20],
+      ["2012-01-01", 2.50],
+      ["2015-01-01", 3.30],
+      ["2019-01-01", 4.43],
+      ["2020-03-01", 4.24],
+      ["2020-08-01", 4.05],
+      ["2022-01-01", 6.07],
+      ["2023-09-01", 7.77],
+      ["2024-04-01", 7.62],
+      ["2025-01-01", 7.49],
+      ["2026-04-01", 7.42],
+    ],
+    "2007-08-01",
+    "2026-04-01",
+    11,
+    0.04,
+    0.03,
+  ),
+  annotations: [
+    { date: "2010-05-01", label: "Austerity" },
+    { date: "2020-03-01", label: "Covid-19" },
+    { date: "2023-03-01", label: "Industrial action" },
+  ],
+};
+
+// ============================================================
+// Core DHSC competence metrics (per executive summary)
+// ============================================================
+
+// 18-week elective treatment target compliance — statutory 92% standard
+export const rtt18Week: TrendSeries = {
+  id: "rtt-18-week",
+  title: "18-week treatment target compliance",
+  subtitle: "% of incomplete pathways under 18 weeks",
+  unit: "percent",
+  format: fmtPct,
+  shortFormat: fmtPct,
+  goodDirection: "up",
+  target: { value: 92, label: "92% standard" },
+  source: "NHS England RTT, monthly",
+  sourceUrl:
+    "https://www.england.nhs.uk/statistics/statistical-work-areas/rtt-waiting-times/",
+  cadence: "monthly",
+  points: trajectory(
+    [
+      ["2008-04-01", 84.0],
+      ["2012-01-01", 93.8],
+      ["2014-06-01", 93.1],
+      ["2016-12-01", 90.3],
+      ["2019-06-01", 86.4],
+      ["2020-02-01", 83.0],
+      ["2021-06-01", 67.0],
+      ["2023-06-01", 58.7],
+      ["2024-06-01", 59.5],
+      ["2026-04-01", 61.4],
+    ],
+    "2008-04-01",
+    "2026-04-01",
+    17,
+    0.6,
+    0.5,
+  ),
+  annotations: [
+    { date: "2016-01-01", label: "Standard last met" },
+    { date: "2020-03-01", label: "Covid-19" },
+  ],
+};
+
+// Hospital discharge / social-care bottleneck — beds/day occupied by
+// patients medically fit to leave hospital
+export const dischargeDelays: TrendSeries = {
+  id: "discharge-delays",
+  title: "Hospital discharge bottleneck",
+  subtitle: "Beds/day occupied by patients medically fit for discharge",
+  unit: "beds",
+  format: fmtBeds,
+  shortFormat: fmtBedsShort,
+  goodDirection: "down",
+  source: "NHS England discharge delays, daily SitRep",
+  sourceUrl:
+    "https://www.england.nhs.uk/statistics/statistical-work-areas/discharge-delays-acute-data/",
+  cadence: "monthly",
+  points: trajectory(
+    [
+      ["2011-01-01", 4200],
+      ["2014-06-01", 4900],
+      ["2016-12-01", 6400],
+      ["2018-06-01", 5100],
+      ["2020-02-01", 4700],
+      ["2020-06-01", 2500],
+      ["2022-06-01", 12800],
+      ["2023-04-01", 13900],
+      ["2024-06-01", 13200],
+      ["2026-04-01", 12100],
+    ],
+    "2011-01-01",
+    "2026-04-01",
+    29,
+    320,
+    420,
+  ),
+  annotations: [
+    { date: "2017-03-01", label: "Social-care funding crisis" },
+    { date: "2020-03-01", label: "Covid-19" },
+    { date: "2022-09-01", label: "Discharge fund" },
+  ],
+};
+
+// NHS temporary agency spend, rolling 12-month £bn
+export const agencySpend: TrendSeries = {
+  id: "agency-spend",
+  title: "NHS temporary agency staff spend",
+  subtitle: "Rolling 12-month, £ billion",
+  unit: "gbp",
+  format: fmtGbp,
+  shortFormat: fmtGbpShort,
+  goodDirection: "down",
+  target: { value: 2.4, label: "NHSE cap ambition" },
+  source: "NHS England board papers / NAO",
+  sourceUrl:
+    "https://www.nao.org.uk/reports/nhs-financial-management-and-sustainability/",
+  cadence: "monthly",
+  points: trajectory(
+    [
+      ["2013-04-01", 2.10],
+      ["2015-09-01", 3.65],
+      ["2018-03-01", 2.42],
+      ["2020-03-01", 2.55],
+      ["2022-09-01", 3.40],
+      ["2023-09-01", 4.62],
+      ["2024-09-01", 3.55],
+      ["2026-04-01", 2.95],
+    ],
+    "2013-04-01",
+    "2026-04-01",
+    31,
+    0.06,
+    0.05,
+  ),
+  annotations: [
+    { date: "2015-11-01", label: "Agency caps introduced" },
+    { date: "2020-03-01", label: "Covid-19" },
+    { date: "2023-03-01", label: "Strike cover surge" },
+  ],
+};
+
+// Capital budget overruns — IPA Government Major Projects Portfolio,
+// weighted cost variance across DHSC major projects
+export const capitalOverrun: TrendSeries = {
+  id: "capital-overrun",
+  title: "Capital programme cost overrun",
+  subtitle: "Weighted variance across DHSC major projects",
+  unit: "percent",
+  format: fmtPct,
+  shortFormat: fmtPct,
+  goodDirection: "down",
+  target: { value: 0, label: "On budget" },
+  source: "IPA Annual Report on Major Projects (GMPP)",
+  sourceUrl:
+    "https://www.gov.uk/government/collections/ipa-annual-report-on-major-projects",
+  cadence: "annual",
+  points: (() => {
+    const out: Point[] = [];
+    const anchors: [number, number][] = [
+      [2012, 8.4],
+      [2014, 11.2],
+      [2016, 14.7],
+      [2018, 19.1],
+      [2020, 22.6],
+      [2022, 27.4],
+      [2024, 31.8],
+      [2025, 28.9],
+    ];
+    const rnd = noise(41);
+    for (let y = 2012; y <= 2025; y++) {
+      let v = anchors[0][1];
+      for (let i = 0; i < anchors.length - 1; i++) {
+        const [y0, v0] = anchors[i];
+        const [y1, v1] = anchors[i + 1];
+        if (y >= y0 && y <= y1) {
+          v = v0 + ((v1 - v0) * (y - y0)) / (y1 - y0);
+          break;
+        }
+        if (y > y1) v = v1;
+      }
+      out.push({ date: `${y}-01-01`, value: +(v + rnd() * 0.8).toFixed(2) });
+    }
+    return out;
+  })(),
+  annotations: [
+    { date: "2020-01-01", label: "New Hospital Programme" },
+    { date: "2023-01-01", label: "RAAC remediation" },
+  ],
+};
+
+// ============================================================
+// Supporting context metrics
+// ============================================================
+
+export const aePerformance: TrendSeries = {
+  id: "ae-performance",
+  title: "A&E 4-hour standard",
+  subtitle: "% of attendances admitted/discharged within 4 hours",
+  unit: "percent",
+  format: fmtPct,
+  shortFormat: fmtPct,
+  goodDirection: "up",
+  target: { value: 95, label: "95% standard" },
+  source: "NHS England A&E attendances, monthly",
+  sourceUrl:
+    "https://www.england.nhs.uk/statistics/statistical-work-areas/ae-waiting-times-and-activity/",
+  cadence: "monthly",
+  points: trajectory(
+    [
+      ["2004-04-01", 78.0],
+      ["2005-01-01", 95.0],
+      ["2010-06-01", 98.2],
+      ["2013-01-01", 95.7],
+      ["2015-06-01", 92.3],
+      ["2019-12-01", 79.8],
+      ["2020-05-01", 90.0],
+      ["2022-12-01", 65.0],
+      ["2024-01-01", 70.3],
+      ["2025-06-01", 73.5],
+      ["2026-04-01", 74.1],
+    ],
+    "2004-04-01",
+    "2026-04-01",
+    23,
+    0.9,
+    1.6,
+  ),
+  annotations: [
+    { date: "2010-05-01", label: "Austerity" },
+    { date: "2020-03-01", label: "Covid-19" },
+    { date: "2023-12-01", label: "Winter crisis" },
+  ],
+};
+
+export const turnover: TrendSeries = {
+  id: "turnover",
+  title: "Civil service & NHS workforce turnover",
+  subtitle: "Rolling 12-month leaver rate",
+  unit: "percent",
+  format: fmtPct,
+  shortFormat: fmtPct,
+  goodDirection: "down",
+  source: "NHS Digital workforce statistics",
+  sourceUrl:
+    "https://digital.nhs.uk/data-and-information/publications/statistical/nhs-workforce-statistics",
+  cadence: "monthly",
+  points: trajectory(
+    [
+      ["2011-01-01", 9.1],
+      ["2014-01-01", 9.6],
+      ["2017-06-01", 10.7],
+      ["2019-06-01", 11.2],
+      ["2020-09-01", 9.8],
+      ["2022-09-01", 12.5],
+      ["2024-01-01", 11.6],
+      ["2026-04-01", 11.3],
+    ],
+    "2011-01-01",
+    "2026-04-01",
+    7,
+    0.15,
+    0.08,
+  ),
+  annotations: [
+    { date: "2016-06-01", label: "Brexit vote" },
+    { date: "2020-03-01", label: "Covid-19" },
+    { date: "2023-03-01", label: "Pay disputes" },
+  ],
+};
+
+export const vacancyRate: TrendSeries = {
+  id: "vacancy",
+  title: "Clinical vacancy rate",
+  subtitle: "% of funded clinical posts unfilled",
+  unit: "percent",
+  format: fmtPct,
+  shortFormat: fmtPct,
+  goodDirection: "down",
+  source: "NHS England vacancy statistics",
+  sourceUrl:
+    "https://digital.nhs.uk/data-and-information/publications/statistical/nhs-vacancies-survey",
+  cadence: "monthly",
+  points: trajectory(
+    [
+      ["2015-01-01", 6.0],
+      ["2018-06-01", 8.0],
+      ["2020-03-01", 8.2],
+      ["2021-09-01", 9.7],
+      ["2023-06-01", 9.1],
+      ["2026-04-01", 8.4],
+    ],
+    "2015-01-01",
+    "2026-04-01",
+    19,
+    0.18,
+    0.05,
+  ),
+  annotations: [
+    { date: "2020-03-01", label: "Covid-19" },
+    { date: "2022-06-01", label: "Peak shortages" },
+  ],
+};
+
+export const lifeExpectancy: TrendSeries = {
+  id: "life-expectancy",
+  title: "Life expectancy at birth",
+  subtitle: "Years, England, both sexes",
+  unit: "years",
+  format: fmtYears,
+  shortFormat: (v) => `${v.toFixed(1)}`,
+  goodDirection: "up",
+  source: "ONS national life tables",
+  sourceUrl:
+    "https://www.ons.gov.uk/peoplepopulationandcommunity/birthsdeathsandmarriages/lifeexpectancies",
+  cadence: "annual",
+  points: (() => {
+    const out: Point[] = [];
+    const anchors: [number, number][] = [
+      [1981, 73.8],
+      [1990, 75.7],
+      [2000, 77.9],
+      [2011, 80.6],
+      [2019, 81.4],
+      [2020, 80.4],
+      [2022, 80.7],
+      [2024, 81.0],
+    ];
+    for (let y = 1981; y <= 2024; y++) {
+      let v = anchors[0][1];
+      for (let i = 0; i < anchors.length - 1; i++) {
+        const [y0, v0] = anchors[i];
+        const [y1, v1] = anchors[i + 1];
+        if (y >= y0 && y <= y1) {
+          v = v0 + ((v1 - v0) * (y - y0)) / (y1 - y0);
+          break;
+        }
+        if (y > y1) v = v1;
+      }
+      out.push({ date: `${y}-01-01`, value: +v.toFixed(2) });
+    }
+    return out;
+  })(),
+  annotations: [
+    { date: "2011-01-01", label: "Stalling" },
+    { date: "2020-01-01", label: "Covid-19" },
+  ],
+};
+
+export const allSeries = [
+  waitingList,
+  rtt18Week,
+  dischargeDelays,
+  agencySpend,
+  capitalOverrun,
+  aePerformance,
+  turnover,
+  vacancyRate,
+  lifeExpectancy,
+];
+
+// Helpers ----------------------------------------------------
+
+export function latest(series: TrendSeries): Point {
+  return series.points[series.points.length - 1];
+}
+
+export function deltaVs(series: TrendSeries, monthsBack: number) {
+  const pts = series.points;
+  const stepMonths = series.cadence === "annual" ? 12 : 1;
+  const steps = Math.round(monthsBack / stepMonths);
+  const idx = pts.length - 1 - steps;
+  if (idx < 0) return null;
+  const now = pts[pts.length - 1].value;
+  const then = pts[idx].value;
+  const diff = now - then;
+  return { diff, then, abs: Math.abs(diff) };
+}
+
+export function minMax(series: TrendSeries) {
+  let min = series.points[0];
+  let max = series.points[0];
+  for (const p of series.points) {
+    if (p.value < min.value) min = p;
+    if (p.value > max.value) max = p;
+  }
+  return { min, max };
+}
+
+export function sliceRange(series: TrendSeries, years: number | "max"): Point[] {
+  if (years === "max") return series.points;
+  const last = new Date(series.points[series.points.length - 1].date);
+  const cutoff = new Date(last);
+  cutoff.setUTCFullYear(cutoff.getUTCFullYear() - years);
+  return series.points.filter((p) => new Date(p.date) >= cutoff);
+}
+
+export function formatMonth(iso: string, opts?: { year?: boolean }) {
+  const d = new Date(iso);
+  return d.toLocaleDateString("en-GB", {
+    month: "short",
+    year: opts?.year === false ? undefined : "numeric",
+  });
+}
+
+// Workforce small multiples
+export type GroupSeries = {
+  group: string;
+  current: number;
+  delta: string;
+  points: Point[];
+};
+
+function groupSeries(
+  group: string,
+  current: number,
+  anchors: [string, number][],
+  seed: number,
+): GroupSeries {
+  const points = trajectory(anchors, "2014-01-01", "2026-04-01", seed, 0.18, 0.06);
+  const first = points[0].value;
+  const diff = current - first;
+  return {
+    group,
+    current,
+    delta: `${diff >= 0 ? "+" : ""}${diff.toFixed(1)}pp vs '14`,
+    points,
+  };
+}
+
+export const turnoverByGroup: GroupSeries[] = [
+  groupSeries(
+    "Nursing & midwifery",
+    11.8,
+    [
+      ["2014-01-01", 9.4],
+      ["2019-01-01", 11.5],
+      ["2022-06-01", 12.4],
+      ["2026-04-01", 11.8],
+    ],
+    3,
+  ),
+  groupSeries(
+    "Medical & dental",
+    7.9,
+    [
+      ["2014-01-01", 7.1],
+      ["2020-01-01", 7.6],
+      ["2026-04-01", 7.9],
+    ],
+    5,
+  ),
+  groupSeries(
+    "Allied health professionals",
+    10.2,
+    [
+      ["2014-01-01", 8.6],
+      ["2020-01-01", 9.5],
+      ["2023-01-01", 10.6],
+      ["2026-04-01", 10.2],
+    ],
+    8,
+  ),
+  groupSeries(
+    "Support to clinical staff",
+    14.6,
+    [
+      ["2014-01-01", 11.9],
+      ["2020-06-01", 13.2],
+      ["2026-04-01", 14.6],
+    ],
+    13,
+  ),
+];
