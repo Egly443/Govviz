@@ -130,11 +130,10 @@ block reads as significant — see open question.
 - Tax: direct (income tax + NI) ⇄ indirect (VAT + duties) — HMRC/ONS — **context** 🟡 (paired)
 - Public sector net borrowing (deficit) as % GDP — ONS/OBR — **C** 🟢
 
-## Open questions
+## Decisions
 
-1. **Treasury treemap size** — size its block by debt interest (~£100bn), by a
-   nominal large value, or keep it honest-but-tiny (its admin budget)?
-2. A few flagships (CSEW, HBAI, healthy life expectancy, AFCAS, tax burden) are
-   🟡 — annual ODS/Excel, more brittle and yearly-updated. Keep for integrity?
-3. Confirm DHSC running longer than other departments (deepest workforce story),
-   with workforce in its own section.
+1. **Treasury treemap size** — sized by **debt interest (~£100bn)**.
+2. **Keep the 🟡 integrity flagships** (CSEW, HBAI, healthy life expectancy,
+   AFCAS, tax burden) — worth the brittleness.
+3. **DHSC runs deepest**, and the **other departments get dug deeper too** to
+   match (more root-cause pairs / per-head metrics as each is wired).
