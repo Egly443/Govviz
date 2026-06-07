@@ -16,12 +16,21 @@ import {
   formatMonth,
   latest,
   minMax,
-  sliceRange,
+  slicePoints,
+  type SeriesLine,
   type SeriesUnit,
   type TrendSeries,
 } from "./data";
 
 type Range = 5 | 10 | 20 | "max";
+
+// Distinct, dark-background-friendly line colours for multi-line charts.
+const LINE_COLORS = [
+  "var(--primary)", // emerald
+  "#5b9cff", // blue
+  "#f6c451", // amber
+  "#c084fc", // violet
+];
 
 interface Props {
   series: TrendSeries;
@@ -41,18 +50,36 @@ export function TrendPanel({
   const ranges: Range[] = series.cadence === "annual" ? [10, 20, "max"] : [5, 10, 20, "max"];
   const [range, setRange] = useState<Range>(defaultRange);
 
-  const data = useMemo(
-    () => sliceRange(series, range === "max" ? "max" : range),
-    [series, range],
+  // Normalise to a list of lines (single-line charts become one line).
+  const lines: Required<SeriesLine>[] = useMemo(
+    () =>
+      (series.lines ?? [{ id: series.id, label: series.title, points: series.points }]).map(
+        (l, i) => ({ ...l, color: l.color ?? LINE_COLORS[i % LINE_COLORS.length] }),
+      ),
+    [series],
   );
+  const multi = lines.length > 1;
+
+  // Merge each line's sliced points into a single row-per-date dataset.
+  const data = useMemo(() => {
+    const years = range === "max" ? "max" : range;
+    const byDate = new Map<string, Record<string, number | string>>();
+    lines.forEach((l, i) => {
+      for (const p of slicePoints(l.points, years)) {
+        const row = byDate.get(p.date) ?? { date: p.date };
+        row[`l${i}`] = p.value;
+        byDate.set(p.date, row);
+      }
+    });
+    return [...byDate.values()].sort((a, b) =>
+      (a.date as string) < (b.date as string) ? -1 : 1,
+    );
+  }, [lines, range]);
 
   const current = latest(series);
-  const yoyMonths = series.cadence === "annual" ? 12 : 12;
-  const decadeMonths = series.cadence === "annual" ? 120 : 120;
-  const yoy = deltaVs(series, yoyMonths);
-  const dec = deltaVs(series, decadeMonths);
+  const yoy = deltaVs(series, 12);
+  const dec = deltaVs(series, 120);
   const { min, max } = minMax(series);
-
 
   const yFmt = (v: number) => {
     if (series.yFormat) return series.yFormat(v);
@@ -76,23 +103,28 @@ export function TrendPanel({
     }
   };
 
-  // Smart Y-domain padding
-  const values = data.map((d) => d.value);
-  const yMin = Math.min(...values);
-  const yMax = Math.max(...values);
+  // Smart Y-domain padding across every line.
+  const values = data.flatMap((d) =>
+    lines.map((_, i) => d[`l${i}`]).filter((v): v is number => typeof v === "number"),
+  );
+  const yMin = values.length ? Math.min(...values) : 0;
+  const yMax = values.length ? Math.max(...values) : 1;
   const pad = (yMax - yMin) * 0.15 || 1;
+  // Anchor positive-only series at/above 0, but allow negatives (e.g. surplus).
+  const lower = yMin >= 0 ? Math.max(0, yMin - pad) : yMin - pad;
   const yDomain: [number, number] = [
-    Math.max(0, yMin - pad),
+    lower,
     series.target ? Math.max(yMax + pad, series.target.value + pad / 2) : yMax + pad,
   ];
 
-  const visibleAnnotations = showAnnotations
-    ? series.annotations.filter(
-        (a) =>
-          new Date(a.date) >= new Date(data[0].date) &&
-          new Date(a.date) <= new Date(data[data.length - 1].date),
-      )
-    : [];
+  const visibleAnnotations =
+    showAnnotations && data.length
+      ? series.annotations.filter(
+          (a) =>
+            new Date(a.date) >= new Date(data[0].date as string) &&
+            new Date(a.date) <= new Date(data[data.length - 1].date as string),
+        )
+      : [];
 
   return (
     <div className="group relative overflow-hidden rounded-xl border border-border bg-card p-5 sm:p-6">
@@ -112,45 +144,70 @@ export function TrendPanel({
           {series.subtitle && (
             <p className="mt-0.5 text-xs text-muted-foreground">{series.subtitle}</p>
           )}
-          <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <span
-              className={`font-semibold tabular-nums text-foreground ${
-                hero ? "text-4xl sm:text-5xl" : "text-3xl"
-              }`}
-            >
-              {series.format(current.value)}
-            </span>
-            <span className="text-xs text-muted-foreground">
-              {formatMonth(current.date)}
-            </span>
-          </div>
+
+          {multi ? (
+            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">
+              {lines.map((l) => {
+                const lv = l.points[l.points.length - 1];
+                return (
+                  <span key={l.id} className="inline-flex items-baseline gap-1.5">
+                    <span
+                      className="inline-block h-2 w-2 translate-y-[-1px] rounded-full"
+                      style={{ background: l.color }}
+                    />
+                    <span className="text-xs text-muted-foreground">{l.label}</span>
+                    <span
+                      className={`tabular-nums font-semibold text-foreground ${
+                        hero ? "text-xl" : "text-lg"
+                      }`}
+                    >
+                      {lv ? series.format(lv.value) : "—"}
+                    </span>
+                  </span>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <span
+                className={`font-semibold tabular-nums text-foreground ${
+                  hero ? "text-4xl sm:text-5xl" : "text-3xl"
+                }`}
+              >
+                {series.format(current.value)}
+              </span>
+              <span className="text-xs text-muted-foreground">{formatMonth(current.date)}</span>
+            </div>
+          )}
         </div>
 
         <RangeToggle value={range} onChange={setRange} options={ranges} />
       </div>
 
-      {/* Delta chips */}
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        <DeltaChip
-          label="vs 1y"
-          delta={yoy?.diff}
-          good={series.goodDirection}
-          unit={series.unit}
-          customFormat={series.deltaFormat}
-        />
-        <DeltaChip
-          label="vs 10y"
-          delta={dec?.diff}
-          good={series.goodDirection}
-          unit={series.unit}
-          customFormat={series.deltaFormat}
-        />
-        {series.target && (
-          <span className="inline-flex items-center gap-1 rounded-full border border-border bg-surface px-2 py-0.5 text-[11px] text-muted-foreground">
-            Target {series.format(series.target.value)}
-          </span>
-        )}
-      </div>
+      {/* Delta chips (single-line only) */}
+      {!multi && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          <DeltaChip
+            label="vs 1y"
+            delta={yoy?.diff}
+            good={series.goodDirection}
+            unit={series.unit}
+            customFormat={series.deltaFormat}
+          />
+          <DeltaChip
+            label="vs 10y"
+            delta={dec?.diff}
+            good={series.goodDirection}
+            unit={series.unit}
+            customFormat={series.deltaFormat}
+          />
+          {series.target && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-border bg-surface px-2 py-0.5 text-[11px] text-muted-foreground">
+              Target {series.format(series.target.value)}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Chart */}
       <div className="mt-5 w-full" style={{ height }}>
@@ -189,7 +246,10 @@ export function TrendPanel({
                 boxShadow: "0 10px 30px -10px rgba(0,0,0,.5)",
               }}
               labelFormatter={(iso) => formatMonth(iso as string)}
-              formatter={(value: unknown) => [series.format(Number(value)), series.title]}
+              formatter={(value: unknown, name: unknown) => [
+                series.format(Number(value)),
+                name as string,
+              ]}
             />
             {series.target && (
               <ReferenceLine
@@ -221,22 +281,29 @@ export function TrendPanel({
                 }}
               />
             ))}
-            <Area
-              type="monotone"
-              dataKey="value"
-              stroke="none"
-              fill={`url(#grad-${series.id})`}
-              isAnimationActive
-            />
-            <Line
-              type="monotone"
-              dataKey="value"
-              stroke="var(--primary)"
-              strokeWidth={hero ? 2.25 : 1.85}
-              dot={false}
-              activeDot={{ r: 4, fill: "var(--primary)" }}
-              isAnimationActive
-            />
+            {!multi && (
+              <Area
+                type="monotone"
+                dataKey="l0"
+                stroke="none"
+                fill={`url(#grad-${series.id})`}
+                isAnimationActive
+              />
+            )}
+            {lines.map((l, i) => (
+              <Line
+                key={l.id}
+                type="monotone"
+                dataKey={`l${i}`}
+                name={l.label}
+                stroke={l.color}
+                strokeWidth={hero ? 2.25 : 1.85}
+                dot={false}
+                activeDot={{ r: 4, fill: l.color }}
+                connectNulls
+                isAnimationActive
+              />
+            ))}
           </ComposedChart>
         </ResponsiveContainer>
       </div>
@@ -252,16 +319,20 @@ export function TrendPanel({
         >
           Source: {series.source} ↗
         </a>
-        <span className="flex gap-3 tabular-nums">
-          <span>
-            min <span className="text-foreground">{series.shortFormat(min.value)}</span>{" "}
-            {formatMonth(min.date)}
+        {multi ? (
+          <span className="tabular-nums">{formatMonth(current.date)}</span>
+        ) : (
+          <span className="flex gap-3 tabular-nums">
+            <span>
+              min <span className="text-foreground">{series.shortFormat(min.value)}</span>{" "}
+              {formatMonth(min.date)}
+            </span>
+            <span>
+              max <span className="text-foreground">{series.shortFormat(max.value)}</span>{" "}
+              {formatMonth(max.date)}
+            </span>
           </span>
-          <span>
-            max <span className="text-foreground">{series.shortFormat(max.value)}</span>{" "}
-            {formatMonth(max.date)}
-          </span>
-        </span>
+        )}
       </div>
     </div>
   );

@@ -18,6 +18,7 @@ export type Department = {
   code: string; // url slug
   name: string; // short, for tab
   fullName: string;
+  pageTitle?: string; // H1 override; defaults to `Department for {fullName}`
   blurb: string;
   rating: string;
   synthesis: string;
@@ -30,6 +31,10 @@ export type Department = {
 
 // ----- formatting helpers -----
 const fmtPct = (v: number) => `${v.toFixed(1)}%`;
+const fmtPctWhole = (v: number) => `${v.toFixed(0)}%`;
+const fmtGbpHead = (v: number) => `£${Math.round(v).toLocaleString("en-GB")}`;
+const fmtGbpHeadShort = (v: number) => `£${(v / 1000).toFixed(0)}k`;
+const fmtPts = (v: number) => `${v.toFixed(0)}`;
 const fmtPctSigned = (v: number) =>
   `${v > 0 ? "+" : ""}${v.toFixed(1)}pp`;
 const fmtK = (v: number) => `${(v / 1000).toFixed(0)}k`;
@@ -875,6 +880,364 @@ const dftSrnDegradation: TrendSeries = {
 };
 
 // ============================================================
+// HM Treasury — economy & public finances
+// ============================================================
+const hmtGdpPerCapita: TrendSeries = {
+  id: "hmt-gdp-per-capita",
+  title: "Real GDP per head",
+  subtitle: "Chained-volume £ per person",
+  unit: "currency",
+  format: fmtGbpHead,
+  shortFormat: fmtGbpHeadShort,
+  yFormat: fmtGbpHeadShort,
+  deltaFormat: (v) => `${v > 0 ? "+" : ""}£${Math.round(v).toLocaleString("en-GB")}`,
+  goodDirection: "up",
+  source: "ONS quarterly national accounts",
+  sourceUrl: "https://www.ons.gov.uk/economy/grossdomesticproductgdp",
+  cadence: "annual",
+  points: annual(
+    [
+      [1990, 22000],
+      [2000, 26500],
+      [2007, 30600],
+      [2009, 28700],
+      [2014, 29400],
+      [2019, 31600],
+      [2020, 29400],
+      [2022, 31900],
+      [2025, 31700],
+    ],
+    1990,
+    2025,
+    201,
+    70,
+  ),
+  annotations: [
+    { date: "2008-01-01", label: "Financial crisis" },
+    { date: "2020-01-01", label: "Covid-19" },
+  ],
+};
+
+const hmtCpiPts = annual(
+  [
+    [1990, 7.0],
+    [1993, 2.6],
+    [2000, 1.2],
+    [2008, 3.6],
+    [2009, 2.2],
+    [2015, 0.4],
+    [2017, 2.7],
+    [2020, 1.0],
+    [2022, 9.1],
+    [2023, 7.3],
+    [2025, 2.6],
+  ],
+  1990,
+  2025,
+  202,
+  0.2,
+);
+const hmtWagePts = annual(
+  [
+    [1990, 9.5],
+    [1993, 3.6],
+    [2000, 4.5],
+    [2008, 3.8],
+    [2009, 1.4],
+    [2015, 2.6],
+    [2020, 1.7],
+    [2022, 6.0],
+    [2023, 7.8],
+    [2025, 4.6],
+  ],
+  1990,
+  2025,
+  203,
+  0.2,
+);
+const hmtCostOfLiving: TrendSeries = {
+  id: "hmt-cost-of-living",
+  title: "Inflation vs pay growth",
+  subtitle: "Annual % change: CPI vs average weekly earnings",
+  unit: "percent",
+  format: fmtPct,
+  shortFormat: fmtPct,
+  goodDirection: "down",
+  source: "ONS consumer prices & average weekly earnings",
+  sourceUrl: "https://www.ons.gov.uk/economy/inflationandpriceindices",
+  cadence: "annual",
+  points: hmtCpiPts,
+  lines: [
+    { id: "cpi", label: "CPI inflation", points: hmtCpiPts },
+    { id: "wages", label: "Pay growth", points: hmtWagePts },
+  ],
+  annotations: [{ date: "2022-01-01", label: "Cost-of-living crisis" }],
+};
+
+const hmtRealIncome: TrendSeries = {
+  id: "hmt-real-income",
+  title: "Real household income per head",
+  subtitle: "Real households' disposable income, £ per person",
+  unit: "currency",
+  format: fmtGbpHead,
+  shortFormat: fmtGbpHeadShort,
+  yFormat: fmtGbpHeadShort,
+  deltaFormat: (v) => `${v > 0 ? "+" : ""}£${Math.round(v).toLocaleString("en-GB")}`,
+  goodDirection: "up",
+  source: "ONS real households' disposable income",
+  sourceUrl: "https://www.ons.gov.uk/economy/nationalaccounts",
+  cadence: "annual",
+  points: annual(
+    [
+      [1990, 14200],
+      [2000, 16800],
+      [2007, 19600],
+      [2009, 19100],
+      [2019, 21000],
+      [2022, 20400],
+      [2025, 20800],
+    ],
+    1990,
+    2025,
+    204,
+    60,
+  ),
+  annotations: [],
+};
+
+const hmtProdPts = annual(
+  [
+    [1990, 80],
+    [2000, 92],
+    [2007, 100],
+    [2009, 99],
+    [2014, 101],
+    [2019, 104],
+    [2025, 106],
+  ],
+  1990,
+  2025,
+  205,
+  0.3,
+);
+const hmtRealWagePts = annual(
+  [
+    [1990, 72],
+    [2000, 88],
+    [2007, 100],
+    [2009, 99],
+    [2014, 92],
+    [2019, 97],
+    [2022, 99],
+    [2025, 98],
+  ],
+  1990,
+  2025,
+  206,
+  0.3,
+);
+const hmtProductivity: TrendSeries = {
+  id: "hmt-productivity",
+  title: "Productivity vs real wages",
+  subtitle: "Index, 2007 = 100: output per hour vs real pay",
+  unit: "count",
+  format: fmtPts,
+  shortFormat: fmtPts,
+  yFormat: fmtPts,
+  goodDirection: "up",
+  source: "ONS labour productivity & real wages",
+  sourceUrl:
+    "https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/labourproductivity",
+  cadence: "annual",
+  points: hmtProdPts,
+  lines: [
+    { id: "prod", label: "Output per hour", points: hmtProdPts },
+    { id: "wages", label: "Real wages", points: hmtRealWagePts },
+  ],
+  annotations: [{ date: "2008-01-01", label: "Productivity stalls" }],
+};
+
+const hmtDebt: TrendSeries = {
+  id: "hmt-psnd",
+  title: "Public sector net debt",
+  subtitle: "% of GDP",
+  unit: "percent",
+  format: fmtPct,
+  shortFormat: fmtPctWhole,
+  yFormat: fmtPctWhole,
+  goodDirection: "down",
+  target: { value: 40, label: "Old 40% ceiling" },
+  source: "ONS / OBR public sector finances",
+  sourceUrl:
+    "https://www.ons.gov.uk/economy/governmentpublicsectorandtaxes/publicsectorfinance",
+  cadence: "annual",
+  points: annual(
+    [
+      [1990, 28],
+      [1993, 38],
+      [2001, 29],
+      [2008, 42],
+      [2012, 80],
+      [2016, 86],
+      [2020, 96],
+      [2021, 103],
+      [2025, 98],
+    ],
+    1990,
+    2025,
+    207,
+    0.5,
+  ),
+  annotations: [
+    { date: "2008-01-01", label: "Bank bailouts" },
+    { date: "2020-01-01", label: "Covid-19" },
+  ],
+};
+
+const hmtDebtInterest: TrendSeries = {
+  id: "hmt-debt-interest",
+  title: "Debt interest",
+  subtitle: "Debt interest as % of government revenue",
+  unit: "percent",
+  format: fmtPct,
+  shortFormat: fmtPct,
+  goodDirection: "down",
+  source: "OBR economic & fiscal outlook",
+  sourceUrl: "https://obr.uk/",
+  cadence: "annual",
+  points: annual(
+    [
+      [1990, 10.5],
+      [2000, 7.5],
+      [2008, 5.0],
+      [2015, 6.0],
+      [2021, 4.6],
+      [2022, 9.2],
+      [2023, 10.4],
+      [2025, 8.1],
+    ],
+    1990,
+    2025,
+    208,
+    0.15,
+  ),
+  annotations: [{ date: "2022-01-01", label: "Rates + RPI surge" }],
+};
+
+const hmtTaxBurden: TrendSeries = {
+  id: "hmt-tax-burden",
+  title: "Total tax take",
+  subtitle: "Tax as % of GDP (the tax burden)",
+  unit: "percent",
+  format: fmtPct,
+  shortFormat: fmtPctWhole,
+  yFormat: fmtPctWhole,
+  goodDirection: "down",
+  source: "OBR / ONS public finances",
+  sourceUrl: "https://obr.uk/",
+  cadence: "annual",
+  points: annual(
+    [
+      [1990, 33.5],
+      [2000, 33.0],
+      [2010, 32.0],
+      [2019, 33.0],
+      [2022, 35.0],
+      [2024, 36.5],
+      [2025, 37.1],
+    ],
+    1990,
+    2025,
+    209,
+    0.2,
+  ),
+  annotations: [{ date: "2024-01-01", label: "Highest since 1948" }],
+};
+
+const hmtDirectPts = annual(
+  [
+    [1990, 18.0],
+    [2000, 18.6],
+    [2010, 17.4],
+    [2019, 18.6],
+    [2025, 20.2],
+  ],
+  1990,
+  2025,
+  210,
+  0.15,
+);
+const hmtIndirectPts = annual(
+  [
+    [1990, 13.2],
+    [2000, 12.6],
+    [2010, 12.4],
+    [2019, 11.6],
+    [2025, 11.0],
+  ],
+  1990,
+  2025,
+  211,
+  0.15,
+);
+const hmtTaxSplit: TrendSeries = {
+  id: "hmt-tax-split",
+  title: "Direct vs indirect tax",
+  subtitle: "% of GDP: income tax + NI vs VAT + duties",
+  unit: "percent",
+  format: fmtPct,
+  shortFormat: fmtPct,
+  goodDirection: "up",
+  source: "HMRC / ONS tax receipts",
+  sourceUrl:
+    "https://www.gov.uk/government/statistics/hmrc-tax-receipts-and-national-insurance-contributions-for-the-uk",
+  cadence: "annual",
+  points: hmtDirectPts,
+  lines: [
+    { id: "direct", label: "Direct (income tax + NI)", points: hmtDirectPts },
+    { id: "indirect", label: "Indirect (VAT + duties)", points: hmtIndirectPts },
+  ],
+  annotations: [],
+};
+
+const hmtDeficit: TrendSeries = {
+  id: "hmt-deficit",
+  title: "Budget deficit",
+  subtitle: "Public sector net borrowing, % of GDP",
+  unit: "percent",
+  format: fmtPct,
+  shortFormat: fmtPctWhole,
+  yFormat: fmtPctWhole,
+  goodDirection: "down",
+  source: "ONS / OBR public sector finances",
+  sourceUrl:
+    "https://www.ons.gov.uk/economy/governmentpublicsectorandtaxes/publicsectorfinance",
+  cadence: "annual",
+  points: annual(
+    [
+      [1990, 1.5],
+      [1993, 7.5],
+      [2001, -1.0],
+      [2008, 2.8],
+      [2010, 10.2],
+      [2016, 3.8],
+      [2019, 2.3],
+      [2020, 15.1],
+      [2023, 5.8],
+      [2025, 4.4],
+    ],
+    1990,
+    2025,
+    212,
+    0.2,
+  ),
+  annotations: [
+    { date: "2009-01-01", label: "Deficit peak" },
+    { date: "2020-01-01", label: "Covid-19" },
+  ],
+};
+
+// ============================================================
 // Registry
 // ============================================================
 export const departments: Department[] = [
@@ -912,6 +1275,7 @@ export const departments: Department[] = [
     name: "Home Office",
     spendBn: 22,
     fullName: "Home Office",
+    pageTitle: "Home Office",
     blurb:
       "Operational throughput on the highest-volume, highest-salience flows: asylum, visas, and the costs of contingency.",
     rating: "D",
@@ -976,6 +1340,22 @@ export const departments: Department[] = [
     themes: ["Reliability", "Service", "Delivery", "Assets"],
     hero: dftCancellations,
     core: [dftDvlaBacklog, dftCapitalOverrun, dftSrnDegradation],
+  },
+  {
+    code: "treasury",
+    name: "HMT",
+    spendBn: 105,
+    fullName: "Treasury",
+    pageTitle: "HM Treasury",
+    blurb:
+      "The economy and the public finances: living standards people actually feel, the cost of the national debt, and how much tax is taken in total. Sized here by debt interest, the Treasury's largest direct outlay.",
+    rating: "D",
+    synthesis:
+      "Real incomes per head have barely grown since 2008 and pay has lagged prices through the cost-of-living crisis. Debt is near 100% of GDP and debt interest has surged with rates. The tax burden is its highest since the 1940s, while productivity — the ultimate driver of pay and receipts — has flatlined.",
+    themes: ["Living standards", "Debt", "Tax", "Cost of living"],
+    hero: hmtGdpPerCapita,
+    core: [hmtCostOfLiving, hmtDebt, hmtTaxBurden, hmtDebtInterest],
+    supporting: [hmtRealIncome, hmtProductivity, hmtTaxSplit, hmtDeficit],
   },
 ];
 

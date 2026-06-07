@@ -11,6 +11,14 @@ export type SeriesUnit =
   | "count"
   | "currency";
 
+/** One line within a (possibly multi-line) chart. */
+export type SeriesLine = {
+  id: string;
+  label: string;
+  color?: string; // defaults assigned by index when omitted
+  points: Point[];
+};
+
 export type TrendSeries = {
   id: string;
   title: string;
@@ -27,7 +35,10 @@ export type TrendSeries = {
   source: string;
   sourceUrl: string;
   cadence: "monthly" | "quarterly" | "annual";
+  /** Primary line (single-line charts) or a representative line for tiles. */
   points: Point[];
+  /** When set (length > 1), the panel draws a multi-line comparison chart. */
+  lines?: SeriesLine[];
   annotations: Annotation[];
 };
 
@@ -385,37 +396,57 @@ export const turnover: TrendSeries = {
   ],
 };
 
+// Two-line: nursing vs medical vacancy rate (illustrative until CI supplies the
+// real NHS Vacancy Statistics by staff group).
+const nursingVacancyPts = trajectory(
+  [
+    ["2012-01-01", 5.4],
+    ["2015-06-01", 7.2],
+    ["2018-06-01", 8.6],
+    ["2021-09-01", 10.3],
+    ["2023-06-01", 9.4],
+    ["2026-04-01", 8.5],
+  ],
+  "2012-01-01",
+  "2026-04-01",
+  19,
+  0.18,
+  0.05,
+);
+const medicalVacancyPts = trajectory(
+  [
+    ["2012-01-01", 3.6],
+    ["2016-06-01", 5.1],
+    ["2019-06-01", 6.0],
+    ["2022-06-01", 7.4],
+    ["2024-06-01", 6.6],
+    ["2026-04-01", 6.1],
+  ],
+  "2012-01-01",
+  "2026-04-01",
+  27,
+  0.15,
+  0.04,
+);
+
 export const vacancyRate: TrendSeries = {
   id: "vacancy",
-  title: "Clinical vacancy rate",
-  subtitle: "% of funded clinical posts unfilled",
+  title: "Clinical vacancy rate: nurses vs doctors",
+  subtitle: "% of funded posts unfilled, by staff group",
   unit: "percent",
   format: fmtPct,
   shortFormat: fmtPct,
   goodDirection: "down",
-  source: "NHS England vacancy statistics",
+  source: "NHS England NHS Vacancy Statistics",
   sourceUrl:
     "https://digital.nhs.uk/data-and-information/publications/statistical/nhs-vacancies-survey",
   cadence: "monthly",
-  points: trajectory(
-    [
-      ["2015-01-01", 6.0],
-      ["2018-06-01", 8.0],
-      ["2020-03-01", 8.2],
-      ["2021-09-01", 9.7],
-      ["2023-06-01", 9.1],
-      ["2026-04-01", 8.4],
-    ],
-    "2015-01-01",
-    "2026-04-01",
-    19,
-    0.18,
-    0.05,
-  ),
-  annotations: [
-    { date: "2020-03-01", label: "Covid-19" },
-    { date: "2022-06-01", label: "Peak shortages" },
+  points: nursingVacancyPts,
+  lines: [
+    { id: "nursing", label: "Nursing & midwifery", points: nursingVacancyPts },
+    { id: "medical", label: "Medical", points: medicalVacancyPts },
   ],
+  annotations: [{ date: "2020-03-01", label: "Covid-19" }],
 };
 
 export const lifeExpectancy: TrendSeries = {
@@ -503,12 +534,16 @@ export function minMax(series: TrendSeries) {
   return { min, max };
 }
 
-export function sliceRange(series: TrendSeries, years: number | "max"): Point[] {
-  if (years === "max") return series.points;
-  const last = new Date(series.points[series.points.length - 1].date);
+export function slicePoints(points: Point[], years: number | "max"): Point[] {
+  if (years === "max" || points.length === 0) return points;
+  const last = new Date(points[points.length - 1].date);
   const cutoff = new Date(last);
   cutoff.setUTCFullYear(cutoff.getUTCFullYear() - years);
-  return series.points.filter((p) => new Date(p.date) >= cutoff);
+  return points.filter((p) => new Date(p.date) >= cutoff);
+}
+
+export function sliceRange(series: TrendSeries, years: number | "max"): Point[] {
+  return slicePoints(series.points, years);
 }
 
 export function formatMonth(iso: string, opts?: { year?: boolean }) {

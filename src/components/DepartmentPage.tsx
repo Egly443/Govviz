@@ -34,7 +34,7 @@ export function DepartmentPage({ department: dept }: Props) {
               <span className="text-foreground">{dept.fullName}</span>
             </nav>
             <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
-              {dept.fullName === "Home Office" ? "Home Office" : `Department for ${dept.fullName}`}
+              {dept.pageTitle ?? `Department for ${dept.fullName}`}
             </h1>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{dept.blurb}</p>
           </div>

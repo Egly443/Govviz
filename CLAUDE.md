@@ -42,7 +42,13 @@ theme in `src/styles.css`), **Recharts**, **d3-hierarchy**, **lucide-react**.
 - `.github/workflows/deploy.yml` builds on push to `main` and deploys via the
   official Pages actions; it copies `index.html` → `404.html` as the SPA
   deep-link fallback. **Deploys run from `main` only**, so changes must reach
-  `main` (open a PR) to go live. Pages source must be "GitHub Actions".
+  `main` (open a PR) to go live.
+- **Pages "Source" must be "GitHub Actions", not "Deploy from a branch".** If a
+  `pages build and deployment` workflow run appears on each push, the source is
+  set to the branch and GitHub serves the **raw repo source** (`/src/main.tsx`,
+  no CSS) → blank page + GitHub's own 404 on deep links. Fix in repo Settings →
+  Pages → Build and deployment → Source → GitHub Actions. Assets use stable
+  (non-hashed) filenames so an edge-cached index.html can't reference purged files.
 
 ## Environment gotchas (Claude Code on the web)
 
