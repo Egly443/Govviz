@@ -27,28 +27,32 @@ function onsDate(o) {
   return null;
 }
 
-// ONS time-series open API → clean JSON, no key, stable.
-// https://api.ons.gov.uk/timeseries/{cdid}/dataset/{dataset}/data
-async function ons(cdid, dataset, freq = "years") {
-  const url = `https://api.ons.gov.uk/timeseries/${cdid.toLowerCase()}/dataset/${dataset.toLowerCase()}/data`;
+// ONS publishes JSON for any time series by appending /data to its page URL:
+// https://www.ons.gov.uk/{topic}/timeseries/{cdid}/{dataset}/data
+async function ons(topic, cdid, dataset, freq = "years") {
+  const url = `https://www.ons.gov.uk/${topic}/timeseries/${cdid.toLowerCase()}/${dataset.toLowerCase()}/data`;
   const res = await fetch(url, { headers: { accept: "application/json" } });
-  if (!res.ok) throw new Error(`ONS ${cdid}/${dataset} → HTTP ${res.status}`);
+  if (!res.ok) throw new Error(`${cdid}/${dataset} → HTTP ${res.status} (${url})`);
   const j = await res.json();
-  const arr = j[freq] || [];
+  let arr = j[freq] || [];
+  if (!arr.length) arr = j.quarters || j.months || [];
   const points = arr
     .map((o) => ({ date: onsDate(o), value: Number(o.value) }))
     .filter((p) => p.date && Number.isFinite(p.value));
-  if (!points.length) throw new Error(`ONS ${cdid}/${dataset} ${freq}: no usable points`);
+  if (!points.length) throw new Error(`${cdid}/${dataset}: no usable points`);
   return points;
 }
+
+const INFLATION = "economy/inflationandpriceindices";
+const PUBFIN = "economy/governmentpublicsectorandtaxes/publicsectorfinance";
 
 // Manifest. `id` = TrendSeries id; `line` = which line of a multi-line chart.
 // CDIDs are best-effort and verified/iterated against CI fetch logs.
 const SOURCES = [
-  // Public sector net debt (ex public sector banks) as % of GDP.
-  { id: "hmt-psnd", get: () => ons("HF6X", "pusf", "years") },
   // CPI 12-month inflation rate → the CPI line of the cost-of-living chart.
-  { id: "hmt-cost-of-living", line: "cpi", get: () => ons("D7G7", "mm23", "years") },
+  { id: "hmt-cost-of-living", line: "cpi", get: () => ons(INFLATION, "D7G7", "mm23", "years") },
+  // Public sector net debt (ex public sector banks) as % of GDP.
+  { id: "hmt-psnd", get: () => ons(PUBFIN, "HF6X", "pusf", "years") },
 ];
 
 const out = {};
