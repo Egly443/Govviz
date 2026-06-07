@@ -110,8 +110,10 @@ export function TrendPanel({
   const yMin = values.length ? Math.min(...values) : 0;
   const yMax = values.length ? Math.max(...values) : 1;
   const pad = (yMax - yMin) * 0.15 || 1;
+  // Anchor positive-only series at/above 0, but allow negatives (e.g. surplus).
+  const lower = yMin >= 0 ? Math.max(0, yMin - pad) : yMin - pad;
   const yDomain: [number, number] = [
-    Math.max(0, yMin - pad),
+    lower,
     series.target ? Math.max(yMax + pad, series.target.value + pad / 2) : yMax + pad,
   ];
 
