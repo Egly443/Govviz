@@ -1,3 +1,5 @@
+import { SERIES_DATA } from "../generated/seriesData";
+
 export type Point = { date: string; value: number };
 export type Annotation = { date: string; label: string };
 
@@ -41,6 +43,17 @@ export type TrendSeries = {
   lines?: SeriesLine[];
   annotations: Annotation[];
 };
+
+// Real fetched data (baked in CI) overrides the bundled illustrative series.
+// With an empty SERIES_DATA (dev/offline), the fallback is used unchanged.
+export function realPoints(id: string, fallback: Point[]): Point[] {
+  const p = SERIES_DATA[id]?.points;
+  return p && p.length ? p : fallback;
+}
+export function realLine(id: string, lineId: string, fallback: Point[]): Point[] {
+  const l = SERIES_DATA[id]?.lines?.find((x) => x.id === lineId);
+  return l && l.points.length ? l.points : fallback;
+}
 
 // Deterministic pseudo-noise
 export function noise(seed: number) {

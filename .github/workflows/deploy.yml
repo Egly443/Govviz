@@ -32,6 +32,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Fetch official statistics and bake them into src/generated/seriesData.ts.
+      # Best-effort: any source that fails is skipped (bundled illustrative data
+      # is used for it); never fails the build.
+      - name: Fetch live data
+        run: node scripts/build-data.mjs
+        continue-on-error: true
+
       - name: Build
         run: npm run build
 
