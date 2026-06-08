@@ -53,6 +53,8 @@ const SOURCES = [
   { id: "hmt-cost-of-living", line: "cpi", get: () => ons(INFLATION, "D7G7", "mm23", "years") },
   // Public sector net debt (ex public sector banks) as % of GDP.
   { id: "hmt-psnd", get: () => ons(PUBFIN, "HF6X", "pusf", "years") },
+  // Public sector net debt (ex banks) cash level, £mn → stored as £bn.
+  { id: "hmt-psnd-cash", scale: 1 / 1000, get: () => ons(PUBFIN, "HF6W", "pusf", "years") },
 ];
 
 const out = {};
@@ -61,7 +63,8 @@ let fail = 0;
 for (const s of SOURCES) {
   const tag = `${s.id}${s.line ? ":" + s.line : ""}`;
   try {
-    const points = await s.get();
+    let points = await s.get();
+    if (s.scale) points = points.map((p) => ({ date: p.date, value: p.value * s.scale }));
     out[s.id] ??= {};
     if (s.line) (out[s.id].lines ??= []).push({ id: s.line, points });
     else out[s.id].points = points;

@@ -37,6 +37,8 @@ const fmtPctWhole = (v: number) => `${v.toFixed(0)}%`;
 const fmtGbpHead = (v: number) => `£${Math.round(v).toLocaleString("en-GB")}`;
 const fmtGbpHeadShort = (v: number) => `£${(v / 1000).toFixed(0)}k`;
 const fmtPts = (v: number) => `${v.toFixed(0)}`;
+const fmtGbpTn = (v: number) => `£${(v / 1000).toFixed(2)}tn`;
+const fmtGbpTnShort = (v: number) => `£${(v / 1000).toFixed(1)}tn`;
 const fmtPctSigned = (v: number) =>
   `${v > 0 ? "+" : ""}${v.toFixed(1)}pp`;
 const fmtK = (v: number) => `${(v / 1000).toFixed(0)}k`;
@@ -1099,6 +1101,51 @@ const hmtDebt: TrendSeries = {
   ],
 };
 
+const hmtDebtCash: TrendSeries = {
+  id: "hmt-psnd-cash",
+  title: "National debt in cash terms",
+  subtitle: "Public sector net debt ex banks, £ trillion",
+  unit: "currency",
+  format: fmtGbpTn,
+  shortFormat: fmtGbpTnShort,
+  yFormat: fmtGbpTnShort,
+  deltaFormat: (v) => `${v > 0 ? "+" : ""}£${Math.round(v)}bn`,
+  goodDirection: "down",
+  target: { value: 3000, label: "£3tn" },
+  source: "ONS / OBR public sector finances",
+  sourceUrl:
+    "https://www.ons.gov.uk/economy/governmentpublicsectorandtaxes/publicsectorfinance",
+  cadence: "annual",
+  // Stored in £ billion; formatted as £ trillion.
+  points: realPoints(
+    "hmt-psnd-cash",
+    annual(
+      [
+        [1993, 300],
+        [2000, 350],
+        [2008, 520],
+        [2010, 1000],
+        [2012, 1190],
+        [2015, 1540],
+        [2018, 1740],
+        [2020, 1880],
+        [2021, 2230],
+        [2022, 2480],
+        [2024, 2690],
+        [2025, 2810],
+      ],
+      1993,
+      2025,
+      213,
+      6,
+    ),
+  ),
+  annotations: [
+    { date: "2008-01-01", label: "Financial crisis" },
+    { date: "2020-01-01", label: "Covid-19" },
+  ],
+};
+
 const hmtDebtInterest: TrendSeries = {
   id: "hmt-debt-interest",
   title: "Debt interest",
@@ -1359,7 +1406,7 @@ export const departments: Department[] = [
       "Real incomes per head have barely grown since 2008 and pay has lagged prices through the cost-of-living crisis. Debt is near 100% of GDP and debt interest has surged with rates. The tax burden is its highest since the 1940s, while productivity — the ultimate driver of pay and receipts — has flatlined.",
     themes: ["Living standards", "Debt", "Tax", "Cost of living"],
     hero: hmtGdpPerCapita,
-    core: [hmtCostOfLiving, hmtDebt, hmtTaxBurden, hmtDebtInterest],
+    core: [hmtCostOfLiving, hmtDebt, hmtDebtCash, hmtTaxBurden, hmtDebtInterest],
     supporting: [hmtRealIncome, hmtProductivity, hmtTaxSplit, hmtDeficit],
   },
 ];
