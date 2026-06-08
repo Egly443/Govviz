@@ -53,22 +53,21 @@ const GDP = "economy/grossdomesticproductgdp";
 // CDIDs are best-effort and verified/corrected against CI fetch logs — wrong
 // codes 404 (skip) or fail the guard (skip), so the build never shows bad data.
 const SOURCES = [
-  // --- confirmed working ---
+  // --- confirmed working (real ONS data) ---
   { id: "hmt-cost-of-living", line: "cpi", min: -5, max: 30, get: () => ons(INFLATION, "D7G7", "mm23", "years") },
   { id: "hmt-psnd", min: 10, max: 130, get: () => ons(PUBFIN, "HF6X", "pusf", "years") },
-  { id: "hmt-psnd-cash", scale: 1 / 1000, min: 200, max: 4000, get: () => ons(PUBFIN, "HF6W", "pusf", "years") },
-
-  // --- new batch (guarded best-effort CDIDs) ---
-  // Average weekly earnings, total pay annual growth → wages line.
-  { id: "hmt-cost-of-living", line: "wages", min: -10, max: 30, get: () => ons(EARN, "KAC3", "lms", "years") },
-  // Public sector net borrowing (deficit) as % of GDP.
+  // HF6W is already in £ billion (latest ~2925 = £2.93tn) — no scaling.
+  { id: "hmt-psnd-cash", min: 200, max: 4000, get: () => ons(PUBFIN, "HF6W", "pusf", "years") },
   { id: "hmt-deficit", min: -8, max: 25, get: () => ons(PUBFIN, "J5IK", "pusf", "years") },
-  // Total current receipts (the tax burden) as % of GDP.
-  { id: "hmt-tax-burden", min: 25, max: 45, get: () => ons(PUBFIN, "MF6U", "pusf", "years") },
-  // Real GDP per head, £ (guard rejects an index, which would be ~100).
-  { id: "hmt-gdp-per-capita", min: 12000, max: 50000, get: () => ons(GDP, "IHXW", "qna", "years") },
-  // Real households' disposable income per head, £.
-  { id: "hmt-real-income", min: 10000, max: 35000, get: () => ons(GDP, "RVZR", "qna", "years") },
+
+  // --- in progress ---
+  // AWE total pay annual growth → wages line (dataset emp, not lms).
+  { id: "hmt-cost-of-living", line: "wages", min: -10, max: 30, get: () => ons(EARN, "KAC3", "emp", "years") },
+
+  // --- TODO: guesses returned the wrong metric; need verified CDIDs ---
+  // hmt-tax-burden     MF6U is receipts £m, not the %-of-GDP ratio.
+  // hmt-gdp-per-capita IHXW resolves but may be nominal; need chained-volume £/head.
+  // hmt-real-income    RVZR 404; need real households' disposable income per head.
 ];
 
 const out = {};
