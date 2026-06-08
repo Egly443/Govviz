@@ -1152,6 +1152,50 @@ const hmtDebtCash: TrendSeries = {
   ],
 };
 
+const hmtUnemployment: TrendSeries = {
+  id: "hmt-unemployment",
+  title: "Unemployment rate",
+  subtitle: "% of the economically active, aged 16+",
+  unit: "percent",
+  format: fmtPct,
+  shortFormat: fmtPct,
+  goodDirection: "down",
+  source: "ONS Labour Force Survey",
+  sourceUrl:
+    "https://www.ons.gov.uk/employmentandlabourmarket/peoplenotinwork/unemployment",
+  cadence: "monthly",
+  points: realPoints(
+    "hmt-unemployment",
+    trajectory(
+      [
+        ["1971-01-01", 3.6],
+        ["1976-01-01", 5.5],
+        ["1984-06-01", 11.9],
+        ["1990-01-01", 6.9],
+        ["1993-01-01", 10.6],
+        ["2000-01-01", 5.4],
+        ["2008-06-01", 5.3],
+        ["2011-10-01", 8.4],
+        ["2016-01-01", 5.0],
+        ["2019-12-01", 3.8],
+        ["2020-10-01", 5.1],
+        ["2022-06-01", 3.7],
+        ["2025-06-01", 4.5],
+      ],
+      "1971-01-01",
+      "2025-06-01",
+      220,
+      0.12,
+      0,
+    ),
+  ),
+  annotations: [
+    { date: "1984-01-01", label: "Deindustrialisation" },
+    { date: "2008-01-01", label: "Financial crisis" },
+    { date: "2020-01-01", label: "Covid-19" },
+  ],
+};
+
 const hmtDebtInterest: TrendSeries = {
   id: "hmt-debt-interest",
   title: "Debt interest",
@@ -1419,7 +1463,7 @@ export const departments: Department[] = [
     themes: ["Living standards", "Debt", "Tax", "Cost of living"],
     hero: hmtGdpPerCapita,
     core: [hmtCostOfLiving, hmtDebt, hmtDebtCash, hmtTaxBurden, hmtDebtInterest],
-    supporting: [hmtRealIncome, hmtProductivity, hmtTaxSplit, hmtDeficit],
+    supporting: [hmtUnemployment, hmtRealIncome, hmtProductivity, hmtTaxSplit, hmtDeficit],
   },
 ];
 

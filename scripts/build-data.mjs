@@ -29,24 +29,45 @@ function onsDate(o) {
 
 // ONS publishes JSON for any time series by appending /data to its page URL:
 // https://www.ons.gov.uk/{topic}/timeseries/{cdid}/{dataset}/data
+// `topic` and `dataset` may be arrays — every combination is tried until one
+// returns usable data (auto-resolves the right dataset without guessing).
 async function ons(topic, cdid, dataset, freq = "years") {
-  const url = `https://www.ons.gov.uk/${topic}/timeseries/${cdid.toLowerCase()}/${dataset.toLowerCase()}/data`;
-  const res = await fetch(url, { headers: { accept: "application/json" } });
-  if (!res.ok) throw new Error(`${cdid}/${dataset} → HTTP ${res.status} (${url})`);
-  const j = await res.json();
-  let arr = j[freq] || [];
-  if (!arr.length) arr = j.quarters || j.months || [];
-  const points = arr
-    .map((o) => ({ date: onsDate(o), value: Number(o.value) }))
-    .filter((p) => p.date && Number.isFinite(p.value));
-  if (!points.length) throw new Error(`${cdid}/${dataset}: no usable points`);
-  return points;
+  const topics = Array.isArray(topic) ? topic : [topic];
+  const datasets = Array.isArray(dataset) ? dataset : [dataset];
+  let lastErr;
+  for (const t of topics) {
+    for (const ds of datasets) {
+      const url = `https://www.ons.gov.uk/${t}/timeseries/${cdid.toLowerCase()}/${ds.toLowerCase()}/data`;
+      try {
+        const res = await fetch(url, { headers: { accept: "application/json" } });
+        if (!res.ok) {
+          lastErr = new Error(`${cdid}/${ds} → HTTP ${res.status}`);
+          continue;
+        }
+        const j = await res.json();
+        let arr = j[freq] || [];
+        if (!arr.length) arr = j.quarters || j.months || [];
+        const points = arr
+          .map((o) => ({ date: onsDate(o), value: Number(o.value) }))
+          .filter((p) => p.date && Number.isFinite(p.value));
+        if (!points.length) {
+          lastErr = new Error(`${cdid}/${ds}: no usable points`);
+          continue;
+        }
+        return points;
+      } catch (e) {
+        lastErr = e;
+      }
+    }
+  }
+  throw lastErr || new Error(`${cdid}: no dataset matched`);
 }
 
 const INFLATION = "economy/inflationandpriceindices";
 const PUBFIN = "economy/governmentpublicsectorandtaxes/publicsectorfinance";
 const EARN = "employmentandlabourmarket/peopleinwork/earningsandworkinghours";
 const GDP = "economy/grossdomesticproductgdp";
+const UNEMP = "employmentandlabourmarket/peoplenotinwork/unemployment";
 
 // Manifest. `id` = TrendSeries id; `line` = a line of a multi-line chart;
 // `min`/`max` guard the latest value; `scale` multiplies raw values.
@@ -60,9 +81,12 @@ const SOURCES = [
   { id: "hmt-psnd-cash", min: 200, max: 4000, get: () => ons(PUBFIN, "HF6W", "pusf", "years") },
   { id: "hmt-deficit", min: -8, max: 25, get: () => ons(PUBFIN, "J5IK", "pusf", "years") },
 
+  // Unemployment rate (16+), LFS, monthly since 1971.
+  { id: "hmt-unemployment", min: 1, max: 20, get: () => ons(UNEMP, "MGSX", ["lms"], "months") },
+
   // --- in progress ---
-  // AWE total pay annual growth → wages line (dataset emp, not lms).
-  { id: "hmt-cost-of-living", line: "wages", min: -10, max: 30, get: () => ons(EARN, "KAC3", "emp", "years") },
+  // AWE total pay annual growth → wages line (try several datasets).
+  { id: "hmt-cost-of-living", line: "wages", min: -10, max: 30, get: () => ons(EARN, "KAC3", ["lms", "emp"], "years") },
 
   // --- TODO: guesses returned the wrong metric; need verified CDIDs ---
   // hmt-tax-burden     MF6U is receipts £m, not the %-of-GDP ratio.
