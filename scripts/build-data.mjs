@@ -45,16 +45,30 @@ async function ons(topic, cdid, dataset, freq = "years") {
 
 const INFLATION = "economy/inflationandpriceindices";
 const PUBFIN = "economy/governmentpublicsectorandtaxes/publicsectorfinance";
+const EARN = "employmentandlabourmarket/peopleinwork/earningsandworkinghours";
+const GDP = "economy/grossdomesticproductgdp";
 
-// Manifest. `id` = TrendSeries id; `line` = which line of a multi-line chart.
-// CDIDs are best-effort and verified/iterated against CI fetch logs.
+// Manifest. `id` = TrendSeries id; `line` = a line of a multi-line chart;
+// `min`/`max` guard the latest value; `scale` multiplies raw values.
+// CDIDs are best-effort and verified/corrected against CI fetch logs — wrong
+// codes 404 (skip) or fail the guard (skip), so the build never shows bad data.
 const SOURCES = [
-  // CPI 12-month inflation rate → the CPI line of the cost-of-living chart.
-  { id: "hmt-cost-of-living", line: "cpi", get: () => ons(INFLATION, "D7G7", "mm23", "years") },
-  // Public sector net debt (ex public sector banks) as % of GDP.
-  { id: "hmt-psnd", get: () => ons(PUBFIN, "HF6X", "pusf", "years") },
-  // Public sector net debt (ex banks) cash level, £mn → stored as £bn.
-  { id: "hmt-psnd-cash", scale: 1 / 1000, get: () => ons(PUBFIN, "HF6W", "pusf", "years") },
+  // --- confirmed working ---
+  { id: "hmt-cost-of-living", line: "cpi", min: -5, max: 30, get: () => ons(INFLATION, "D7G7", "mm23", "years") },
+  { id: "hmt-psnd", min: 10, max: 130, get: () => ons(PUBFIN, "HF6X", "pusf", "years") },
+  { id: "hmt-psnd-cash", scale: 1 / 1000, min: 200, max: 4000, get: () => ons(PUBFIN, "HF6W", "pusf", "years") },
+
+  // --- new batch (guarded best-effort CDIDs) ---
+  // Average weekly earnings, total pay annual growth → wages line.
+  { id: "hmt-cost-of-living", line: "wages", min: -10, max: 30, get: () => ons(EARN, "KAC3", "lms", "years") },
+  // Public sector net borrowing (deficit) as % of GDP.
+  { id: "hmt-deficit", min: -8, max: 25, get: () => ons(PUBFIN, "J5IK", "pusf", "years") },
+  // Total current receipts (the tax burden) as % of GDP.
+  { id: "hmt-tax-burden", min: 25, max: 45, get: () => ons(PUBFIN, "MF6U", "pusf", "years") },
+  // Real GDP per head, £ (guard rejects an index, which would be ~100).
+  { id: "hmt-gdp-per-capita", min: 12000, max: 50000, get: () => ons(GDP, "IHXW", "qna", "years") },
+  // Real households' disposable income per head, £.
+  { id: "hmt-real-income", min: 10000, max: 35000, get: () => ons(GDP, "RVZR", "qna", "years") },
 ];
 
 const out = {};
@@ -65,6 +79,10 @@ for (const s of SOURCES) {
   try {
     let points = await s.get();
     if (s.scale) points = points.map((p) => ({ date: p.date, value: p.value * s.scale }));
+    // Sanity guard: a wrong-but-resolving code can't show wrong data.
+    const last = points[points.length - 1].value;
+    if ((s.min != null && last < s.min) || (s.max != null && last > s.max))
+      throw new Error(`latest ${last} outside expected [${s.min ?? "-∞"},${s.max ?? "∞"}] — wrong series?`);
     out[s.id] ??= {};
     if (s.line) (out[s.id].lines ??= []).push({ id: s.line, points });
     else out[s.id].points = points;
