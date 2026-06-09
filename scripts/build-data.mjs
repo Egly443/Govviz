@@ -109,6 +109,18 @@ const SOURCES = [
   { id: "dhsc-beds-per-1000", min: 1, max: 12, get: () => wb("SH.MED.BEDS.ZS") },
   { id: "life-expectancy", min: 60, max: 90, get: () => wb("SP.DYN.LE00.IN") },
 
+  // --- World Bank cross-department batch (international, hard-to-fudge) ---
+  { id: "dhsc-health-spend-gdp", min: 3, max: 20, get: () => wb("SH.XPD.CHEX.GD.ZS") },
+  { id: "dhsc-infant-mortality", min: 1, max: 40, get: () => wb("SP.DYN.IMRT.IN") },
+  { id: "dfe-edu-spend-gdp", min: 2, max: 9, get: () => wb("SE.XPD.TOTL.GD.ZS") },
+  { id: "dfe-pupil-teacher", min: 8, max: 40, get: () => wb("SE.PRM.ENRL.TC.ZS") },
+  { id: "ho-homicide-rate", min: 0, max: 5, get: () => wb("VC.IHR.PSRC.P5") },
+  { id: "mod-defence-spend-gdp", min: 0, max: 10, get: () => wb("MS.MIL.XPND.GD.ZS") },
+  { id: "dwp-pop-65", min: 5, max: 30, get: () => wb("SP.POP.65UP.TO.ZS") },
+  { id: "dft-road-death-rate", min: 0, max: 20, get: () => wb("SH.STA.TRAF.P5") },
+  // Real GDP per head, constant LCU (replaces the unverified ONS guess).
+  { id: "hmt-gdp-per-capita", min: 15000, max: 70000, get: () => wb("NY.GDP.PCAP.KD") },
+
   // --- in progress ---
   // AWE total pay annual growth → wages line (try several datasets).
   { id: "hmt-cost-of-living", line: "wages", min: -10, max: 30, get: () => ons(EARN, "KAC3", ["lms", "emp"], "years") },

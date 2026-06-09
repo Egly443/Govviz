@@ -547,6 +547,55 @@ export const hospitalBeds: TrendSeries = {
   annotations: [],
 };
 
+export const healthSpendGdp: TrendSeries = {
+  id: "dhsc-health-spend-gdp",
+  title: "Health spending (% of GDP)",
+  subtitle: "Total current health expenditure, % of GDP",
+  unit: "percent",
+  format: fmtPct,
+  shortFormat: fmtPct,
+  goodDirection: "up",
+  source: "World Bank (WHO/OECD)",
+  sourceUrl: "https://data.worldbank.org/indicator/SH.XPD.CHEX.GD.ZS?locations=GB",
+  cadence: "annual",
+  points: realPoints(
+    "dhsc-health-spend-gdp",
+    annualSeries(
+      [[2000, 6.0], [2008, 8.4], [2012, 8.3], [2019, 10.0], [2021, 11.9], [2022, 11.3]],
+      2000,
+      2022,
+      310,
+      0.05,
+    ),
+  ),
+  annotations: [{ date: "2020-01-01", label: "Covid-19" }],
+};
+
+export const infantMortality: TrendSeries = {
+  id: "dhsc-infant-mortality",
+  title: "Infant mortality",
+  subtitle: "Deaths under age 1 per 1,000 live births",
+  unit: "count",
+  format: (v) => v.toFixed(1),
+  shortFormat: (v) => v.toFixed(1),
+  yFormat: (v) => v.toFixed(1),
+  goodDirection: "down",
+  source: "World Bank (UN IGME)",
+  sourceUrl: "https://data.worldbank.org/indicator/SP.DYN.IMRT.IN?locations=GB",
+  cadence: "annual",
+  points: realPoints(
+    "dhsc-infant-mortality",
+    annualSeries(
+      [[1960, 22], [1980, 12], [2000, 5.6], [2010, 4.3], [2018, 3.7], [2022, 3.6]],
+      1960,
+      2022,
+      311,
+      0.05,
+    ),
+  ),
+  annotations: [],
+};
+
 export const lifeExpectancy: TrendSeries = {
   id: "life-expectancy",
   title: "Life expectancy at birth",

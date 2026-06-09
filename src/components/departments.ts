@@ -4,7 +4,9 @@ import {
   capitalOverrun,
   clinicalPer1000,
   dischargeDelays,
+  healthSpendGdp,
   hospitalBeds,
+  infantMortality,
   lifeExpectancy,
   noise,
   realLine,
@@ -1348,6 +1350,106 @@ const hmtDeficit: TrendSeries = {
 };
 
 // ============================================================
+// World Bank international indicators (real, hard-to-fudge)
+// ============================================================
+const fmt1 = (v: number) => v.toFixed(1);
+const fmt0 = (v: number) => v.toFixed(0);
+
+const dfeEduSpendGdp: TrendSeries = {
+  id: "dfe-edu-spend-gdp",
+  title: "Education spending (% of GDP)",
+  subtitle: "Government expenditure on education, % of GDP",
+  unit: "percent",
+  format: fmtPct,
+  shortFormat: fmtPct,
+  goodDirection: "up",
+  source: "World Bank (UNESCO)",
+  sourceUrl: "https://data.worldbank.org/indicator/SE.XPD.TOTL.GD.ZS?locations=GB",
+  cadence: "annual",
+  points: realPoints("dfe-edu-spend-gdp", annual([[2000, 4.3], [2010, 5.5], [2015, 4.7], [2020, 5.2], [2021, 5.1]], 2000, 2021, 320, 0.05)),
+  annotations: [],
+};
+
+const dfePupilTeacher: TrendSeries = {
+  id: "dfe-pupil-teacher",
+  title: "Pupil–teacher ratio (primary)",
+  subtitle: "Pupils per teacher, primary schools",
+  unit: "count",
+  format: fmt0,
+  shortFormat: fmt0,
+  yFormat: fmt0,
+  goodDirection: "down",
+  source: "World Bank (UNESCO)",
+  sourceUrl: "https://data.worldbank.org/indicator/SE.PRM.ENRL.TC.ZS?locations=GB",
+  cadence: "annual",
+  points: realPoints("dfe-pupil-teacher", annual([[2000, 19.4], [2010, 19.8], [2015, 20.9], [2020, 20.2]], 2000, 2021, 321, 0.05)),
+  annotations: [],
+};
+
+const hoHomicideRate: TrendSeries = {
+  id: "ho-homicide-rate",
+  title: "Homicide rate",
+  subtitle: "Intentional homicides per 100,000 people",
+  unit: "count",
+  format: fmt1,
+  shortFormat: fmt1,
+  yFormat: fmt1,
+  goodDirection: "down",
+  source: "World Bank (UNODC)",
+  sourceUrl: "https://data.worldbank.org/indicator/VC.IHR.PSRC.P5?locations=GB",
+  cadence: "annual",
+  points: realPoints("ho-homicide-rate", annual([[2000, 1.6], [2008, 1.3], [2014, 0.9], [2018, 1.2], [2021, 1.0]], 2000, 2021, 322, 0.03)),
+  annotations: [],
+};
+
+const modDefenceSpendGdp: TrendSeries = {
+  id: "mod-defence-spend-gdp",
+  title: "Defence spending (% of GDP)",
+  subtitle: "Military expenditure, % of GDP",
+  unit: "percent",
+  format: fmtPct,
+  shortFormat: fmtPct,
+  goodDirection: "up",
+  target: { value: 2.0, label: "NATO 2% target" },
+  source: "World Bank (SIPRI)",
+  sourceUrl: "https://data.worldbank.org/indicator/MS.MIL.XPND.GD.ZS?locations=GB",
+  cadence: "annual",
+  points: realPoints("mod-defence-spend-gdp", annual([[1990, 3.6], [2000, 2.4], [2010, 2.4], [2019, 2.0], [2023, 2.3]], 1990, 2023, 323, 0.04)),
+  annotations: [{ date: "2022-02-01", label: "Ukraine invasion" }],
+};
+
+const dwpPop65: TrendSeries = {
+  id: "dwp-pop-65",
+  title: "Population aged 65+",
+  subtitle: "% of total population (pension pressure)",
+  unit: "percent",
+  format: fmtPct,
+  shortFormat: fmtPct,
+  goodDirection: "down",
+  source: "World Bank (UN Population)",
+  sourceUrl: "https://data.worldbank.org/indicator/SP.POP.65UP.TO.ZS?locations=GB",
+  cadence: "annual",
+  points: realPoints("dwp-pop-65", annual([[1990, 15.7], [2000, 15.8], [2010, 16.4], [2020, 18.6], [2022, 19.2]], 1990, 2022, 324, 0.03)),
+  annotations: [],
+};
+
+const dftRoadDeathRate: TrendSeries = {
+  id: "dft-road-death-rate",
+  title: "Road deaths per 100,000",
+  subtitle: "Mortality from road traffic injury, per 100,000",
+  unit: "count",
+  format: fmt1,
+  shortFormat: fmt1,
+  yFormat: fmt1,
+  goodDirection: "down",
+  source: "World Bank (WHO)",
+  sourceUrl: "https://data.worldbank.org/indicator/SH.STA.TRAF.P5?locations=GB",
+  cadence: "annual",
+  points: realPoints("dft-road-death-rate", annual([[2000, 6.1], [2010, 3.7], [2015, 2.9], [2019, 2.9], [2021, 2.6]], 2000, 2021, 325, 0.04)),
+  annotations: [],
+};
+
+// ============================================================
 // Registry
 // ============================================================
 export const departments: Department[] = [
@@ -1364,7 +1466,7 @@ export const departments: Department[] = [
     themes: ["Waiting list", "Urgent care", "Workforce", "Capital"],
     hero: waitingList,
     core: [rtt18Week, dischargeDelays, agencySpend, capitalOverrun],
-    supporting: [aePerformance, clinicalPer1000, hospitalBeds, turnover, vacancyRate, lifeExpectancy],
+    supporting: [aePerformance, clinicalPer1000, hospitalBeds, healthSpendGdp, infantMortality, turnover, vacancyRate, lifeExpectancy],
   },
   {
     code: "dfe",
@@ -1379,6 +1481,7 @@ export const departments: Department[] = [
     themes: ["Attainment", "Workforce", "Funding", "Pipeline"],
     hero: dfeAttainmentGap,
     core: [dfeEctAttrition, dfeDsgDeficit, dfeTeacherRecruitment],
+    supporting: [dfeEduSpendGdp, dfePupilTeacher],
   },
   {
     code: "home-office",
@@ -1394,6 +1497,7 @@ export const departments: Department[] = [
     themes: ["Throughput", "Workforce", "Value for money", "Service standard"],
     hero: hoAsylumBacklog,
     core: [hoCaseworkerTurnover, hoHotelSpend, hoVisaSla],
+    supporting: [hoHomicideRate],
   },
   {
     code: "moj",
@@ -1422,6 +1526,7 @@ export const departments: Department[] = [
     themes: ["People", "Procurement", "Readiness", "Affordability"],
     hero: modPersonnelShortfall,
     core: [modVoluntaryOutflow, modProcurement, modReadiness],
+    supporting: [modDefenceSpendGdp],
   },
   {
     code: "dwp",
@@ -1436,6 +1541,7 @@ export const departments: Department[] = [
     themes: ["Speed", "Capacity", "Integrity", "Backlog"],
     hero: dwpPipDays,
     core: [dwpWorkCoach, dwpFraudError, dwpUcMr],
+    supporting: [dwpPop65],
   },
   {
     code: "dft",
@@ -1450,6 +1556,7 @@ export const departments: Department[] = [
     themes: ["Reliability", "Service", "Delivery", "Assets"],
     hero: dftCancellations,
     core: [dftDvlaBacklog, dftCapitalOverrun, dftSrnDegradation],
+    supporting: [dftRoadDeathRate],
   },
   {
     code: "treasury",
