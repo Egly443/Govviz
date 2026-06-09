@@ -63,6 +63,24 @@ async function ons(topic, cdid, dataset, freq = "years") {
   throw lastErr || new Error(`${cdid}: no dataset matched`);
 }
 
+// World Bank open API → clean JSON, no key, very stable, sourced from
+// OECD/WHO/UN (so internationally comparable and hard to fudge).
+async function wb(indicator, country = "GBR") {
+  const url = `https://api.worldbank.org/v2/country/${country}/indicator/${indicator}?format=json&per_page=20000`;
+  const res = await fetch(url, { headers: { accept: "application/json" } });
+  if (!res.ok) throw new Error(`WB ${indicator} → HTTP ${res.status}`);
+  const j = await res.json();
+  const rows = Array.isArray(j) ? j[1] : null;
+  if (!rows) throw new Error(`WB ${indicator}: no data array`);
+  const points = rows
+    .filter((r) => r && r.value != null)
+    .map((r) => ({ date: `${r.date}-01-01`, value: Number(r.value) }))
+    .filter((p) => Number.isFinite(p.value))
+    .sort((a, b) => (a.date < b.date ? -1 : 1));
+  if (!points.length) throw new Error(`WB ${indicator}: no usable points`);
+  return points;
+}
+
 const INFLATION = "economy/inflationandpriceindices";
 const PUBFIN = "economy/governmentpublicsectorandtaxes/publicsectorfinance";
 const EARN = "employmentandlabourmarket/peopleinwork/earningsandworkinghours";
@@ -83,6 +101,10 @@ const SOURCES = [
 
   // Unemployment rate (16+), LFS, monthly since 1971.
   { id: "hmt-unemployment", min: 1, max: 20, get: () => ons(UNEMP, "MGSX", ["lms"], "months") },
+
+  // --- DHSC: clinical workforce per 1,000 people (World Bank / OECD/WHO) ---
+  { id: "dhsc-clinical-per-1000", line: "doctors", min: 1, max: 6, get: () => wb("SH.MED.PHYS.ZS") },
+  { id: "dhsc-clinical-per-1000", line: "nurses", min: 3, max: 15, get: () => wb("SH.MED.NUMW.P3") },
 
   // --- in progress ---
   // AWE total pay annual growth → wages line (try several datasets).

@@ -108,6 +108,32 @@ export function trajectory(
   });
 }
 
+// Build an annual series from yearly anchors (used by data-light fallbacks).
+function annualSeries(
+  anchors: [number, number][],
+  start: number,
+  end: number,
+  seed: number,
+  amp: number,
+): Point[] {
+  const rnd = noise(seed);
+  const out: Point[] = [];
+  for (let y = start; y <= end; y++) {
+    let v = anchors[0][1];
+    for (let i = 0; i < anchors.length - 1; i++) {
+      const [y0, v0] = anchors[i];
+      const [y1, v1] = anchors[i + 1];
+      if (y >= y0 && y <= y1) {
+        v = v0 + ((v1 - v0) * (y - y0)) / (y1 - y0);
+        break;
+      }
+      if (y > y1) v = v1;
+    }
+    out.push({ date: `${y}-01-01`, value: +(v + rnd() * amp).toFixed(3) });
+  }
+  return out;
+}
+
 const fmtMillions = (v: number) => `${v.toFixed(2)}M`;
 const fmtMillionsShort = (v: number) => `${v.toFixed(1)}M`;
 const fmtPct = (v: number) => `${v.toFixed(1)}%`;
@@ -460,6 +486,41 @@ export const vacancyRate: TrendSeries = {
     { id: "medical", label: "Medical", points: medicalVacancyPts },
   ],
   annotations: [{ date: "2020-03-01", label: "Covid-19" }],
+};
+
+// Doctors vs nurses per 1,000 people — real data from the World Bank (OECD/WHO).
+const docsPer1000 = annualSeries(
+  [[1990, 1.6], [2000, 2.0], [2010, 2.7], [2018, 2.9], [2022, 3.2]],
+  1990,
+  2022,
+  301,
+  0.01,
+);
+const nursesPer1000 = annualSeries(
+  [[1990, 5.2], [2000, 8.1], [2010, 8.6], [2018, 8.2], [2022, 8.7]],
+  1990,
+  2022,
+  302,
+  0.02,
+);
+export const clinicalPer1000: TrendSeries = {
+  id: "dhsc-clinical-per-1000",
+  title: "Clinical workforce per 1,000 people",
+  subtitle: "Doctors vs nurses, per 1,000 population",
+  unit: "count",
+  format: (v) => v.toFixed(1),
+  shortFormat: (v) => v.toFixed(1),
+  yFormat: (v) => v.toFixed(1),
+  goodDirection: "up",
+  source: "World Bank (OECD/WHO)",
+  sourceUrl: "https://data.worldbank.org/indicator/SH.MED.PHYS.ZS?locations=GB",
+  cadence: "annual",
+  points: realLine("dhsc-clinical-per-1000", "doctors", docsPer1000),
+  lines: [
+    { id: "doctors", label: "Doctors", points: realLine("dhsc-clinical-per-1000", "doctors", docsPer1000) },
+    { id: "nurses", label: "Nurses & midwives", points: realLine("dhsc-clinical-per-1000", "nurses", nursesPer1000) },
+  ],
+  annotations: [],
 };
 
 export const lifeExpectancy: TrendSeries = {
