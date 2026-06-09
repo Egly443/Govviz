@@ -4,6 +4,7 @@ import {
   capitalOverrun,
   clinicalPer1000,
   dischargeDelays,
+  hospitalBeds,
   lifeExpectancy,
   noise,
   realLine,
@@ -1363,7 +1364,7 @@ export const departments: Department[] = [
     themes: ["Waiting list", "Urgent care", "Workforce", "Capital"],
     hero: waitingList,
     core: [rtt18Week, dischargeDelays, agencySpend, capitalOverrun],
-    supporting: [aePerformance, clinicalPer1000, turnover, vacancyRate, lifeExpectancy],
+    supporting: [aePerformance, clinicalPer1000, hospitalBeds, turnover, vacancyRate, lifeExpectancy],
   },
   {
     code: "dfe",

@@ -105,6 +105,9 @@ const SOURCES = [
   // --- DHSC: clinical workforce per 1,000 people (World Bank / OECD/WHO) ---
   { id: "dhsc-clinical-per-1000", line: "doctors", min: 1, max: 6, get: () => wb("SH.MED.PHYS.ZS") },
   { id: "dhsc-clinical-per-1000", line: "nurses", min: 3, max: 15, get: () => wb("SH.MED.NUMW.P3") },
+  // Hospital beds per 1,000, and life expectancy at birth.
+  { id: "dhsc-beds-per-1000", min: 1, max: 12, get: () => wb("SH.MED.BEDS.ZS") },
+  { id: "life-expectancy", min: 60, max: 90, get: () => wb("SP.DYN.LE00.IN") },
 
   // --- in progress ---
   // AWE total pay annual growth → wages line (try several datasets).

@@ -523,6 +523,30 @@ export const clinicalPer1000: TrendSeries = {
   annotations: [],
 };
 
+// Hospital beds per 1,000 — real data from the World Bank (OECD/WHO/Eurostat).
+const bedsFallback = annualSeries(
+  [[1960, 10.0], [1980, 7.5], [2000, 4.1], [2010, 2.9], [2020, 2.4], [2022, 2.4]],
+  1960,
+  2022,
+  303,
+  0.02,
+);
+export const hospitalBeds: TrendSeries = {
+  id: "dhsc-beds-per-1000",
+  title: "Hospital beds per 1,000 people",
+  subtitle: "Total care beds per 1,000 population",
+  unit: "count",
+  format: (v) => v.toFixed(1),
+  shortFormat: (v) => v.toFixed(1),
+  yFormat: (v) => v.toFixed(1),
+  goodDirection: "up",
+  source: "World Bank (OECD/WHO/Eurostat)",
+  sourceUrl: "https://data.worldbank.org/indicator/SH.MED.BEDS.ZS?locations=GB",
+  cadence: "annual",
+  points: realPoints("dhsc-beds-per-1000", bedsFallback),
+  annotations: [],
+};
+
 export const lifeExpectancy: TrendSeries = {
   id: "life-expectancy",
   title: "Life expectancy at birth",
@@ -535,7 +559,7 @@ export const lifeExpectancy: TrendSeries = {
   sourceUrl:
     "https://www.ons.gov.uk/peoplepopulationandcommunity/birthsdeathsandmarriages/lifeexpectancies",
   cadence: "annual",
-  points: (() => {
+  points: realPoints("life-expectancy", (() => {
     const out: Point[] = [];
     const anchors: [number, number][] = [
       [1981, 73.8],
@@ -561,7 +585,7 @@ export const lifeExpectancy: TrendSeries = {
       out.push({ date: `${y}-01-01`, value: +v.toFixed(2) });
     }
     return out;
-  })(),
+  })()),
   annotations: [
     { date: "2011-01-01", label: "Stalling" },
     { date: "2020-01-01", label: "Covid-19" },
