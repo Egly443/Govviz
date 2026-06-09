@@ -1449,6 +1449,75 @@ const dftRoadDeathRate: TrendSeries = {
   annotations: [],
 };
 
+// ---- World Bank wave 2 (compact helper) ----
+const fmtUsd = (v: number) => `$${Math.round(v).toLocaleString("en-GB")}`;
+const fmtUsdK = (v: number) => `$${(v / 1000).toFixed(1)}k`;
+
+function wbS(o: {
+  id: string;
+  title: string;
+  subtitle: string;
+  good: "up" | "down";
+  unit?: TrendSeries["unit"];
+  format: (v: number) => string;
+  shortFormat?: (v: number) => string;
+  yFormat?: (v: number) => string;
+  target?: { value: number; label: string };
+  source: string;
+  code: string;
+  anchors: [number, number][];
+  start: number;
+  end: number;
+  seed: number;
+  amp: number;
+  annotations?: TrendSeries["annotations"];
+}): TrendSeries {
+  return {
+    id: o.id,
+    title: o.title,
+    subtitle: o.subtitle,
+    unit: o.unit ?? "count",
+    format: o.format,
+    shortFormat: o.shortFormat ?? o.format,
+    yFormat: o.yFormat ?? o.format,
+    goodDirection: o.good,
+    target: o.target,
+    source: o.source,
+    sourceUrl: `https://data.worldbank.org/indicator/${o.code}?locations=GB`,
+    cadence: "annual",
+    points: realPoints(o.id, annual(o.anchors, o.start, o.end, o.seed, o.amp)),
+    annotations: o.annotations ?? [],
+  };
+}
+
+// Treasury / economy
+const hmtGdpGrowth = wbS({ id: "hmt-gdp-growth", title: "GDP growth", subtitle: "Real GDP, annual % change", good: "up", unit: "percent", format: fmtPct, source: "World Bank", code: "NY.GDP.MKTP.KD.ZG", anchors: [[1990, 0.7], [2000, 3.2], [2009, -4.6], [2010, 2.2], [2020, -10.3], [2021, 8.6], [2023, 0.3]], start: 1990, end: 2023, seed: 331, amp: 0.3, annotations: [{ date: "2009-01-01", label: "Financial crisis" }, { date: "2020-01-01", label: "Covid-19" }] });
+const hmtInvestment = wbS({ id: "hmt-investment-gdp", title: "Investment", subtitle: "Gross capital formation, % of GDP", good: "up", unit: "percent", format: fmtPct, source: "World Bank", code: "NE.GDI.TOTL.ZS", anchors: [[1990, 22], [2000, 18], [2010, 16], [2019, 17.5], [2022, 18]], start: 1990, end: 2022, seed: 332, amp: 0.3 });
+const hmtCurrentAccount = wbS({ id: "hmt-current-account", title: "Current account balance", subtitle: "% of GDP", good: "up", unit: "percent", format: fmtPct, source: "World Bank", code: "BN.CAB.XOKA.GD.ZS", anchors: [[1990, -3.4], [2000, -2.2], [2010, -2.7], [2016, -5.2], [2022, -3.1]], start: 1990, end: 2022, seed: 333, amp: 0.3 });
+const hmtEmployment = wbS({ id: "hmt-employment-rate", title: "Employment rate", subtitle: "Employment-to-population, 15+ (%)", good: "up", unit: "percent", format: fmtPct, source: "World Bank (ILO)", code: "SL.EMP.TOTL.SP.ZS", anchors: [[1991, 57], [2000, 58], [2010, 57], [2019, 60], [2022, 59]], start: 1991, end: 2022, seed: 334, amp: 0.3 });
+const hmtParticipation = wbS({ id: "hmt-participation", title: "Labour force participation", subtitle: "% of population 15+", good: "up", unit: "percent", format: fmtPct, source: "World Bank (ILO)", code: "SL.TLF.CACT.ZS", anchors: [[1990, 62], [2000, 62], [2010, 62], [2019, 63], [2022, 62]], start: 1990, end: 2022, seed: 335, amp: 0.3 });
+const hmtTrade = wbS({ id: "hmt-trade-gdp", title: "Trade openness", subtitle: "Trade (exports + imports), % of GDP", good: "up", unit: "percent", format: fmtPct, source: "World Bank", code: "NE.TRD.GNFS.ZS", anchors: [[1990, 46], [2000, 55], [2010, 58], [2019, 63], [2022, 70]], start: 1990, end: 2022, seed: 336, amp: 0.5 });
+const hmtSavings = wbS({ id: "hmt-savings", title: "Gross savings", subtitle: "% of GDP", good: "up", unit: "percent", format: fmtPct, source: "World Bank", code: "NY.GNS.ICTR.ZS", anchors: [[1990, 17], [2000, 15], [2010, 13], [2019, 14], [2022, 15]], start: 1990, end: 2022, seed: 337, amp: 0.3 });
+const hmtGniPerCapita = wbS({ id: "hmt-gni-per-capita", title: "GNI per head (PPP)", subtitle: "Gross national income per person, PPP $", good: "up", unit: "currency", format: fmtUsd, shortFormat: fmtUsdK, yFormat: fmtUsdK, source: "World Bank", code: "NY.GNP.PCAP.PP.CD", anchors: [[1990, 16000], [2000, 27000], [2010, 38000], [2019, 48000], [2022, 49000]], start: 1990, end: 2022, seed: 338, amp: 100 });
+
+// DHSC
+const dhscHealthSpendPc = wbS({ id: "dhsc-health-spend-pc", title: "Health spending per person", subtitle: "Current health expenditure, $ per person", good: "up", unit: "currency", format: fmtUsd, shortFormat: fmtUsdK, yFormat: fmtUsdK, source: "World Bank (WHO)", code: "SH.XPD.CHEX.PC.CD", anchors: [[2000, 1700], [2010, 3500], [2019, 4500], [2021, 5400]], start: 2000, end: 2021, seed: 340, amp: 20 });
+const dhscSuicide = wbS({ id: "dhsc-suicide", title: "Suicide rate", subtitle: "Per 100,000 people", good: "down", format: fmt1, source: "World Bank (WHO)", code: "SH.STA.SUIC.P5", anchors: [[2000, 9.5], [2010, 7.0], [2016, 7.6], [2019, 7.5]], start: 2000, end: 2019, seed: 341, amp: 0.08 });
+const dhscMeasles = wbS({ id: "dhsc-measles-imm", title: "Measles immunisation", subtitle: "% of children immunised", good: "up", unit: "percent", format: fmt0, source: "World Bank (WHO/UNICEF)", code: "SH.IMM.MEAS", anchors: [[1990, 87], [2000, 88], [2010, 93], [2019, 91], [2021, 90]], start: 1990, end: 2021, seed: 342, amp: 0.2 });
+const dhscOop = wbS({ id: "dhsc-oop", title: "Out-of-pocket health costs", subtitle: "% of total health spending", good: "down", unit: "percent", format: fmtPct, source: "World Bank (WHO)", code: "SH.XPD.OOPC.CH.ZS", anchors: [[2000, 18], [2010, 16], [2019, 17], [2021, 14]], start: 2000, end: 2021, seed: 343, amp: 0.2 });
+
+// DfE / Home Office / MoD
+const dfeTertiary = wbS({ id: "dfe-tertiary-enrol", title: "University participation", subtitle: "Tertiary enrolment, % gross", good: "up", unit: "percent", format: fmt0, source: "World Bank (UNESCO)", code: "SE.TER.ENRR", anchors: [[1990, 30], [2000, 58], [2010, 59], [2019, 66], [2020, 70]], start: 1990, end: 2020, seed: 344, amp: 0.4 });
+const hoMigrantStock = wbS({ id: "ho-migrant-stock", title: "Foreign-born population", subtitle: "International migrant stock, % of population", good: "up", unit: "percent", format: fmtPct, source: "World Bank (UN)", code: "SM.POP.TOTL.ZS", anchors: [[1990, 6.4], [2000, 7.9], [2010, 11.3], [2015, 13.2], [2020, 13.8]], start: 1990, end: 2020, seed: 345, amp: 0.05 });
+const modPersonnel = wbS({ id: "mod-personnel-total", title: "Armed forces personnel", subtitle: "Total military personnel", good: "up", format: fmtThousands, shortFormat: fmtK, yFormat: fmtK, source: "World Bank (IISS)", code: "MS.MIL.TOTL.P1", anchors: [[1990, 308000], [2000, 212000], [2010, 197000], [2019, 156000], [2020, 153000]], start: 1990, end: 2020, seed: 346, amp: 400 });
+
+// DWP / DfT
+const dwpOldAge = wbS({ id: "dwp-oldage-dependency", title: "Old-age dependency ratio", subtitle: "People 65+ per 100 of working age", good: "down", format: fmt0, source: "World Bank (UN)", code: "SP.POP.DPND.OL", anchors: [[1990, 24], [2000, 24], [2010, 25], [2020, 29], [2022, 30]], start: 1990, end: 2022, seed: 347, amp: 0.1 });
+const dwpFemaleLF = wbS({ id: "dwp-female-participation", title: "Female labour participation", subtitle: "% of female population 15+", good: "up", unit: "percent", format: fmtPct, source: "World Bank (ILO)", code: "SL.TLF.CACT.FE.ZS", anchors: [[1990, 53], [2000, 55], [2010, 56], [2019, 58], [2022, 58]], start: 1990, end: 2022, seed: 348, amp: 0.2 });
+const dwpGini = wbS({ id: "dwp-gini", title: "Income inequality (Gini)", subtitle: "Gini index (0 = equal, 100 = unequal)", good: "down", format: fmt1, source: "World Bank", code: "SI.POV.GINI", anchors: [[1990, 34], [2000, 38], [2010, 34], [2017, 35]], start: 1990, end: 2018, seed: 349, amp: 0.2 });
+const dwpYouthUnemp = wbS({ id: "dwp-youth-unemp", title: "Youth unemployment", subtitle: "Unemployment, ages 15–24 (%)", good: "down", unit: "percent", format: fmtPct, source: "World Bank (ILO)", code: "SL.UEM.1524.ZS", anchors: [[1991, 14], [2000, 12], [2011, 21], [2019, 11], [2022, 10]], start: 1991, end: 2022, seed: 350, amp: 0.3 });
+const dftCo2 = wbS({ id: "dft-co2-pc", title: "CO₂ emissions per person", subtitle: "Tonnes per person, per year", good: "down", format: fmt1, source: "World Bank", code: "EN.ATM.CO2E.PC", anchors: [[1990, 9.7], [2000, 9.0], [2010, 7.5], [2019, 5.2], [2020, 4.9]], start: 1990, end: 2020, seed: 351, amp: 0.05 });
+
 // ============================================================
 // Registry
 // ============================================================
@@ -1466,7 +1535,7 @@ export const departments: Department[] = [
     themes: ["Waiting list", "Urgent care", "Workforce", "Capital"],
     hero: waitingList,
     core: [rtt18Week, dischargeDelays, agencySpend, capitalOverrun],
-    supporting: [aePerformance, clinicalPer1000, hospitalBeds, healthSpendGdp, infantMortality, turnover, vacancyRate, lifeExpectancy],
+    supporting: [aePerformance, clinicalPer1000, hospitalBeds, healthSpendGdp, dhscHealthSpendPc, infantMortality, dhscSuicide, dhscMeasles, dhscOop, turnover, vacancyRate, lifeExpectancy],
   },
   {
     code: "dfe",
@@ -1481,7 +1550,7 @@ export const departments: Department[] = [
     themes: ["Attainment", "Workforce", "Funding", "Pipeline"],
     hero: dfeAttainmentGap,
     core: [dfeEctAttrition, dfeDsgDeficit, dfeTeacherRecruitment],
-    supporting: [dfeEduSpendGdp, dfePupilTeacher],
+    supporting: [dfeEduSpendGdp, dfePupilTeacher, dfeTertiary],
   },
   {
     code: "home-office",
@@ -1497,7 +1566,7 @@ export const departments: Department[] = [
     themes: ["Throughput", "Workforce", "Value for money", "Service standard"],
     hero: hoAsylumBacklog,
     core: [hoCaseworkerTurnover, hoHotelSpend, hoVisaSla],
-    supporting: [hoHomicideRate],
+    supporting: [hoHomicideRate, hoMigrantStock],
   },
   {
     code: "moj",
@@ -1526,7 +1595,7 @@ export const departments: Department[] = [
     themes: ["People", "Procurement", "Readiness", "Affordability"],
     hero: modPersonnelShortfall,
     core: [modVoluntaryOutflow, modProcurement, modReadiness],
-    supporting: [modDefenceSpendGdp],
+    supporting: [modDefenceSpendGdp, modPersonnel],
   },
   {
     code: "dwp",
@@ -1541,7 +1610,7 @@ export const departments: Department[] = [
     themes: ["Speed", "Capacity", "Integrity", "Backlog"],
     hero: dwpPipDays,
     core: [dwpWorkCoach, dwpFraudError, dwpUcMr],
-    supporting: [dwpPop65],
+    supporting: [dwpPop65, dwpOldAge, dwpFemaleLF, dwpGini, dwpYouthUnemp],
   },
   {
     code: "dft",
@@ -1556,7 +1625,7 @@ export const departments: Department[] = [
     themes: ["Reliability", "Service", "Delivery", "Assets"],
     hero: dftCancellations,
     core: [dftDvlaBacklog, dftCapitalOverrun, dftSrnDegradation],
-    supporting: [dftRoadDeathRate],
+    supporting: [dftRoadDeathRate, dftCo2],
   },
   {
     code: "treasury",
@@ -1572,7 +1641,7 @@ export const departments: Department[] = [
     themes: ["Living standards", "Debt", "Tax", "Cost of living"],
     hero: hmtGdpPerCapita,
     core: [hmtCostOfLiving, hmtDebt, hmtDebtCash, hmtTaxBurden, hmtDebtInterest],
-    supporting: [hmtUnemployment, hmtRealIncome, hmtProductivity, hmtTaxSplit, hmtDeficit],
+    supporting: [hmtUnemployment, hmtGdpGrowth, hmtEmployment, hmtParticipation, hmtInvestment, hmtTrade, hmtSavings, hmtCurrentAccount, hmtGniPerCapita, hmtRealIncome, hmtProductivity, hmtTaxSplit, hmtDeficit],
   },
 ];
 

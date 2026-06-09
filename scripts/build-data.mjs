@@ -63,22 +63,42 @@ async function ons(topic, cdid, dataset, freq = "years") {
   throw lastErr || new Error(`${cdid}: no dataset matched`);
 }
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
 // World Bank open API → clean JSON, no key, very stable, sourced from
 // OECD/WHO/UN (so internationally comparable and hard to fudge).
 async function wb(indicator, country = "GBR") {
   const url = `https://api.worldbank.org/v2/country/${country}/indicator/${indicator}?format=json&per_page=20000`;
-  const res = await fetch(url, { headers: { accept: "application/json" } });
-  if (!res.ok) throw new Error(`WB ${indicator} → HTTP ${res.status}`);
-  const j = await res.json();
-  const rows = Array.isArray(j) ? j[1] : null;
-  if (!rows) throw new Error(`WB ${indicator}: no data array`);
-  const points = rows
-    .filter((r) => r && r.value != null)
-    .map((r) => ({ date: `${r.date}-01-01`, value: Number(r.value) }))
-    .filter((p) => Number.isFinite(p.value))
-    .sort((a, b) => (a.date < b.date ? -1 : 1));
-  if (!points.length) throw new Error(`WB ${indicator}: no usable points`);
-  return points;
+  let lastErr;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch(url, { headers: { accept: "application/json" } });
+      if (!res.ok) {
+        lastErr = new Error(`WB ${indicator} → HTTP ${res.status}`);
+        if (res.status === 404) break;
+        await sleep(600 * (attempt + 1));
+        continue;
+      }
+      const j = await res.json();
+      const rows = Array.isArray(j) ? j[1] : null;
+      if (!rows) {
+        lastErr = new Error(`WB ${indicator}: no data array`);
+        await sleep(600 * (attempt + 1));
+        continue;
+      }
+      const points = rows
+        .filter((r) => r && r.value != null)
+        .map((r) => ({ date: `${r.date}-01-01`, value: Number(r.value) }))
+        .filter((p) => Number.isFinite(p.value))
+        .sort((a, b) => (a.date < b.date ? -1 : 1));
+      if (!points.length) throw new Error(`WB ${indicator}: no usable points`);
+      return points;
+    } catch (e) {
+      lastErr = e;
+      await sleep(600 * (attempt + 1));
+    }
+  }
+  throw lastErr || new Error(`WB ${indicator}: failed`);
 }
 
 const INFLATION = "economy/inflationandpriceindices";
@@ -121,6 +141,33 @@ const SOURCES = [
   // Real GDP per head, constant LCU (replaces the unverified ONS guess).
   { id: "hmt-gdp-per-capita", min: 15000, max: 70000, get: () => wb("NY.GDP.PCAP.KD") },
 
+  // --- World Bank wave 2 ---
+  // Treasury / economy
+  { id: "hmt-gdp-growth", min: -15, max: 15, get: () => wb("NY.GDP.MKTP.KD.ZG") },
+  { id: "hmt-investment-gdp", min: 5, max: 40, get: () => wb("NE.GDI.TOTL.ZS") },
+  { id: "hmt-current-account", min: -15, max: 15, get: () => wb("BN.CAB.XOKA.GD.ZS") },
+  { id: "hmt-employment-rate", min: 40, max: 85, get: () => wb("SL.EMP.TOTL.SP.ZS") },
+  { id: "hmt-participation", min: 40, max: 85, get: () => wb("SL.TLF.CACT.ZS") },
+  { id: "hmt-trade-gdp", min: 20, max: 95, get: () => wb("NE.TRD.GNFS.ZS") },
+  { id: "hmt-savings", min: 0, max: 40, get: () => wb("NY.GNS.ICTR.ZS") },
+  { id: "hmt-gni-per-capita", min: 5000, max: 90000, get: () => wb("NY.GNP.PCAP.PP.CD") },
+  // DHSC
+  { id: "dhsc-health-spend-pc", min: 500, max: 12000, get: () => wb("SH.XPD.CHEX.PC.CD") },
+  { id: "dhsc-suicide", min: 0, max: 30, get: () => wb("SH.STA.SUIC.P5") },
+  { id: "dhsc-measles-imm", min: 50, max: 100, get: () => wb("SH.IMM.MEAS") },
+  { id: "dhsc-oop", min: 0, max: 60, get: () => wb("SH.XPD.OOPC.CH.ZS") },
+  // DfE / Home Office / MoD
+  { id: "dfe-tertiary-enrol", min: 10, max: 160, get: () => wb("SE.TER.ENRR") },
+  { id: "ho-migrant-stock", min: 0, max: 30, get: () => wb("SM.POP.TOTL.ZS") },
+  { id: "mod-personnel-total", min: 50000, max: 1000000, get: () => wb("MS.MIL.TOTL.P1") },
+  // DWP
+  { id: "dwp-oldage-dependency", min: 10, max: 50, get: () => wb("SP.POP.DPND.OL") },
+  { id: "dwp-female-participation", min: 40, max: 85, get: () => wb("SL.TLF.CACT.FE.ZS") },
+  { id: "dwp-gini", min: 25, max: 45, get: () => wb("SI.POV.GINI") },
+  { id: "dwp-youth-unemp", min: 2, max: 40, get: () => wb("SL.UEM.1524.ZS") },
+  // DfT
+  { id: "dft-co2-pc", min: 1, max: 20, get: () => wb("EN.ATM.CO2E.PC") },
+
   // --- in progress ---
   // AWE total pay annual growth → wages line (try several datasets).
   { id: "hmt-cost-of-living", line: "wages", min: -10, max: 30, get: () => ons(EARN, "KAC3", ["lms", "emp"], "years") },
@@ -155,6 +202,7 @@ for (const s of SOURCES) {
     fail++;
     console.warn(`SKIP ${tag}  ${e.message}`);
   }
+  await sleep(120); // be gentle on the APIs across a big batch
 }
 
 const file =
