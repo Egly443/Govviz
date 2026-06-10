@@ -33,34 +33,37 @@ function onsDate(o) {
 // returns usable data (auto-resolves the right dataset without guessing).
 async function ons(topic, cdid, dataset, freq = "years") {
   const topics = Array.isArray(topic) ? topic : [topic];
+  const cdids = Array.isArray(cdid) ? cdid : [cdid];
   const datasets = Array.isArray(dataset) ? dataset : [dataset];
   let lastErr;
-  for (const t of topics) {
-    for (const ds of datasets) {
-      const url = `https://www.ons.gov.uk/${t}/timeseries/${cdid.toLowerCase()}/${ds.toLowerCase()}/data`;
-      try {
-        const res = await fetch(url, { headers: { accept: "application/json" } });
-        if (!res.ok) {
-          lastErr = new Error(`${cdid}/${ds} → HTTP ${res.status}`);
-          continue;
+  for (const c of cdids) {
+    for (const t of topics) {
+      for (const ds of datasets) {
+        const url = `https://www.ons.gov.uk/${t}/timeseries/${c.toLowerCase()}/${ds.toLowerCase()}/data`;
+        try {
+          const res = await fetch(url, { headers: { accept: "application/json" } });
+          if (!res.ok) {
+            lastErr = new Error(`${c}/${ds} → HTTP ${res.status}`);
+            continue;
+          }
+          const j = await res.json();
+          let arr = j[freq] || [];
+          if (!arr.length) arr = j.quarters || j.months || [];
+          const points = arr
+            .map((o) => ({ date: onsDate(o), value: Number(o.value) }))
+            .filter((p) => p.date && Number.isFinite(p.value));
+          if (!points.length) {
+            lastErr = new Error(`${c}/${ds}: no usable points`);
+            continue;
+          }
+          return points;
+        } catch (e) {
+          lastErr = e;
         }
-        const j = await res.json();
-        let arr = j[freq] || [];
-        if (!arr.length) arr = j.quarters || j.months || [];
-        const points = arr
-          .map((o) => ({ date: onsDate(o), value: Number(o.value) }))
-          .filter((p) => p.date && Number.isFinite(p.value));
-        if (!points.length) {
-          lastErr = new Error(`${cdid}/${ds}: no usable points`);
-          continue;
-        }
-        return points;
-      } catch (e) {
-        lastErr = e;
       }
     }
   }
-  throw lastErr || new Error(`${cdid}: no dataset matched`);
+  throw lastErr || new Error(`${cdid}: no combination matched`);
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -169,8 +172,8 @@ const SOURCES = [
   { id: "dft-co2-pc", min: 1, max: 20, get: () => wb("EN.GHG.CO2.PC.CE.AR5") },
 
   // --- in progress ---
-  // AWE total pay annual growth → wages line (try several datasets).
-  { id: "hmt-cost-of-living", line: "wages", min: -10, max: 30, get: () => ons(EARN, "KAC3", ["lms", "emp"], "years") },
+  // AWE pay annual growth → wages line (try several CDIDs/datasets).
+  { id: "hmt-cost-of-living", line: "wages", min: -10, max: 30, get: () => ons(EARN, ["KAC3", "KAI8", "KA5H", "A3WW"], ["lms", "emp"], "years") },
 
   // --- TODO: guesses returned the wrong metric; need verified CDIDs ---
   // hmt-tax-burden     MF6U is receipts £m, not the %-of-GDP ratio.
