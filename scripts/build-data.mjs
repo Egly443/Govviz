@@ -166,7 +166,7 @@ const SOURCES = [
   { id: "dwp-gini", min: 25, max: 45, get: () => wb("SI.POV.GINI") },
   { id: "dwp-youth-unemp", min: 2, max: 40, get: () => wb("SL.UEM.1524.ZS") },
   // DfT
-  { id: "dft-co2-pc", min: 1, max: 20, get: () => wb("EN.ATM.CO2E.PC") },
+  { id: "dft-co2-pc", min: 1, max: 20, get: () => wb("EN.GHG.CO2.PC.CE.AR5") },
 
   // --- in progress ---
   // AWE total pay annual growth → wages line (try several datasets).
