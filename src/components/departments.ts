@@ -1052,24 +1052,21 @@ const hmtRealWagePts = annual(
 );
 const hmtProductivity: TrendSeries = {
   id: "hmt-productivity",
-  title: "Productivity vs real wages",
-  subtitle: "Index, 2007 = 100: output per hour vs real pay",
+  title: "Productivity",
+  subtitle: "Output per hour worked, index",
   unit: "count",
   format: fmtPts,
   shortFormat: fmtPts,
   yFormat: fmtPts,
   goodDirection: "up",
-  source: "ONS labour productivity & real wages",
+  source: "ONS labour productivity",
   sourceUrl:
     "https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/labourproductivity",
   cadence: "annual",
-  points: hmtProdPts,
-  lines: [
-    { id: "prod", label: "Output per hour", points: hmtProdPts },
-    { id: "wages", label: "Real wages", points: hmtRealWagePts },
-  ],
+  points: realPoints("hmt-productivity", hmtProdPts),
   annotations: [{ date: "2008-01-01", label: "Productivity stalls" }],
 };
+void hmtRealWagePts;
 
 const hmtDebt: TrendSeries = {
   id: "hmt-psnd",

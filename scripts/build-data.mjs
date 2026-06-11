@@ -174,6 +174,8 @@ const SOURCES = [
   // --- in progress ---
   // AWE pay annual growth → wages line (try several CDIDs/datasets).
   { id: "hmt-cost-of-living", line: "wages", min: -10, max: 30, get: () => ons(EARN, ["KAC3", "KAI8", "KA5H", "A3WW"], ["lms", "emp"], "years") },
+  // Productivity: output per hour worked (ONS, whole economy index).
+  { id: "hmt-productivity", min: 50, max: 130, get: () => ons("employmentandlabourmarket/peopleinwork/labourproductivity", ["LZVB", "LZVD"], ["prdy"], "years") },
 
   // --- TODO: guesses returned the wrong metric; need verified CDIDs ---
   // hmt-tax-burden     MF6U is receipts £m, not the %-of-GDP ratio.
