@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "govuk-services": {
+      "command": "python",
+      "args": ["-m", "govuk_mcp"]
+    }
+  }
+}
