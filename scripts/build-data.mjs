@@ -176,11 +176,13 @@ const SOURCES = [
   { id: "hmt-cost-of-living", line: "wages", min: -10, max: 30, get: () => ons(EARN, ["KAC3", "KAI8", "KA5H", "A3WW"], ["lms", "emp"], "years") },
   // Productivity: output per hour worked (ONS, whole economy index).
   { id: "hmt-productivity", min: 50, max: 130, get: () => ons("employmentandlabourmarket/peopleinwork/labourproductivity", ["LZVB", "LZVD"], ["prdy"], "years") },
+  // Real households' disposable income per head, chained-volume £ (ONS CRXX).
+  { id: "hmt-real-income", min: 10000, max: 35000, get: () => ons(GDP, "CRXX", ["ukea"], "years") },
 
-  // --- TODO: guesses returned the wrong metric; need verified CDIDs ---
-  // hmt-tax-burden     MF6U is receipts £m, not the %-of-GDP ratio.
-  // hmt-gdp-per-capita IHXW resolves but may be nominal; need chained-volume £/head.
-  // hmt-real-income    RVZR 404; need real households' disposable income per head.
+  // --- TODO: derived metrics (need computing from component series) ---
+  // hmt-tax-burden  current receipts % of GDP (ONS ANBV receipts £m ÷ GDP).
+  // hmt-tax-split   direct vs indirect tax % of GDP (HMRC components).
+  // hmt-debt-interest  central-government debt interest (OBR / ONS PSA6B).
 ];
 
 const out = {};
