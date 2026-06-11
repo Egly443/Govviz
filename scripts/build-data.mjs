@@ -171,18 +171,19 @@ const SOURCES = [
   // DfT
   { id: "dft-co2-pc", min: 1, max: 20, get: () => wb("EN.GHG.CO2.PC.CE.AR5") },
 
+  // --- Treasury derived / standalone ---
+  // Tax revenue % of GDP (World Bank/IMF), matches hmt-tax-burden realPoints wrapper.
+  { id: "hmt-tax-burden", min: 25, max: 45, get: () => wb("GC.TAX.TOTL.GD.ZS") },
+  // Debt interest as % of government revenue (World Bank/IMF).
+  { id: "hmt-debt-interest", min: 2, max: 25, get: () => wb("GC.XPN.INTP.RV.ZS") },
+
   // --- in progress ---
-  // AWE pay annual growth → wages line (try several CDIDs/datasets).
-  { id: "hmt-cost-of-living", line: "wages", min: -10, max: 30, get: () => ons(EARN, ["KAC3", "KAI8", "KA5H", "A3WW"], ["lms", "emp"], "years") },
+  // AWE pay growth — KAC3 is monthly YoY %; request months (annual key returns index).
+  { id: "hmt-cost-of-living", line: "wages", min: -10, max: 30, get: () => ons(EARN, ["KAC3"], ["lms", "emp"], "months") },
   // Productivity: output per hour worked (ONS, whole economy index).
   { id: "hmt-productivity", min: 50, max: 130, get: () => ons("employmentandlabourmarket/peopleinwork/labourproductivity", ["LZVB", "LZVD"], ["prdy"], "years") },
   // Real households' disposable income per head, chained-volume £ (ONS CRXX).
   { id: "hmt-real-income", min: 10000, max: 35000, get: () => ons(GDP, "CRXX", ["ukea"], "years") },
-
-  // --- TODO: derived metrics (need computing from component series) ---
-  // hmt-tax-burden  current receipts % of GDP (ONS ANBV receipts £m ÷ GDP).
-  // hmt-tax-split   direct vs indirect tax % of GDP (HMRC components).
-  // hmt-debt-interest  central-government debt interest (OBR / ONS PSA6B).
 ];
 
 const out = {};
