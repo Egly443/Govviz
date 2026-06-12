@@ -54,12 +54,13 @@ async function ons(topic, cdid, dataset, freq = "years") {
           // Try requested frequency first; if no usable points (array absent OR
           // all values are markers like "-"), fall through to finer-grained data.
           let points = parse(j[freq]);
-          if (!points.length) points = parse(j.quarters || j.months || j.years || []);
           if (!points.length) {
-            // Debug: log keys and first raw entry to diagnose format issues.
-            const keys = Object.keys(j).filter((k) => Array.isArray(j[k]) && j[k].length);
-            const sample = keys.map((k) => `${k}[0]=${JSON.stringify(j[k][0])}`).join("; ");
-            lastErr = new Error(`${c}/${ds}: no usable points (keys: ${sample || "empty"})`);
+            // j.quarters may be [] (empty, truthy) — use .find to pick first non-empty array.
+            const fb = [j.quarters, j.months, j.years].find((a) => Array.isArray(a) && a.length) || [];
+            points = parse(fb);
+          }
+          if (!points.length) {
+            lastErr = new Error(`${c}/${ds}: no usable points`);
             continue;
           }
           return points;
@@ -230,10 +231,10 @@ const SOURCES = [
     },
   },
 
-  // --- DHSC: H&W sector vacancy rate (ONS, quarterly) ---
+  // --- DHSC: H&W sector vacancy rate (ONS, monthly 3-month average) ---
   // JPB9 = vacancies per 100 employee jobs in Human Health & Social Work.
-  // Dataset is `unem` (not lms which has no usable quarterly/annual data for this CDID).
-  { id: "vacancy", min: 1, max: 20, get: () => ons("employmentandlabourmarket/peopleinwork/employmentandemployeetypes", ["JPB9"], ["unem", "lms"], "quarters") },
+  // Data lives in j.months (3-month moving average, date "YYYY MON") in the lms dataset.
+  { id: "vacancy", min: 1, max: 20, get: () => ons("employmentandlabourmarket/peopleinwork/employmentandemployeetypes", ["JPB9"], ["lms"], "months") },
 
   // --- in progress ---
   // AWE pay growth — KAC3 is monthly YoY %; request months (annual key returns index).
