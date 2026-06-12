@@ -56,7 +56,10 @@ async function ons(topic, cdid, dataset, freq = "years") {
           let points = parse(j[freq]);
           if (!points.length) points = parse(j.quarters || j.months || j.years || []);
           if (!points.length) {
-            lastErr = new Error(`${c}/${ds}: no usable points`);
+            // Debug: log keys and first raw entry to diagnose format issues.
+            const keys = Object.keys(j).filter((k) => Array.isArray(j[k]) && j[k].length);
+            const sample = keys.map((k) => `${k}[0]=${JSON.stringify(j[k][0])}`).join("; ");
+            lastErr = new Error(`${c}/${ds}: no usable points (keys: ${sample || "empty"})`);
             continue;
           }
           return points;
