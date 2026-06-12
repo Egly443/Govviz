@@ -471,15 +471,15 @@ const medicalVacancyPts = trajectory(
 export const vacancyRate: TrendSeries = {
   id: "vacancy",
   title: "Health & social care vacancy rate",
-  subtitle: "Vacancies per 100 employee jobs, H&W sector (ONS); by-group breakdown indicative",
+  subtitle: "Vacancies per 100 employee jobs, Human Health & Social Work sector (ONS JPB9); by-group breakdown indicative",
   unit: "percent",
   format: fmtPct,
   shortFormat: fmtPct,
   goodDirection: "down",
-  source: "ONS Vacancies by Industry (JPB9)",
+  source: "ONS Labour Market Statistics (JPB9)",
   sourceUrl:
     "https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/employmentandemployeetypes/timeseries/jpb9/lms",
-  cadence: "quarterly",
+  cadence: "monthly",
   points: realPoints("vacancy", nursingVacancyPts),
   lines: [
     { id: "nursing", label: "Nursing & midwifery", points: nursingVacancyPts },
