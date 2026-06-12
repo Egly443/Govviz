@@ -54,6 +54,15 @@ export function realLine(id: string, lineId: string, fallback: Point[]): Point[]
   const l = SERIES_DATA[id]?.lines?.find((x) => x.id === lineId);
   return l && l.points.length ? l.points : fallback;
 }
+/** True when CI baked real fetched data for this series id. */
+export function isRealSeries(id: string): boolean {
+  const d = SERIES_DATA[id];
+  return !!d && (!!d.points?.length || !!d.lines?.length);
+}
+/** Fetch date (YYYY-MM-DD) of the baked data, if any. */
+export function realAsOf(id: string): string | undefined {
+  return SERIES_DATA[id]?.asOf;
+}
 
 // Deterministic pseudo-noise
 export function noise(seed: number) {
@@ -481,10 +490,15 @@ export const vacancyRate: TrendSeries = {
     "https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/employmentandemployeetypes/timeseries/jpb9/lms",
   cadence: "monthly",
   points: realPoints("vacancy", nursingVacancyPts),
-  lines: [
-    { id: "nursing", label: "Nursing & midwifery", points: nursingVacancyPts },
-    { id: "medical", label: "Medical", points: medicalVacancyPts },
-  ],
+  // The by-group breakdown is illustrative only; once CI supplies the real
+  // sector-wide series, show that single line rather than mixing real and
+  // fabricated lines on one chart.
+  lines: isRealSeries("vacancy")
+    ? undefined
+    : [
+        { id: "nursing", label: "Nursing & midwifery", points: nursingVacancyPts },
+        { id: "medical", label: "Medical", points: medicalVacancyPts },
+      ],
   annotations: [{ date: "2020-03-01", label: "Covid-19" }],
 };
 

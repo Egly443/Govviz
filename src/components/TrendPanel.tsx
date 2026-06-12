@@ -14,8 +14,10 @@ import {
 import {
   deltaVs,
   formatMonth,
+  isRealSeries,
   latest,
   minMax,
+  realAsOf,
   slicePoints,
   type SeriesLine,
   type SeriesUnit,
@@ -76,6 +78,9 @@ export function TrendPanel({
     );
   }, [lines, range]);
 
+  const real = isRealSeries(series.id);
+  const asOf = realAsOf(series.id);
+
   const current = latest(series);
   const yoy = deltaVs(series, 12);
   const dec = deltaVs(series, 120);
@@ -131,8 +136,25 @@ export function TrendPanel({
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-            {series.cadence === "annual" ? "Annual" : "Monthly"} · {series.points.length} points
+          <div className="flex flex-wrap items-center gap-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+            <span>
+              {series.cadence === "annual" ? "Annual" : "Monthly"} · {series.points.length} points
+            </span>
+            {real ? (
+              <span
+                className="rounded-full border border-primary/25 bg-primary/10 px-1.5 py-px text-[10px] text-primary"
+                title={asOf ? `Official data, fetched ${asOf}` : "Official data"}
+              >
+                Official data
+              </span>
+            ) : (
+              <span
+                className="rounded-full border border-border bg-surface px-1.5 py-px text-[10px]"
+                title="No live source wired yet — values are indicative, not official statistics"
+              >
+                Illustrative
+              </span>
+            )}
           </div>
           <h3
             className={`mt-1 font-semibold tracking-tight ${

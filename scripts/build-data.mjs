@@ -11,6 +11,13 @@ import { dirname } from "node:path";
 
 const OUT = "src/generated/seriesData.ts";
 
+// Shared fetch options: identify ourselves (some gov APIs throttle anonymous
+// bots) and bound every request so a hung server can't stall the CI job.
+const fetchOpts = (headers) => ({
+  headers: { "user-agent": "Govviz data fetcher (github.com/egly443/govviz)", ...headers },
+  signal: AbortSignal.timeout(30_000),
+});
+
 const MONTHS = {
   JAN: 1, FEB: 2, MAR: 3, APR: 4, MAY: 5, JUN: 6,
   JUL: 7, AUG: 8, SEP: 9, OCT: 10, NOV: 11, DEC: 12,
@@ -20,7 +27,9 @@ function onsDate(o) {
   const d = String(o.date || "").trim().toUpperCase();
   let m;
   if ((m = d.match(/^(\d{4})\s+([A-Z]{3})$/)))
-    return `${m[1]}-${String(MONTHS[m[2]] ?? 1).padStart(2, "0")}-01`;
+    // Unknown month abbreviation → null, so the point is filtered out rather
+    // than silently coerced to January.
+    return MONTHS[m[2]] ? `${m[1]}-${String(MONTHS[m[2]]).padStart(2, "0")}-01` : null;
   if ((m = d.match(/^(\d{4})\s+Q(\d)$/)))
     return `${m[1]}-${String((+m[2] - 1) * 3 + 1).padStart(2, "0")}-01`;
   if ((m = d.match(/^(\d{4})$/))) return `${m[1]}-01-01`;
@@ -40,32 +49,38 @@ async function ons(topic, cdid, dataset, freq = "years") {
     for (const t of topics) {
       for (const ds of datasets) {
         const url = `https://www.ons.gov.uk/${t}/timeseries/${c.toLowerCase()}/${ds.toLowerCase()}/data`;
-        try {
-          const res = await fetch(url, { headers: { accept: "application/json" } });
-          if (!res.ok) {
-            lastErr = new Error(`${c}/${ds} → HTTP ${res.status}`);
-            continue;
+        // Retry transient failures (network errors / 5xx) per URL so a blip
+        // doesn't skip a valid combination; 4xx means wrong combination → move on.
+        for (let attempt = 0; attempt < 2; attempt++) {
+          try {
+            const res = await fetch(url, fetchOpts({ accept: "application/json" }));
+            if (!res.ok) {
+              lastErr = new Error(`${c}/${ds} → HTTP ${res.status}`);
+              if (res.status >= 500 && attempt === 0) { await sleep(1000); continue; }
+              break;
+            }
+            const j = await res.json();
+            const parse = (arr) =>
+              (arr || [])
+                .map((o) => ({ date: onsDate(o), value: parseFloat(o.value) }))
+                .filter((p) => p.date && Number.isFinite(p.value));
+            // Try requested frequency first; if no usable points (array absent OR
+            // all values are markers like "-"), fall through to finer-grained data.
+            let points = parse(j[freq]);
+            if (!points.length) {
+              // j.quarters may be [] (empty, truthy) — use .find to pick first non-empty array.
+              const fb = [j.quarters, j.months, j.years].find((a) => Array.isArray(a) && a.length) || [];
+              points = parse(fb);
+            }
+            if (!points.length) {
+              lastErr = new Error(`${c}/${ds}: no usable points`);
+              break;
+            }
+            return points;
+          } catch (e) {
+            lastErr = e;
+            if (attempt === 0) await sleep(1000);
           }
-          const j = await res.json();
-          const parse = (arr) =>
-            (arr || [])
-              .map((o) => ({ date: onsDate(o), value: parseFloat(o.value) }))
-              .filter((p) => p.date && Number.isFinite(p.value));
-          // Try requested frequency first; if no usable points (array absent OR
-          // all values are markers like "-"), fall through to finer-grained data.
-          let points = parse(j[freq]);
-          if (!points.length) {
-            // j.quarters may be [] (empty, truthy) — use .find to pick first non-empty array.
-            const fb = [j.quarters, j.months, j.years].find((a) => Array.isArray(a) && a.length) || [];
-            points = parse(fb);
-          }
-          if (!points.length) {
-            lastErr = new Error(`${c}/${ds}: no usable points`);
-            continue;
-          }
-          return points;
-        } catch (e) {
-          lastErr = e;
         }
       }
     }
@@ -94,7 +109,7 @@ async function eesCsv(datasetId) {
   let lastErr;
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      const res = await fetch(url, { headers: { accept: "text/csv,text/plain,*/*" } });
+      const res = await fetch(url, fetchOpts({ accept: "text/csv,text/plain,*/*" }));
       if (!res.ok) {
         lastErr = new Error(`EES ${datasetId} → HTTP ${res.status}`);
         if (res.status === 404 || res.status === 400) break;
@@ -134,7 +149,7 @@ async function unhcr(endpoint, params = {}) {
   let lastErr;
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      const res = await fetch(url, { headers: { accept: "application/json" } });
+      const res = await fetch(url, fetchOpts({ accept: "application/json" }));
       if (!res.ok) {
         lastErr = new Error(`UNHCR ${endpoint} → HTTP ${res.status}`);
         if (res.status === 404) break;
@@ -157,7 +172,7 @@ async function wb(indicator, country = "GBR") {
   let lastErr;
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      const res = await fetch(url, { headers: { accept: "application/json" } });
+      const res = await fetch(url, fetchOpts({ accept: "application/json" }));
       if (!res.ok) {
         lastErr = new Error(`WB ${indicator} → HTTP ${res.status}`);
         if (res.status === 404) break;
@@ -250,7 +265,8 @@ const SOURCES = [
   { id: "dwp-female-participation", min: 40, max: 85, get: () => wb("SL.TLF.CACT.FE.ZS") },
   { id: "dwp-gini", min: 25, max: 45, get: () => wb("SI.POV.GINI") },
   { id: "dwp-youth-unemp", min: 2, max: 40, get: () => wb("SL.UEM.1524.ZS") },
-  // DfT
+  // DfT — AR5 GHG-basis CO2e per capita (intentionally NOT the legacy
+  // fossil-only EN.ATM.CO2E.PC code referenced by the illustrative fallback).
   { id: "dft-co2-pc", min: 1, max: 20, get: () => wb("EN.GHG.CO2.PC.CE.AR5") },
 
   // --- Treasury derived / standalone ---
@@ -373,10 +389,19 @@ for (const s of SOURCES) {
   try {
     let points = await s.get();
     if (s.scale) points = points.map((p) => ({ date: p.date, value: p.value * s.scale }));
-    // Sanity guard: a wrong-but-resolving code can't show wrong data.
+    // Sanity guard: a wrong-but-resolving code can't show wrong data. Reject
+    // when the latest value is out of range, or when most of the series is —
+    // ranges are tuned around modern values, so a few historical outliers only
+    // warn (visible in CI logs) rather than dropping a good series.
+    const oob = (v) => (s.min != null && v < s.min) || (s.max != null && v > s.max);
     const last = points[points.length - 1].value;
-    if ((s.min != null && last < s.min) || (s.max != null && last > s.max))
+    if (oob(last))
       throw new Error(`latest ${last} outside expected [${s.min ?? "-∞"},${s.max ?? "∞"}] — wrong series?`);
+    const bad = points.filter((p) => oob(p.value));
+    if (bad.length > points.length / 2)
+      throw new Error(`${bad.length}/${points.length} points outside expected [${s.min ?? "-∞"},${s.max ?? "∞"}] — wrong series?`);
+    if (bad.length)
+      console.warn(`warn ${tag}  ${bad.length} point(s) outside [${s.min ?? "-∞"},${s.max ?? "∞"}], e.g. ${bad[0].value} at ${bad[0].date}`);
     out[s.id] ??= {};
     if (s.line) (out[s.id].lines ??= []).push({ id: s.line, points });
     else out[s.id].points = points;

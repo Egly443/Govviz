@@ -1,7 +1,9 @@
+import { Footer } from "./Footer";
 import { TopNav } from "./TopNav";
 import { TrendPanel } from "./TrendPanel";
 import { TurnoverBreakdown } from "./TurnoverBreakdown";
 import { DepartmentTabs } from "./DepartmentTabs";
+import { realAsOf } from "./data";
 import type { Department } from "./departments";
 
 interface Props {
@@ -9,6 +11,13 @@ interface Props {
 }
 
 export function DepartmentPage({ department: dept }: Props) {
+  // Most recent CI fetch date across this department's series, if any are live.
+  const fetchDates = [dept.hero, ...dept.core, ...(dept.supporting ?? [])]
+    .map((s) => realAsOf(s.id))
+    .filter((d): d is string => !!d)
+    .sort();
+  const fetchedAt = fetchDates[fetchDates.length - 1];
+
   return (
     <div className="relative min-h-screen bg-background text-foreground">
       <TopNav />
@@ -38,10 +47,12 @@ export function DepartmentPage({ department: dept }: Props) {
             </h1>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{dept.blurb}</p>
           </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-            Last updated 5 Jun 2026
-          </div>
+          {fetchedAt && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+              Live data fetched {fetchedAt}
+            </div>
+          )}
         </div>
 
         {/* Hero trend */}
@@ -101,20 +112,7 @@ export function DepartmentPage({ department: dept }: Props) {
           </section>
         )}
 
-        <footer className="mt-16 flex flex-col items-start justify-between gap-3 border-t border-border pt-6 text-xs text-muted-foreground sm:flex-row sm:items-center">
-          <div>
-            Data: official UK government, NAO, ONS and IPA sources. Figures
-            illustrative for demonstration.
-          </div>
-          <div className="flex items-center gap-4">
-            <a href="#" className="hover:text-foreground">
-              Methodology
-            </a>
-            <a href="#" className="hover:text-foreground">
-              Download CSV
-            </a>
-          </div>
-        </footer>
+        <Footer />
       </main>
     </div>
   );
