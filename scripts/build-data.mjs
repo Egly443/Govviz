@@ -289,33 +289,48 @@ const SOURCES = [
   { id: "vacancy", min: 1, max: 20, get: () => ons("employmentandlabourmarket/peopleinwork/employmentandemployeetypes", ["JPB9"], ["lms"], "months") },
 
   // --- DfE: EES (Explore Education Statistics) API ---
-  // ITT new entrants & targets time series (Table 2), dataset 04e0590d.
-  // 2015/16–2025/26; rows for "All subjects" contain a % of target column.
-  // (Dataset 1b9b9d24 turned out to be a trainee demographics breakdown table.)
+  // ITT new entrants & targets time series, dataset 04e0590d (1360 rows).
+  // Columns: time_period|inclusion_status|itt_subject|breakdown_topic|breakdown|
+  //          trainee_number|trainee_percentage
+  // The % of target is encoded as rows where breakdown_topic ≈ "Benchmark" and
+  // breakdown ≈ "In scope" (or similar), across all subjects (itt_subject = "All").
+  // We try: filter to breakdown_topic containing "benchmark"/"target", all subjects,
+  // then use trainee_percentage as the % value (expected 40-130 range).
   {
     id: "dfe-teacher-recruitment",
     min: 40,
     max: 130,
     get: async () => {
       const { headers, rows } = await eesCsv("04e0590d-63a9-45d4-b924-98c7a5bc5e76");
-      // find the % of target column (may be percentage_of_target, percent_of_target, etc.)
-      const pctCol = headers.find(
-        (h) => (h.includes("percentage") || h.includes("percent") || h.includes("pct")) && h.includes("target")
-      );
-      if (!pctCol) throw new Error(`dfe-teacher-recruitment: no target-% col in [${headers.join(",")}]`);
-      // prefer "All subjects" / "Total" rows (lower-cased filter check)
-      const allRows = rows.filter((r) => {
-        const v = Object.values(r).join(" ").toLowerCase();
-        return v.includes("all subject") || v.includes("total");
+      // Strategy: breakdown_topic rows containing "benchmark" or "target" hold the
+      // % of recruitment target achieved; use trainee_percentage for those rows.
+      const subjectCol = headers.find((h) => h.includes("subject")) ?? "itt_subject";
+      const topicCol = headers.find((h) => h.includes("breakdown_topic")) ?? "breakdown_topic";
+      const pctCol = headers.find((h) => h.includes("percentage")) ?? "trainee_percentage";
+      // Log breakdown_topic values from the first 20 rows for debugging
+      const topics = [...new Set(rows.slice(0, 50).map((r) => r[topicCol] ?? ""))].join("|");
+      console.log(`  ITT breakdown_topics (sample): ${topics}`);
+      // Filter: rows where breakdown_topic ≈ "Benchmark" and subject = "All"
+      let src = rows.filter((r) => {
+        const topic = (r[topicCol] ?? "").toLowerCase();
+        const subj = (r[subjectCol] ?? "").toLowerCase();
+        return (topic.includes("benchmark") || topic.includes("target") || topic.includes("all")) &&
+               (subj.includes("all") || subj.includes("total") || subj === "");
       });
-      const src = allRows.length ? allRows : rows;
+      if (!src.length) {
+        // Fallback: just "All subjects" rows regardless of breakdown_topic
+        src = rows.filter((r) => {
+          const subj = (r[subjectCol] ?? "").toLowerCase();
+          return subj.includes("all") || subj.includes("total") || subj === "";
+        });
+      }
       const seen = new Set();
       const points = [];
       for (const r of src) {
         const m = (r["time_period"] ?? "").match(/^(\d{4})/);
         if (!m) continue;
-        const val = parseFloat(r[pctCol]);
-        if (!Number.isFinite(val)) continue;
+        const val = parseFloat(r[pctCol] ?? "");
+        if (!Number.isFinite(val) || val < 30 || val > 150) continue;
         if (seen.has(m[1])) continue;
         seen.add(m[1]);
         points.push({ date: `${m[1]}-09-01`, value: val });
