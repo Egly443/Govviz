@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
+import { Footer } from "./Footer";
 import { TopNav } from "./TopNav";
 import { DepartmentTabs } from "./DepartmentTabs";
 import { GovTreemap } from "./GovTreemap";
@@ -55,20 +56,7 @@ export function OverviewPage() {
           figures are illustrative departmental totals.
         </p>
 
-        <footer className="mt-16 flex flex-col items-start justify-between gap-3 border-t border-border pt-6 text-xs text-muted-foreground sm:flex-row sm:items-center">
-          <div>
-            Data: official UK government, NAO, ONS and IPA sources. Figures
-            illustrative for demonstration.
-          </div>
-          <div className="flex items-center gap-4">
-            <a href="#" className="hover:text-foreground">
-              Methodology
-            </a>
-            <a href="#" className="hover:text-foreground">
-              Download CSV
-            </a>
-          </div>
-        </footer>
+        <Footer />
       </main>
 
       {selected && (

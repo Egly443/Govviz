@@ -15,16 +15,14 @@ export function TopNav() {
           </span>
         </Link>
         <nav className="flex items-center gap-4 text-xs text-muted-foreground">
-          <a href="#" className="hover:text-foreground">
-            Methodology
+          <a
+            href="https://github.com/egly443/govviz"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-foreground"
+          >
+            GitHub
           </a>
-          <a href="#" className="hidden hover:text-foreground sm:inline">
-            About
-          </a>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-            Live
-          </span>
         </nav>
       </div>
     </header>
