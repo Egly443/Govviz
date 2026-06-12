@@ -223,7 +223,7 @@ const SOURCES = [
   { id: "hmt-unemployment", min: 1, max: 20, get: () => ons(UNEMP, "MGSX", ["lms"], "months") },
 
   // --- DHSC: clinical workforce per 1,000 people (World Bank / OECD/WHO) ---
-  { id: "dhsc-clinical-per-1000", line: "doctors", min: 1, max: 6, get: () => wb("SH.MED.PHYS.ZS") },
+  { id: "dhsc-clinical-per-1000", line: "doctors", min: 0.5, max: 6, get: () => wb("SH.MED.PHYS.ZS") },
   { id: "dhsc-clinical-per-1000", line: "nurses", min: 3, max: 15, get: () => wb("SH.MED.NUMW.P3") },
   // Hospital beds per 1,000, and life expectancy at birth.
   { id: "dhsc-beds-per-1000", min: 1, max: 12, get: () => wb("SH.MED.BEDS.ZS") },
@@ -271,7 +271,8 @@ const SOURCES = [
 
   // --- Treasury derived / standalone ---
   // Tax revenue % of GDP (World Bank/IMF), matches hmt-tax-burden realPoints wrapper.
-  { id: "hmt-tax-burden", min: 25, max: 45, get: () => wb("GC.TAX.TOTL.GD.ZS") },
+  // min covers the full 1972+ history (central-government basis runs low in early decades).
+  { id: "hmt-tax-burden", min: 15, max: 45, get: () => wb("GC.TAX.TOTL.GD.ZS") },
   // Debt interest as % of government revenue (World Bank/IMF).
   { id: "hmt-debt-interest", min: 2, max: 25, get: () => wb("GC.XPN.INTP.RV.ZS") },
   // Tax split: direct (income, profits, CG) vs indirect (goods & services) as % of revenue.
@@ -283,7 +284,9 @@ const SOURCES = [
   // Endpoint: /populations/ with coa=GBR sums asylum_seekers field by year.
   {
     id: "ho-asylum-backlog",
-    min: 10000,
+    // UNHCR returns the full 1951+ history (yearFrom is not honoured); early
+    // decades are legitimately small, so only the upper bound guards.
+    min: 0,
     max: 500000,
     get: async () => {
       const items = await unhcr("population", { coa: "GBR", yearFrom: 2000, coo_all: true });
@@ -330,7 +333,13 @@ const SOURCES = [
         seen.add(m[1]);
         points.push({ date: `${m[1]}-09-01`, value: val });
       }
-      if (!points.length) throw new Error("dfe-teacher-recruitment: no usable rows");
+      if (!points.length) {
+        // Surface the live column values in the CI log so a schema change is
+        // diagnosable without re-running locally (sandbox has no internet).
+        const topics = [...new Set(rows.map((r) => r["breakdown_topic"]))].slice(0, 6).join("|");
+        const subjects = [...new Set(src.map((r) => r["itt_subject"]))].slice(0, 6).join("|");
+        throw new Error(`dfe-teacher-recruitment: no usable rows (topics: ${topics}; target subjects: ${subjects})`);
+      }
       return points.sort((a, b) => (a.date < b.date ? -1 : 1));
     },
   },
@@ -376,9 +385,9 @@ const SOURCES = [
   // AWE pay growth — KAC3 is monthly YoY %; request months (annual key returns index).
   { id: "hmt-cost-of-living", line: "wages", min: -10, max: 30, get: () => ons(EARN, ["KAC3"], ["lms", "emp"], "months") },
   // Productivity: output per hour worked (ONS, whole economy index).
-  { id: "hmt-productivity", min: 50, max: 130, get: () => ons("employmentandlabourmarket/peopleinwork/labourproductivity", ["LZVB", "LZVD"], ["prdy"], "years") },
+  { id: "hmt-productivity", min: 30, max: 130, get: () => ons("employmentandlabourmarket/peopleinwork/labourproductivity", ["LZVB", "LZVD"], ["prdy"], "years") },
   // Real households' disposable income per head, chained-volume £ (ONS CRXX).
-  { id: "hmt-real-income", min: 10000, max: 35000, get: () => ons(GDP, "CRXX", ["ukea"], "years") },
+  { id: "hmt-real-income", min: 5000, max: 35000, get: () => ons(GDP, "CRXX", ["ukea"], "years") },
 ];
 
 const out = {};
@@ -390,9 +399,9 @@ for (const s of SOURCES) {
     let points = await s.get();
     if (s.scale) points = points.map((p) => ({ date: p.date, value: p.value * s.scale }));
     // Sanity guard: a wrong-but-resolving code can't show wrong data. Reject
-    // when the latest value is out of range, or when most of the series is —
-    // ranges are tuned around modern values, so a few historical outliers only
-    // warn (visible in CI logs) rather than dropping a good series.
+    // the whole series when the latest value or a majority of points is out
+    // of range; isolated out-of-range points (corrupt rows, e.g. ONS J5IK has
+    // a couple of £m values on a %-of-GDP series) are dropped with a warning.
     const oob = (v) => (s.min != null && v < s.min) || (s.max != null && v > s.max);
     const last = points[points.length - 1].value;
     if (oob(last))
@@ -400,8 +409,10 @@ for (const s of SOURCES) {
     const bad = points.filter((p) => oob(p.value));
     if (bad.length > points.length / 2)
       throw new Error(`${bad.length}/${points.length} points outside expected [${s.min ?? "-∞"},${s.max ?? "∞"}] — wrong series?`);
-    if (bad.length)
-      console.warn(`warn ${tag}  ${bad.length} point(s) outside [${s.min ?? "-∞"},${s.max ?? "∞"}], e.g. ${bad[0].value} at ${bad[0].date}`);
+    if (bad.length) {
+      console.warn(`warn ${tag}  dropping ${bad.length} point(s) outside [${s.min ?? "-∞"},${s.max ?? "∞"}], e.g. ${bad[0].value} at ${bad[0].date}`);
+      points = points.filter((p) => !oob(p.value));
+    }
     out[s.id] ??= {};
     if (s.line) (out[s.id].lines ??= []).push({ id: s.line, points });
     else out[s.id].points = points;
