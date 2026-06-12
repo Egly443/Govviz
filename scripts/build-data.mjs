@@ -205,26 +205,27 @@ const SOURCES = [
 
   // --- Home Office ---
   // UNHCR Refugee Data Finder: pending asylum seekers in UK (all stages, all origins).
-  // Broader than HO "initial decision backlog" but real and reputable.
+  // Endpoint: /asylum-applications/ with coa=GBR sums pendingEnd by year.
   {
     id: "ho-asylum-backlog",
     min: 10000,
     max: 500000,
     get: async () => {
-      const items = await unhcr("asylum-seekers", { coa: ["GBR"], yearFrom: 2000 });
+      const items = await unhcr("asylum-applications", { coa: "GBR", yearFrom: 2000, coo_all: true });
       const byYear = {};
       for (const i of items) {
         if (i.pendingEnd != null) byYear[i.year] = (byYear[i.year] || 0) + i.pendingEnd;
       }
+      if (!Object.keys(byYear).length) throw new Error("ho-asylum-backlog: no pendingEnd data");
       return Object.entries(byYear)
         .sort(([a], [b]) => Number(a) - Number(b))
         .map(([y, v]) => ({ date: `${y}-01-01`, value: Math.round(v) }));
     },
   },
 
-  // --- DHSC: H&W sector vacancy rate (ONS, quarterly) ---
+  // --- DHSC: H&W sector vacancy rate (ONS, annual) ---
   // JPB9 = vacancies per 100 employee jobs in Human Health & Social Work.
-  { id: "vacancy", min: 1, max: 20, get: () => ons("employmentandlabourmarket/peopleinwork/employmentandemployeetypes", ["JPB9"], ["lms"], "quarters") },
+  { id: "vacancy", min: 1, max: 20, get: () => ons("employmentandlabourmarket/peopleinwork/employmentandemployeetypes", ["JPB9"], ["lms"], "years") },
 
   // --- in progress ---
   // AWE pay growth — KAC3 is monthly YoY %; request months (annual key returns index).
