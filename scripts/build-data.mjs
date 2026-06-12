@@ -114,7 +114,7 @@ async function eesCsv(datasetId) {
         const cells = parseCsvLine(l);
         return Object.fromEntries(headers.map((h, i) => [h, cells[i] ?? ""]));
       });
-      console.log(`  EES ${datasetId}: ${rows.length} rows, cols: ${headers.slice(0, 8).join("|")}`);
+      console.log(`  EES ${datasetId}: ${rows.length} rows, cols: ${headers.join("|")}`);
       return { headers, rows };
     } catch (e) {
       lastErr = e;
@@ -289,23 +289,24 @@ const SOURCES = [
   { id: "vacancy", min: 1, max: 20, get: () => ons("employmentandlabourmarket/peopleinwork/employmentandemployeetypes", ["JPB9"], ["lms"], "months") },
 
   // --- DfE: EES (Explore Education Statistics) API ---
-  // ITT new entrants & targets time series (Table 2), dataset 1b9b9d24.
-  // Covers 2015/16 to 2025/26; "All subjects" row has % of target achieved.
+  // ITT new entrants & targets time series (Table 2), dataset 04e0590d.
+  // 2015/16–2025/26; rows for "All subjects" contain a % of target column.
+  // (Dataset 1b9b9d24 turned out to be a trainee demographics breakdown table.)
   {
     id: "dfe-teacher-recruitment",
     min: 40,
     max: 130,
     get: async () => {
-      const { headers, rows } = await eesCsv("1b9b9d24-7eff-4fad-8bbe-7520255aea13");
-      // find the % of target column (may be named percentage_of_target, pct_of_target, etc.)
+      const { headers, rows } = await eesCsv("04e0590d-63a9-45d4-b924-98c7a5bc5e76");
+      // find the % of target column (may be percentage_of_target, percent_of_target, etc.)
       const pctCol = headers.find(
         (h) => (h.includes("percentage") || h.includes("percent") || h.includes("pct")) && h.includes("target")
       );
       if (!pctCol) throw new Error(`dfe-teacher-recruitment: no target-% col in [${headers.join(",")}]`);
-      // prefer rows marked as all-subjects total; fall back to summing if needed
+      // prefer "All subjects" / "Total" rows (lower-cased filter check)
       const allRows = rows.filter((r) => {
-        const subj = (r["subject"] ?? r["subject_description"] ?? "").toLowerCase();
-        return subj.includes("all") || subj.includes("total") || subj === "";
+        const v = Object.values(r).join(" ").toLowerCase();
+        return v.includes("all subject") || v.includes("total");
       });
       const src = allRows.length ? allRows : rows;
       const seen = new Set();
@@ -325,43 +326,36 @@ const SOURCES = [
   },
 
   // Teacher retention, School workforce in England, dataset e0a0988c.
-  // ~29 rows; national level; shows % still teaching by years since QTS.
-  // We want the 5-year cohort (attrition = 100 - pct_remaining at 5 years).
+  // 29 rows; wide-format: one column per year after QTS (one_yr_after_qualifying_percent,
+  // two_yr_..., ... five_yr_...). We take the 5-year column → attrition = 100 - pct.
   {
     id: "dfe-ect-attrition",
     min: 15,
     max: 60,
     get: async () => {
       const { headers, rows } = await eesCsv("e0a0988c-41e8-411a-be55-ec990ce97043");
-      // find the "years since QTS" filter column
-      const yrsCol = headers.find(
-        (h) => h.includes("year") && (h.includes("qts") || h.includes("since") || h.includes("after"))
+      // The 5-year column follows the pattern "five_yr_after_qualifying_percent".
+      const fiveCol = headers.find(
+        (h) => h.startsWith("five") && h.includes("yr") && h.includes("percent")
+      ) ?? headers.find(
+        (h) => h.includes("five") && (h.includes("yr") || h.includes("year")) && h.includes("percent")
       );
-      // find the retention / still-in-service % column
-      const retainCol = headers.find(
-        (h) => h.includes("percent") || h.includes("proportion") || h.includes("retain") || h.includes("service")
-      );
-      if (!retainCol) throw new Error(`dfe-ect-attrition: no retention col in [${headers.join(",")}]`);
-      let src = rows;
-      if (yrsCol) {
-        const fiveYr = rows.filter(
-          (r) => String(r[yrsCol]).replace(/[^0-9]/g, "") === "5"
-        );
-        if (fiveYr.length) src = fiveYr;
-      }
+      if (!fiveCol) throw new Error(`dfe-ect-attrition: no 5-yr column in [${headers.join(",")}]`);
       const seen = new Set();
       const points = [];
-      for (const r of src) {
-        const m = (r["time_period"] ?? "").match(/^(\d{4})/);
+      for (const r of rows) {
+        // year_qualified is the cohort year; time_period may be the same
+        const raw = r["year_qualified"] ?? r["time_period"] ?? "";
+        const m = raw.match(/^(\d{4})/);
         if (!m) continue;
-        const pct = parseFloat(r[retainCol]);
+        const pct = parseFloat(r[fiveCol]);
         if (!Number.isFinite(pct)) continue;
-        // retention → attrition; guard reasonable range
-        const attrition = pct > 50 ? 100 - pct : pct;
-        if (attrition < 10 || attrition > 65) continue;
+        // 5-year retention (67–90% range expected) → attrition
+        const attrition = +(100 - pct).toFixed(1);
+        if (attrition < 5 || attrition > 55) continue;
         if (seen.has(m[1])) continue;
         seen.add(m[1]);
-        points.push({ date: `${m[1]}-09-01`, value: +attrition.toFixed(1) });
+        points.push({ date: `${m[1]}-09-01`, value: attrition });
       }
       if (!points.length) throw new Error("dfe-ect-attrition: no usable rows");
       return points.sort((a, b) => (a.date < b.date ? -1 : 1));
