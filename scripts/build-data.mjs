@@ -90,6 +90,92 @@ async function ons(topic, cdid, dataset, freq = "years") {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// Optional Excel/zip parsers. CI installs them with `npm install --no-save
+// xlsx adm-zip` before this script; when absent (local dev), every source
+// that needs them throws and is skipped by its per-source try/catch.
+let XLSX = null;
+let AdmZip = null;
+try { XLSX = (await import("xlsx")).default; } catch { /* optional */ }
+try { AdmZip = (await import("adm-zip")).default; } catch { /* optional */ }
+
+async function fetchBuffer(url) {
+  let lastErr;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch(url, fetchOpts({}));
+      if (!res.ok) {
+        lastErr = new Error(`${url} → HTTP ${res.status}`);
+        if (res.status === 404 || res.status === 410) break;
+        await sleep(1000 * (attempt + 1));
+        continue;
+      }
+      return Buffer.from(await res.arrayBuffer());
+    } catch (e) {
+      lastErr = e;
+      await sleep(1000 * (attempt + 1));
+    }
+  }
+  throw lastErr;
+}
+
+// Fetch a web page and return hrefs matching `re` (absolute-ised against the
+// page URL). For publishers like NHS England that only link dated files.
+async function pageLinks(url, re) {
+  const res = await fetch(url, fetchOpts({ accept: "text/html" }));
+  if (!res.ok) throw new Error(`${url} → HTTP ${res.status}`);
+  const html = await res.text();
+  const out = [];
+  for (const m of html.matchAll(/href="([^"]+)"/g)) {
+    const href = new URL(m[1].replace(/&amp;/g, "&"), url).toString();
+    if (re.test(href)) out.push(href);
+  }
+  if (!out.length) throw new Error(`no links matching ${re} on ${url}`);
+  return out;
+}
+
+// gov.uk Content API: resolve the latest attachment whose URL/title matches
+// `attRe` for a publication path, or — for a collection — the newest child
+// document whose title matches `docRe`. Avoids hard-coding dated asset URLs.
+async function govukAttachment(path, attRe, docRe) {
+  const get = async (p) => {
+    const res = await fetch(`https://www.gov.uk/api/content${p}`, fetchOpts({ accept: "application/json" }));
+    if (!res.ok) throw new Error(`gov.uk content ${p} → HTTP ${res.status}`);
+    return res.json();
+  };
+  let doc = await get(path);
+  const children = doc.links?.documents;
+  if (children?.length) {
+    const pick = children
+      .filter((d) => !docRe || docRe.test(d.title || ""))
+      .sort((a, b) => (a.public_updated_at < b.public_updated_at ? 1 : -1))[0];
+    if (!pick) throw new Error(`no collection doc matching ${docRe} under ${path}`);
+    doc = await get(pick.base_path);
+  }
+  const atts = doc.details?.attachments || [];
+  const att = atts.find((a) => attRe.test(a.url || "") || attRe.test(a.title || ""));
+  if (!att) throw new Error(`no attachment matching ${attRe} on ${doc.base_path} (${atts.length} attachments)`);
+  return att.url;
+}
+
+// Parse an xlsx/xls/ods buffer; returns rows (arrays) of the first sheet
+// whose name matches `sheetRe`.
+function sheetRows(buf, sheetRe = /./) {
+  if (!XLSX) throw new Error("xlsx parser not installed (CI installs it)");
+  const wb = XLSX.read(buf, { type: "buffer" });
+  const name = wb.SheetNames.find((n) => sheetRe.test(n));
+  if (!name) throw new Error(`no sheet matching ${sheetRe} in [${wb.SheetNames.join("|")}]`);
+  return XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, raw: true, defval: null });
+}
+
+// Extract the first zip entry matching `entryRe` as a buffer.
+function zipEntry(buf, entryRe) {
+  if (!AdmZip) throw new Error("adm-zip not installed (CI installs it)");
+  const zip = new AdmZip(buf);
+  const entry = zip.getEntries().find((e) => entryRe.test(e.entryName));
+  if (!entry) throw new Error(`no zip entry matching ${entryRe} in [${zip.getEntries().map((e) => e.entryName).slice(0, 10).join("|")}]`);
+  return entry.getData();
+}
+
 // EES (Explore Education Statistics) — DfE's open data catalogue.
 // https://explore-education-statistics.service.gov.uk/data-catalogue/data-set/{id}/csv
 // Returns plain CSV (no auth). Not all datasets are available this way; a 4xx skips.
@@ -317,11 +403,18 @@ const SOURCES = [
     max: 130,
     get: async () => {
       const { rows } = await eesCsv("04e0590d-63a9-45d4-b924-98c7a5bc5e76");
-      const src = rows.filter((r) => {
-        const topic = (r["breakdown_topic"] ?? "").toLowerCase();
-        const subj = (r["itt_subject"] ?? "").toLowerCase();
-        return topic === "target" && (subj.includes("all") || subj === "");
-      });
+      const targetRows = rows.filter(
+        (r) => (r["breakdown_topic"] ?? "").toLowerCase() === "target",
+      );
+      // The all-subjects total may live in itt_subject or breakdown, labelled
+      // "All subjects"/"Total"/blank depending on the dataset revision.
+      const isTotal = (v) => {
+        const s = (v ?? "").toLowerCase();
+        return s === "" || s.includes("all") || s.includes("total");
+      };
+      const src = targetRows.filter(
+        (r) => isTotal(r["itt_subject"]) || isTotal(r["breakdown"]),
+      );
       const seen = new Set();
       const points = [];
       for (const r of src) {
@@ -336,9 +429,9 @@ const SOURCES = [
       if (!points.length) {
         // Surface the live column values in the CI log so a schema change is
         // diagnosable without re-running locally (sandbox has no internet).
-        const topics = [...new Set(rows.map((r) => r["breakdown_topic"]))].slice(0, 6).join("|");
-        const subjects = [...new Set(src.map((r) => r["itt_subject"]))].slice(0, 6).join("|");
-        throw new Error(`dfe-teacher-recruitment: no usable rows (topics: ${topics}; target subjects: ${subjects})`);
+        const subjects = [...new Set(targetRows.map((r) => r["itt_subject"]))].slice(0, 8).join("|");
+        const breakdowns = [...new Set(targetRows.map((r) => r["breakdown"]))].slice(0, 8).join("|");
+        throw new Error(`dfe-teacher-recruitment: no usable rows (target itt_subjects: ${subjects}; breakdowns: ${breakdowns})`);
       }
       return points.sort((a, b) => (a.date < b.date ? -1 : 1));
     },

@@ -35,6 +35,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Parsers used only by the data-fetch step (Excel/ODS/zip sources);
+      # deliberately not app dependencies.
+      - name: Install data-fetch parsers
+        run: npm install --no-save xlsx adm-zip
+
       # Fetch official statistics and bake them into src/generated/seriesData.ts.
       # Best-effort: any source that fails is skipped (bundled illustrative data
       # is used for it). The script always exits 0 by design, so no
