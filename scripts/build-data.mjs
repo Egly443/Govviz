@@ -47,11 +47,14 @@ async function ons(topic, cdid, dataset, freq = "years") {
             continue;
           }
           const j = await res.json();
-          let arr = j[freq] || [];
-          if (!arr.length) arr = j.quarters || j.months || [];
-          const points = arr
-            .map((o) => ({ date: onsDate(o), value: parseFloat(o.value) }))
-            .filter((p) => p.date && Number.isFinite(p.value));
+          const parse = (arr) =>
+            (arr || [])
+              .map((o) => ({ date: onsDate(o), value: parseFloat(o.value) }))
+              .filter((p) => p.date && Number.isFinite(p.value));
+          // Try requested frequency first; if no usable points (array absent OR
+          // all values are markers like "-"), fall through to finer-grained data.
+          let points = parse(j[freq]);
+          if (!points.length) points = parse(j.quarters || j.months || j.years || []);
           if (!points.length) {
             lastErr = new Error(`${c}/${ds}: no usable points`);
             continue;
