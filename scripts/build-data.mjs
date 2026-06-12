@@ -50,7 +50,7 @@ async function ons(topic, cdid, dataset, freq = "years") {
           let arr = j[freq] || [];
           if (!arr.length) arr = j.quarters || j.months || [];
           const points = arr
-            .map((o) => ({ date: onsDate(o), value: Number(o.value) }))
+            .map((o) => ({ date: onsDate(o), value: parseFloat(o.value) }))
             .filter((p) => p.date && Number.isFinite(p.value));
           if (!points.length) {
             lastErr = new Error(`${c}/${ds}: no usable points`);
@@ -204,19 +204,20 @@ const SOURCES = [
   { id: "hmt-debt-interest", min: 2, max: 25, get: () => wb("GC.XPN.INTP.RV.ZS") },
 
   // --- Home Office ---
-  // UNHCR Refugee Data Finder: pending asylum seekers in UK (all stages, all origins).
-  // Endpoint: /asylum-applications/ with coa=GBR sums pendingEnd by year.
+  // UNHCR Refugee Data Finder: pending asylum seekers in UK (stock at year-end, all origins).
+  // Endpoint: /populations/ with coa=GBR sums asylum_seekers field by year.
   {
     id: "ho-asylum-backlog",
     min: 10000,
     max: 500000,
     get: async () => {
-      const items = await unhcr("asylum-applications", { coa: "GBR", yearFrom: 2000, coo_all: true });
+      const items = await unhcr("population", { coa: "GBR", yearFrom: 2000, coo_all: true });
       const byYear = {};
       for (const i of items) {
-        if (i.pendingEnd != null) byYear[i.year] = (byYear[i.year] || 0) + i.pendingEnd;
+        const v = i.asylum_seekers ?? i.asylumSeekers;
+        if (v != null) byYear[i.year] = (byYear[i.year] || 0) + Number(v);
       }
-      if (!Object.keys(byYear).length) throw new Error("ho-asylum-backlog: no pendingEnd data");
+      if (!Object.keys(byYear).length) throw new Error("ho-asylum-backlog: no asylum_seekers data");
       return Object.entries(byYear)
         .sort(([a], [b]) => Number(a) - Number(b))
         .map(([y, v]) => ({ date: `${y}-01-01`, value: Math.round(v) }));
