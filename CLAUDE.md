@@ -100,38 +100,126 @@ internet.** Use it to find ONS CDIDs/datasets and World Bank codes, then wire th
 fetcher (CI does the actual fetch). e.g. searching "ONS real household disposable
 income per head CDID" found `CRXX`/`ukea`.
 
-### Coverage (as of last session)
-~40 series real across all 8 departments (CPI, PSND %GDP + £tn "£3tn chart",
-deficit, unemployment, GDP/GNI per head, productivity, real income; doctors/
-nurses/beds per 1,000, life expectancy, infant mortality, health spend, suicide,
-measles, OOP; education spend, pupil-teacher, tertiary; homicide, foreign-born;
-defence spend, forces personnel; over-65s, dependency, female participation,
-Gini, youth unemployment; road deaths, CO₂). Read the latest CI **"Fetch live
-data"** log (via `mcp__github__get_job_logs`) for the live `ok`/`SKIP` tally —
-the manifest is cumulative so one run shows everything.
+### Coverage — current state (49 SOURCES entries, 49 ok / 0 SKIP as of 2026-06-12)
 
-### Still illustrative — the **operational** metrics
-NHS RTT/A&E/discharge/agency/vacancies, MoJ (all: court backlog, reoffending,
-prisons), Home Office asylum/visa/hotels, MoD personnel-shortfall/outflow/
-procurement/readiness, DWP PIP/work-coach/fraud/UC, DfT rail/DVLA/SRN, and a few
-Treasury (tax burden, tax split, debt interest, wages line). **These have no
-stable API** — NHS RTT is dated **zipped Excel**, `data.justice.gov.uk` is a
-**dashboard**. They can't be blind-fetched like ONS/WB.
+**~47 unique series IDs are live** (real data fetched in CI). Read the latest CI
+**"Fetch live data"** log (via `mcp__github__get_job_logs`) for the authoritative
+`ok`/`SKIP` tally — the manifest is cumulative so one run shows everything.
 
-### Next session — gov.uk MCP route (user's chosen approach)
-`.mcp.json` declares a `govuk-services` MCP server (`python -m govuk_mcp`). It is
-**NOT active yet**: `govuk_mcp` is not installed and the sandbox can't pip-install
-(no internet). To use it: the **environment setup script must install the package**,
-then a **fresh session** loads `.mcp.json` and `mcp__govuk-services__*` tools
-appear. Then source the operational metrics **through those tools** (like the
-GitHub MCP). If the package turns out not to exist, fall back to committing small
-**sourced snapshots** (real figures + citation), or add a zip/Excel CI scraper.
+| Dept | Live series IDs |
+|------|----------------|
+| HMT  | hmt-psnd, hmt-psnd-cash, hmt-deficit, hmt-unemployment, hmt-gdp-per-capita, hmt-gdp-growth, hmt-real-income, hmt-productivity, hmt-cost-of-living (cpi + wages lines), hmt-investment-gdp, hmt-current-account, hmt-employment-rate, hmt-participation, hmt-trade-gdp, hmt-savings, hmt-gni-per-capita, hmt-tax-burden, hmt-debt-interest, hmt-tax-split (direct + indirect lines) |
+| DHSC | dhsc-clinical-per-1000 (doctors + nurses lines), dhsc-beds-per-1000, dhsc-health-spend-gdp, dhsc-health-spend-pc, dhsc-infant-mortality, life-expectancy, dhsc-suicide, dhsc-measles-imm, dhsc-oop, vacancy (nursing vacancy rate) |
+| DfE  | dfe-edu-spend-gdp, dfe-pupil-teacher, dfe-tertiary-enrol, dfe-teacher-recruitment (EES), dfe-ect-attrition (EES) |
+| HO   | ho-homicide-rate, ho-migrant-stock, ho-asylum-backlog |
+| MoD  | mod-defence-spend-gdp, mod-personnel-total |
+| DWP  | dwp-pop-65, dwp-oldage-dependency, dwp-female-participation, dwp-gini, dwp-youth-unemp |
+| DfT  | dft-road-death-rate, dft-co2-pc |
+
+### Still illustrative — ~28 series — **FOR OPUS TO SOLVE**
+
+These are the series that remain illustrative. Each has a specific blocker; a
+sufficiently capable model should be able to find a workaround (scraping, snapshot
+commits, alternative indicators, or zip/Excel CI parsers).
+
+#### DHSC operational (6 series in `src/components/data.ts`)
+| Series | Description | Blocker |
+|--------|-------------|---------|
+| `waitingList` | NHS RTT total waiting list size | NHS England publishes dated **zipped Excel** (`https://www.england.nhs.uk/statistics/statistical-work-areas/rtt-waiting-times/`); no REST JSON endpoint |
+| `rtt18Week` | % patients waiting ≤18 weeks | Same zip; sheet "Provider" col "Total within 18 weeks" |
+| `dischargeDelays` | Delayed discharges (bed-days lost) | NHS England daily SitRep, archived Excel |
+| `agencySpend` | Agency/locum spend (£bn) | NHS England board papers / NAO; no structured API |
+| `aePerformance` | A&E 4-hour performance % | NHS England A&E monthly Excel; no REST JSON |
+| `turnover` | NHS staff turnover % | NHS Digital workforce stats Excel; no REST JSON |
+
+**Possible approach:** CI wget of the known Excel URL + `xlsx` npm package to
+parse. The RTT zip URL pattern is stable (`rtt-*-full-extract.zip`). The
+`xlsx` package is already a common npm dep and can read `.xlsb`/`.xlsx`.
+
+#### MoJ (4 series in `src/components/departments.ts`)
+| Series | Blocker |
+|--------|---------|
+| `moj-crown-backlog` | `data.justice.gov.uk` is a Tableau dashboard; no API. NAO/MoJ annual reports are PDFs. |
+| `moj-officer-resignations` | HMPPS workforce quarterly bulletin is Excel-only. |
+| `moj-cost-per-prisoner` | HMPPS annual report & accounts, Excel annex. |
+| `moj-completion-days` | LAA/HMCTS published as Excel/CSV in ad-hoc statistical releases. |
+
+**Possible approach:** `data.justice.gov.uk` has a `/views/{view}/data.csv?...`
+Tableau endpoint — worth probing. Alternatively commit sourced snapshots from
+the MoJ/HMPPS annual report Excel files (manual, citable).
+
+#### MoD operational (4 series)
+| Series | Blocker |
+|--------|---------|
+| `mod-personnel-shortfall` | DASA (Defence Analytical Services & Advice) publishes UK Armed Forces quarterly manpower as Excel; no API. |
+| `mod-voluntary-outflow` | Same DASA quarterly bulletin. |
+| `mod-procurement` | IPA GMPP annual report is PDF/Excel; no structured API. |
+| `mod-readiness` | Classified / not published at all. Consider replacing with DASA-published readiness-proxy (e.g. trained strength %). |
+
+**Possible approach:** DASA `www.gov.uk/government/collections/uk-armed-forces-quarterly-service-personnel-statistics` — check if any CSV version is available alongside the Excel.
+
+#### DWP operational (4 series)
+| Series | Blocker |
+|--------|---------|
+| `dwp-pip-clearance` | DWP Stat-Xplore (`stat-xplore.dwp.gov.uk`) requires a **free API key** (register at the site). Endpoint is `POST /table` with a JSON query body. |
+| `dwp-work-coach-ratio` | Same Stat-Xplore; claimant-count ÷ work-coach headcount. |
+| `dwp-fraud-error` | DWP publishes annual fraud/error estimates as Excel on gov.uk — URL pattern is stable. |
+| `dwp-uc-mr` | DWP Stat-Xplore UC mandatory reconsideration data. |
+
+**Possible approach for `dwp-fraud-error`:** The annual Excel is at a stable
+`https://assets.publishing.service.gov.uk/...` URL — CI can wget + parse with
+`xlsx`. For Stat-Xplore series: user could register for a free API key and add it
+as a CI secret `DWP_STATXPLORE_KEY`; the fetcher sends `Authorization: Bearer
+{key}` to `https://stat-xplore.dwp.gov.uk/webapi/rest/v1/table`.
+
+#### Home Office operational (3 series)
+| Series | Blocker |
+|--------|---------|
+| `ho-caseworker-turnover` | Not published as a structured dataset; appears only in HO annual reports. |
+| `ho-hotel-spend` | Published in parliamentary answers / NAO reports; no structured API. |
+| `ho-visa-sla` | UKVI published quarterly transparency data as Excel on gov.uk — URL may be stable. |
+
+**Possible approach for `ho-visa-sla`:** Check
+`https://www.gov.uk/government/collections/migration-transparency-data` for a
+directly linkable CSV/Excel; CI can scrape if URL is stable.
+
+#### DfE non-operational (2 series)
+| Series | Blocker |
+|--------|---------|
+| `dfe-attainment-gap` | EPI publish an annual report PDF/Excel; no API. NPDB (National Pupil Database) data is behind a data-share agreement. |
+| `dfe-dsg-deficit` | DSG deficit is reported at local-authority level in DfE's section 251 outturn returns (Excel); no aggregate API. |
+
+**Possible approach:** EES (`explore-education-statistics.service.gov.uk`) may
+have an attainment-gap dataset — search EES catalogue for "attainment gap" or
+"disadvantage gap". The `eesCsv(datasetId)` helper in `build-data.mjs` can fetch
+it if found.
+
+#### DfT operational (4 series)
+| Series | Blocker |
+|--------|---------|
+| `dft-rail-cancellations` | ORR (Office of Rail and Road) publishes train performance data as Excel/CSV; `dataportal.orr.gov.uk` has some CSV endpoints — worth probing. |
+| `dft-dvla-backlog` | DVLA does not publish transaction backlog as open data; appears in parliamentary answers only. |
+| `dft-capital-overrun` | IPA GMPP annual report (PDF/Excel); no API. |
+| `dft-srn-degradation` | National Highways asset condition data is in annual reports; no API. |
+
+**Possible approach for `dft-rail-cancellations`:** ORR data portal
+(`https://dataportal.orr.gov.uk/statistics/performance/train-punctuality/`) may
+have a CSV download link. CI can wget the CSV and parse the cancellation % column.
 
 ### Workflow notes
-- User granted **direct pushes to `main`** for data iteration (`git push origin
-  HEAD:main`, then `git push -f origin claude/github-repo-import-CAH4y` to keep
-  the branch in sync). CI fetch runs "in the background"; read its log afterwards.
+- User granted **direct pushes to `main`** for data iteration:
+  `git push origin HEAD:main && git push origin claude/govuk-mcp-verify-l6kckt`
 - Commit as `Claude <noreply@anthropic.com>` (`git config user.email
   noreply@anthropic.com && git config user.name Claude`) so commits verify.
-- Tax burden = receipts (ONS `ANBV`, £m) ÷ GDP — needs a ratio transform if wired.
-  Wages line = ONS `KAC3`/`lms` (its `/data` JSON needs a closer look).
+- Working branch: `claude/govuk-mcp-verify-l6kckt`
+- **WebSearch reaches the internet** (curl/WebFetch don't). Use it to find stable
+  CSV/Excel URLs or dataset IDs, then wire in CI — the actual fetch happens in CI.
+- `eesCsv(datasetId)` helper already in `build-data.mjs` — reuse for any new EES
+  dataset IDs found.
+- **EES catalogue search:** `https://explore-education-statistics.service.gov.uk/
+  data-catalogue` — use WebSearch to find dataset IDs matching a topic.
+- `xlsx` npm package is available if CI needs to parse Excel files; add as a CI
+  `npm install --no-save xlsx` step before the fetch script if needed.
+- Tax burden = receipts (ONS `ANBV`, £m) ÷ GDP — already wired via WB
+  `GC.TAX.TOTL.GD.ZS` (tax % GDP). The explicit ONS ratio is not needed unless
+  UK-domestic definition differs materially.
