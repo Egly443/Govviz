@@ -68,6 +68,32 @@ async function ons(topic, cdid, dataset, freq = "years") {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// UNHCR Refugee Data Finder — public REST API, no key required.
+// Returns JSON items for the given endpoint/params; caller aggregates.
+async function unhcr(endpoint, params = {}) {
+  const qs = Object.entries(params)
+    .flatMap(([k, v]) => (Array.isArray(v) ? v.map((vi) => `${k}[]=${vi}`) : [`${k}=${v}`]))
+    .join("&");
+  const url = `https://api.unhcr.org/population/v1/${endpoint}/?${qs}&limit=10000`;
+  let lastErr;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch(url, { headers: { accept: "application/json" } });
+      if (!res.ok) {
+        lastErr = new Error(`UNHCR ${endpoint} → HTTP ${res.status}`);
+        if (res.status === 404) break;
+        await sleep(600 * (attempt + 1));
+        continue;
+      }
+      return (await res.json()).items || [];
+    } catch (e) {
+      lastErr = e;
+      await sleep(600 * (attempt + 1));
+    }
+  }
+  throw lastErr || new Error(`UNHCR ${endpoint}: failed`);
+}
+
 // World Bank open API → clean JSON, no key, very stable, sourced from
 // OECD/WHO/UN (so internationally comparable and hard to fudge).
 async function wb(indicator, country = "GBR") {
@@ -176,6 +202,29 @@ const SOURCES = [
   { id: "hmt-tax-burden", min: 25, max: 45, get: () => wb("GC.TAX.TOTL.GD.ZS") },
   // Debt interest as % of government revenue (World Bank/IMF).
   { id: "hmt-debt-interest", min: 2, max: 25, get: () => wb("GC.XPN.INTP.RV.ZS") },
+
+  // --- Home Office ---
+  // UNHCR Refugee Data Finder: pending asylum seekers in UK (all stages, all origins).
+  // Broader than HO "initial decision backlog" but real and reputable.
+  {
+    id: "ho-asylum-backlog",
+    min: 10000,
+    max: 500000,
+    get: async () => {
+      const items = await unhcr("asylum-seekers", { coa: ["GBR"], yearFrom: 2000 });
+      const byYear = {};
+      for (const i of items) {
+        if (i.pendingEnd != null) byYear[i.year] = (byYear[i.year] || 0) + i.pendingEnd;
+      }
+      return Object.entries(byYear)
+        .sort(([a], [b]) => Number(a) - Number(b))
+        .map(([y, v]) => ({ date: `${y}-01-01`, value: Math.round(v) }));
+    },
+  },
+
+  // --- DHSC: H&W sector vacancy rate (ONS, quarterly) ---
+  // JPB9 = vacancies per 100 employee jobs in Human Health & Social Work.
+  { id: "vacancy", min: 1, max: 20, get: () => ons("employmentandlabourmarket/peopleinwork/employmentandemployeetypes", ["JPB9"], ["lms"], "quarters") },
 
   // --- in progress ---
   // AWE pay growth — KAC3 is monthly YoY %; request months (annual key returns index).

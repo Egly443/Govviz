@@ -470,17 +470,17 @@ const medicalVacancyPts = trajectory(
 
 export const vacancyRate: TrendSeries = {
   id: "vacancy",
-  title: "Clinical vacancy rate: nurses vs doctors",
-  subtitle: "% of funded posts unfilled, by staff group",
+  title: "Health & social care vacancy rate",
+  subtitle: "Vacancies per 100 employee jobs, H&W sector (ONS); by-group breakdown indicative",
   unit: "percent",
   format: fmtPct,
   shortFormat: fmtPct,
   goodDirection: "down",
-  source: "NHS England NHS Vacancy Statistics",
+  source: "ONS Vacancies by Industry (JPB9)",
   sourceUrl:
-    "https://digital.nhs.uk/data-and-information/publications/statistical/nhs-vacancies-survey",
-  cadence: "monthly",
-  points: nursingVacancyPts,
+    "https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/employmentandemployeetypes/timeseries/jpb9/lms",
+  cadence: "quarterly",
+  points: realPoints("vacancy", nursingVacancyPts),
   lines: [
     { id: "nursing", label: "Nursing & midwifery", points: nursingVacancyPts },
     { id: "medical", label: "Medical", points: medicalVacancyPts },
