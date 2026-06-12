@@ -75,6 +75,55 @@ async function ons(topic, cdid, dataset, freq = "years") {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// EES (Explore Education Statistics) — DfE's open data catalogue.
+// https://explore-education-statistics.service.gov.uk/data-catalogue/data-set/{id}/csv
+// Returns plain CSV (no auth). Not all datasets are available this way; a 4xx skips.
+function parseCsvLine(line) {
+  const cells = [];
+  let inQ = false, cur = "";
+  for (const ch of line) {
+    if (ch === '"') { inQ = !inQ; }
+    else if (ch === "," && !inQ) { cells.push(cur.trim()); cur = ""; }
+    else { cur += ch; }
+  }
+  cells.push(cur.trim());
+  return cells;
+}
+async function eesCsv(datasetId) {
+  const url = `https://explore-education-statistics.service.gov.uk/data-catalogue/data-set/${datasetId}/csv`;
+  let lastErr;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch(url, { headers: { accept: "text/csv,text/plain,*/*" } });
+      if (!res.ok) {
+        lastErr = new Error(`EES ${datasetId} → HTTP ${res.status}`);
+        if (res.status === 404 || res.status === 400) break;
+        await sleep(1000 * (attempt + 1));
+        continue;
+      }
+      const ct = res.headers.get("content-type") ?? "";
+      if (ct.includes("html")) {
+        lastErr = new Error(`EES ${datasetId}: got HTML, not CSV`);
+        break;
+      }
+      const text = await res.text();
+      const lines = text.trim().split(/\r?\n/);
+      if (lines.length < 2) throw new Error(`EES ${datasetId}: empty CSV`);
+      const headers = parseCsvLine(lines[0]).map((h) => h.toLowerCase());
+      const rows = lines.slice(1).map((l) => {
+        const cells = parseCsvLine(l);
+        return Object.fromEntries(headers.map((h, i) => [h, cells[i] ?? ""]));
+      });
+      console.log(`  EES ${datasetId}: ${rows.length} rows, cols: ${headers.slice(0, 8).join("|")}`);
+      return { headers, rows };
+    } catch (e) {
+      lastErr = e;
+      await sleep(1000 * (attempt + 1));
+    }
+  }
+  throw lastErr || new Error(`EES ${datasetId}: failed`);
+}
+
 // UNHCR Refugee Data Finder — public REST API, no key required.
 // Returns JSON items for the given endpoint/params; caller aggregates.
 async function unhcr(endpoint, params = {}) {
@@ -209,6 +258,9 @@ const SOURCES = [
   { id: "hmt-tax-burden", min: 25, max: 45, get: () => wb("GC.TAX.TOTL.GD.ZS") },
   // Debt interest as % of government revenue (World Bank/IMF).
   { id: "hmt-debt-interest", min: 2, max: 25, get: () => wb("GC.XPN.INTP.RV.ZS") },
+  // Tax split: direct (income, profits, CG) vs indirect (goods & services) as % of revenue.
+  { id: "hmt-tax-split", line: "direct", min: 30, max: 70, get: () => wb("GC.TAX.YPKG.RV.ZS") },
+  { id: "hmt-tax-split", line: "indirect", min: 15, max: 50, get: () => wb("GC.TAX.GSRV.RV.ZS") },
 
   // --- Home Office ---
   // UNHCR Refugee Data Finder: pending asylum seekers in UK (stock at year-end, all origins).
@@ -235,6 +287,86 @@ const SOURCES = [
   // JPB9 = vacancies per 100 employee jobs in Human Health & Social Work.
   // Data lives in j.months (3-month moving average, date "YYYY MON") in the lms dataset.
   { id: "vacancy", min: 1, max: 20, get: () => ons("employmentandlabourmarket/peopleinwork/employmentandemployeetypes", ["JPB9"], ["lms"], "months") },
+
+  // --- DfE: EES (Explore Education Statistics) API ---
+  // ITT new entrants & targets time series (Table 2), dataset 1b9b9d24.
+  // Covers 2015/16 to 2025/26; "All subjects" row has % of target achieved.
+  {
+    id: "dfe-teacher-recruitment",
+    min: 40,
+    max: 130,
+    get: async () => {
+      const { headers, rows } = await eesCsv("1b9b9d24-7eff-4fad-8bbe-7520255aea13");
+      // find the % of target column (may be named percentage_of_target, pct_of_target, etc.)
+      const pctCol = headers.find(
+        (h) => (h.includes("percentage") || h.includes("percent") || h.includes("pct")) && h.includes("target")
+      );
+      if (!pctCol) throw new Error(`dfe-teacher-recruitment: no target-% col in [${headers.join(",")}]`);
+      // prefer rows marked as all-subjects total; fall back to summing if needed
+      const allRows = rows.filter((r) => {
+        const subj = (r["subject"] ?? r["subject_description"] ?? "").toLowerCase();
+        return subj.includes("all") || subj.includes("total") || subj === "";
+      });
+      const src = allRows.length ? allRows : rows;
+      const seen = new Set();
+      const points = [];
+      for (const r of src) {
+        const m = (r["time_period"] ?? "").match(/^(\d{4})/);
+        if (!m) continue;
+        const val = parseFloat(r[pctCol]);
+        if (!Number.isFinite(val)) continue;
+        if (seen.has(m[1])) continue;
+        seen.add(m[1]);
+        points.push({ date: `${m[1]}-09-01`, value: val });
+      }
+      if (!points.length) throw new Error("dfe-teacher-recruitment: no usable rows");
+      return points.sort((a, b) => (a.date < b.date ? -1 : 1));
+    },
+  },
+
+  // Teacher retention, School workforce in England, dataset e0a0988c.
+  // ~29 rows; national level; shows % still teaching by years since QTS.
+  // We want the 5-year cohort (attrition = 100 - pct_remaining at 5 years).
+  {
+    id: "dfe-ect-attrition",
+    min: 15,
+    max: 60,
+    get: async () => {
+      const { headers, rows } = await eesCsv("e0a0988c-41e8-411a-be55-ec990ce97043");
+      // find the "years since QTS" filter column
+      const yrsCol = headers.find(
+        (h) => h.includes("year") && (h.includes("qts") || h.includes("since") || h.includes("after"))
+      );
+      // find the retention / still-in-service % column
+      const retainCol = headers.find(
+        (h) => h.includes("percent") || h.includes("proportion") || h.includes("retain") || h.includes("service")
+      );
+      if (!retainCol) throw new Error(`dfe-ect-attrition: no retention col in [${headers.join(",")}]`);
+      let src = rows;
+      if (yrsCol) {
+        const fiveYr = rows.filter(
+          (r) => String(r[yrsCol]).replace(/[^0-9]/g, "") === "5"
+        );
+        if (fiveYr.length) src = fiveYr;
+      }
+      const seen = new Set();
+      const points = [];
+      for (const r of src) {
+        const m = (r["time_period"] ?? "").match(/^(\d{4})/);
+        if (!m) continue;
+        const pct = parseFloat(r[retainCol]);
+        if (!Number.isFinite(pct)) continue;
+        // retention → attrition; guard reasonable range
+        const attrition = pct > 50 ? 100 - pct : pct;
+        if (attrition < 10 || attrition > 65) continue;
+        if (seen.has(m[1])) continue;
+        seen.add(m[1]);
+        points.push({ date: `${m[1]}-09-01`, value: +attrition.toFixed(1) });
+      }
+      if (!points.length) throw new Error("dfe-ect-attrition: no usable rows");
+      return points.sort((a, b) => (a.date < b.date ? -1 : 1));
+    },
+  },
 
   // --- in progress ---
   // AWE pay growth — KAC3 is monthly YoY %; request months (annual key returns index).

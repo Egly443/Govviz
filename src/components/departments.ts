@@ -133,6 +133,20 @@ const dfeAttainmentGap: TrendSeries = {
   ],
 };
 
+const dfeEctAttritionFallback = annual(
+  [
+    [2011, 23.5],
+    [2015, 27.0],
+    [2018, 31.4],
+    [2022, 38.6],
+    [2024, 37.2],
+    [2025, 35.9],
+  ],
+  2011,
+  2025,
+  82,
+  0.3,
+);
 const dfeEctAttrition: TrendSeries = {
   id: "dfe-ect-attrition",
   title: "Early-career teacher attrition",
@@ -141,24 +155,11 @@ const dfeEctAttrition: TrendSeries = {
   format: fmtPct,
   shortFormat: fmtPct,
   goodDirection: "down",
-  source: "DfE School Workforce Census",
+  source: "DfE School Workforce in England (EES)",
   sourceUrl:
     "https://explore-education-statistics.service.gov.uk/find-statistics/school-workforce-in-england",
   cadence: "annual",
-  points: annual(
-    [
-      [2011, 23.5],
-      [2015, 27.0],
-      [2018, 31.4],
-      [2022, 38.6],
-      [2024, 37.2],
-      [2025, 35.9],
-    ],
-    2011,
-    2025,
-    82,
-    0.3,
-  ),
+  points: realPoints("dfe-ect-attrition", dfeEctAttritionFallback),
   annotations: [
     { date: "2020-01-01", label: "Pandemic" },
   ],
@@ -194,34 +195,35 @@ const dfeDsgDeficit: TrendSeries = {
   ],
 };
 
+const dfeTeacherRecruitmentFallback = annual(
+  [
+    [2013, 95],
+    [2017, 102],
+    [2019, 85],
+    [2021, 109],
+    [2023, 71],
+    [2024, 62],
+    [2025, 68],
+  ],
+  2013,
+  2025,
+  84,
+  1.2,
+);
 const dfeTeacherRecruitment: TrendSeries = {
   id: "dfe-teacher-recruitment",
   title: "Teacher training recruitment",
-  subtitle: "Postgraduate ITT enrolments vs target",
+  subtitle: "Postgraduate ITT enrolments vs target (%)",
   unit: "percent",
   format: fmtPct,
   shortFormat: fmtPct,
   goodDirection: "up",
   target: { value: 100, label: "100% of target" },
-  source: "DfE Initial Teacher Training census",
+  source: "DfE ITT Census (EES)",
   sourceUrl:
     "https://explore-education-statistics.service.gov.uk/find-statistics/initial-teacher-training-census",
   cadence: "annual",
-  points: annual(
-    [
-      [2013, 95],
-      [2017, 102],
-      [2019, 85],
-      [2021, 109],
-      [2023, 71],
-      [2024, 62],
-      [2025, 68],
-    ],
-    2013,
-    2025,
-    84,
-    1.2,
-  ),
+  points: realPoints("dfe-teacher-recruitment", dfeTeacherRecruitmentFallback),
   annotations: [],
 };
 
@@ -1294,19 +1296,19 @@ const hmtIndirectPts = annual(
 const hmtTaxSplit: TrendSeries = {
   id: "hmt-tax-split",
   title: "Direct vs indirect tax",
-  subtitle: "% of GDP: income tax + NI vs VAT + duties",
+  subtitle: "% of government revenue: income/profit taxes vs goods/services taxes",
   unit: "percent",
   format: fmtPct,
   shortFormat: fmtPct,
   goodDirection: "up",
-  source: "HMRC / ONS tax receipts",
+  source: "World Bank (IMF GFS)",
   sourceUrl:
-    "https://www.gov.uk/government/statistics/hmrc-tax-receipts-and-national-insurance-contributions-for-the-uk",
+    "https://data.worldbank.org/indicator/GC.TAX.YPKG.RV.ZS?locations=GB",
   cadence: "annual",
-  points: hmtDirectPts,
+  points: realLine("hmt-tax-split", "direct", hmtDirectPts),
   lines: [
-    { id: "direct", label: "Direct (income tax + NI)", points: hmtDirectPts },
-    { id: "indirect", label: "Indirect (VAT + duties)", points: hmtIndirectPts },
+    { id: "direct", label: "Direct (income tax + NI)", points: realLine("hmt-tax-split", "direct", hmtDirectPts) },
+    { id: "indirect", label: "Indirect (VAT + duties)", points: realLine("hmt-tax-split", "indirect", hmtIndirectPts) },
   ],
   annotations: [],
 };
