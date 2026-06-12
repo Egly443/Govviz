@@ -227,9 +227,10 @@ const SOURCES = [
     },
   },
 
-  // --- DHSC: H&W sector vacancy rate (ONS, annual) ---
+  // --- DHSC: H&W sector vacancy rate (ONS, quarterly) ---
   // JPB9 = vacancies per 100 employee jobs in Human Health & Social Work.
-  { id: "vacancy", min: 1, max: 20, get: () => ons("employmentandlabourmarket/peopleinwork/employmentandemployeetypes", ["JPB9"], ["lms"], "years") },
+  // Dataset is `unem` (not lms which has no usable quarterly/annual data for this CDID).
+  { id: "vacancy", min: 1, max: 20, get: () => ons("employmentandlabourmarket/peopleinwork/employmentandemployeetypes", ["JPB9"], ["unem", "lms"], "quarters") },
 
   // --- in progress ---
   // AWE pay growth — KAC3 is monthly YoY %; request months (annual key returns index).
