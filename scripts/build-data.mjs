@@ -483,7 +483,14 @@ const SOURCES = [
         }
       }
       if (!rows) throw new Error("overpayment time-series sheet not found");
-      const header = rows.find((r) => r.some((c) => /FYE\s*\d{4}/.test(String(c ?? ""))));
+      // The header row has one FYE label per year-group; pick the row with the
+      // most FYE cells so the single-cell title ("…FYE 2006 to FYE 2026") loses.
+      let header = null;
+      let best = 1;
+      for (const r of rows) {
+        const n = r.filter((c) => /FYE\s*\d{4}/.test(String(c ?? ""))).length;
+        if (n > best) { best = n; header = r; }
+      }
       if (!header) throw new Error("no FYE header row");
       let group = "";
       let total = null;
@@ -498,9 +505,10 @@ const SOURCES = [
       const byYear = {};
       for (let g = 2; g < total.length; g += 3) {
         const m = String(header[g + 1] ?? "").match(/FYE\s*(\d{4})/);
-        const v = Number(total[g]);
-        if (!m || !Number.isFinite(v) || !(total[g] !== "" && total[g] != null)) continue;
-        if (!(m[1] in byYear)) byYear[m[1]] = v; // first (revised) per year wins
+        // Real values arrive as numbers; suppression markers ("w"/"x"/"z") as
+        // strings — require a number so empty cells can't become false zeros.
+        if (!m || typeof total[g] !== "number" || !Number.isFinite(total[g])) continue;
+        if (!(m[1] in byYear)) byYear[m[1]] = total[g]; // first (revised) per year wins
       }
       const points = Object.entries(byYear)
         .map(([y, v]) => ({ date: `${y}-01-01`, value: v }))
