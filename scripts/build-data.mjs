@@ -620,36 +620,20 @@ const SOURCES = [
       const coll = await govukContent("government/collections/prison-and-probation-trusts-performance-statistics");
       const docs = (coll?.links?.documents || []).filter((d) => /prison-performance-data/i.test(d.base_path || ""));
       if (!docs.length) throw new Error("moj-cost-per-prisoner: no prison-performance-data docs");
-      const points = [];
-      for (const doc of docs) {
-        try {
-          const p = String(doc.base_path || "").replace(/^\//, "");
-          const atts = await govukAttachments(p);
-          const ods = atts.find((a) => /\.(ods|xlsx?)(\?|$)/i.test(a.url || "") && /cost/i.test(a.title || "") && /supplement/i.test(a.title || ""))
-            ?? atts.find((a) => /\.(ods|xlsx?)(\?|$)/i.test(a.url || "") && /(cost|supplement)/i.test((a.title || "") + (a.url || "")));
-          if (!ods) continue;
-          const book = await xlsxBook(ods.url);
-          let val = null;
-          for (const name of book.SheetNames) {
-            const rows = await sheetRows(book, name);
-            for (const row of rows) {
-              const label = String(row[0] ?? row[1] ?? "").trim();
-              if (!/(england.*wales|all prisons|national)/i.test(label)) continue;
-              const nums = row.map((c) => typeof c === "number" ? c : parseFloat(String(c ?? "").replace(/,/g, "")))
-                .filter((v) => Number.isFinite(v) && v >= 20000 && v <= 80000);
-              if (nums.length) { val = nums[nums.length - 1]; break; }
-            }
-            if (val != null) break;
-          }
-          const ym = String(doc.base_path || "").match(/(\d{4})-to-(\d{4})/);
-          if (val != null && ym) points.push({ date: `${ym[2]}-04-01`, value: Math.round(val) });
-        } catch { /* skip this edition */ }
+      const p = String(docs[0].base_path || "").replace(/^\//, "");
+      const atts = await govukAttachments(p);
+      console.log(`moj-cost: edition=${p}; attachments:`);
+      for (const a of atts) console.log(`   ${a.title} → ${a.url}`);
+      const ods = atts.find((a) => /\.(ods|xlsx?)(\?|$)/i.test(a.url || "") && /(cost|supplement|place)/i.test((a.title || "") + (a.url || "")))
+        ?? atts.find((a) => /\.(ods|xlsx?)(\?|$)/i.test(a.url || ""));
+      if (!ods) throw new Error("moj-cost: no spreadsheet attachment");
+      const book = await xlsxBook(ods.url);
+      console.log(`moj-cost: chose=${ods.title}; sheets=[${book.SheetNames.join("|")}]`);
+      for (const name of book.SheetNames.slice(0, 12)) {
+        const rows = await sheetRows(book, name);
+        console.log(`  "${name}": ${JSON.stringify(rows.slice(0, 6)).slice(0, 320)}`);
       }
-      if (!points.length) throw new Error("moj-cost-per-prisoner: no usable points");
-      const seen = new Set();
-      return points
-        .filter((p) => { const k = p.date.slice(0, 4); if (seen.has(k)) return false; seen.add(k); return true; })
-        .sort((a, b) => (a.date < b.date ? -1 : 1));
+      throw new Error("DIAG moj-cost — structure logged");
     },
   },
 
@@ -761,7 +745,13 @@ const SOURCES = [
           break;
         }
       }
-      if (!points || !points.length) throw new Error(`mod-personnel-shortfall: not extracted (sheets: ${book.SheetNames.join("|")})`);
+      if (!points || !points.length) {
+        for (const name of book.SheetNames) {
+          const r = await sheetRows(book, name);
+          console.log(`  DASA "${name}": r0=${JSON.stringify((r[0] || []).slice(0, 7)).slice(0, 160)} r1=${JSON.stringify((r[1] || []).slice(0, 7)).slice(0, 160)}`);
+        }
+        throw new Error(`mod-personnel-shortfall: not extracted (sheets: ${book.SheetNames.join("|")})`);
+      }
       return points;
     },
   },
