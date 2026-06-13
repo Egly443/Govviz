@@ -167,7 +167,9 @@ export const waitingList: TrendSeries = {
   sourceUrl:
     "https://www.england.nhs.uk/statistics/statistical-work-areas/rtt-waiting-times/",
   cadence: "monthly",
-  points: trajectory(
+  points: realPoints(
+    "waiting-list",
+    trajectory(
     [
       ["2007-08-01", 4.20],
       ["2012-01-01", 2.50],
@@ -186,7 +188,7 @@ export const waitingList: TrendSeries = {
     11,
     0.04,
     0.03,
-  ),
+  )),
   annotations: [
     { date: "2010-05-01", label: "Austerity" },
     { date: "2020-03-01", label: "Covid-19" },
@@ -212,7 +214,9 @@ export const rtt18Week: TrendSeries = {
   sourceUrl:
     "https://www.england.nhs.uk/statistics/statistical-work-areas/rtt-waiting-times/",
   cadence: "monthly",
-  points: trajectory(
+  points: realPoints(
+    "rtt-18-week",
+    trajectory(
     [
       ["2008-04-01", 84.0],
       ["2012-01-01", 93.8],
@@ -230,7 +234,7 @@ export const rtt18Week: TrendSeries = {
     17,
     0.6,
     0.5,
-  ),
+  )),
   annotations: [
     { date: "2016-01-01", label: "Standard last met" },
     { date: "2020-03-01", label: "Covid-19" },
@@ -381,7 +385,9 @@ export const aePerformance: TrendSeries = {
   sourceUrl:
     "https://www.england.nhs.uk/statistics/statistical-work-areas/ae-waiting-times-and-activity/",
   cadence: "monthly",
-  points: trajectory(
+  points: realPoints(
+    "ae-performance",
+    trajectory(
     [
       ["2004-04-01", 78.0],
       ["2005-01-01", 95.0],
@@ -400,7 +406,7 @@ export const aePerformance: TrendSeries = {
     23,
     0.9,
     1.6,
-  ),
+  )),
   annotations: [
     { date: "2010-05-01", label: "Austerity" },
     { date: "2020-03-01", label: "Covid-19" },

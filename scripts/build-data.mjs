@@ -273,6 +273,71 @@ const UNEMP = "employmentandlabourmarket/peoplenotinwork/unemployment";
 // `min`/`max` guard the latest value; `scale` multiplies raw values.
 // CDIDs are best-effort and verified/corrected against CI fetch logs — wrong
 // codes 404 (skip) or fail the guard (skip), so the build never shows bad data.
+// --- NHS England RTT overview timeseries (non-zipped XLSX). The filename hash
+// changes monthly, so scrape the landing page for the current link; a stale
+// hardcoded fallback (the file is cumulative) keeps CI working if the scrape fails. ---
+async function rttOverviewUrl() {
+  const FALLBACK = "https://www.england.nhs.uk/statistics/wp-content/uploads/sites/2/2024/09/RTT-Overview-Timeseries-Including-Estimates-for-Missing-Trusts-Jul24-XLS-109K-88372.xlsx";
+  try {
+    const res = await fetch("https://www.england.nhs.uk/statistics/statistical-work-areas/rtt-waiting-times/", fetchOpts({ accept: "text/html,*/*" }));
+    if (res.ok) {
+      const html = await res.text();
+      const m = html.match(/href="(https?:\/\/[^"]*RTT-Overview-Timeseries[^"]*\.xlsx[^"]*)"/i) || html.match(/href="([^"]*RTT-Overview-Timeseries[^"]*\.xlsx[^"]*)"/i);
+      if (m) return m[1].startsWith("http") ? m[1] : `https://www.england.nhs.uk${m[1]}`;
+    }
+  } catch { /* fall through */ }
+  console.log("  RTT: landing-page scrape failed; using hardcoded fallback URL");
+  return FALLBACK;
+}
+async function parseRttOverview() {
+  const url = await rttOverviewUrl();
+  console.log(`  RTT overview XLSX: ${url}`);
+  const book = await xlsxBook(url);
+  const sheetName = book.SheetNames.find((n) => /overview|incomplete|timeseries/i.test(n)) ?? book.SheetNames[0];
+  const rows = await sheetRows(book, sheetName);
+  let headerIdx = -1, totalCol = -1, pctCol = -1;
+  for (let i = 0; i < Math.min(rows.length, 15); i++) {
+    const r = rows[i].map((c) => String(c ?? "").toLowerCase().trim());
+    const c0 = r[0] ?? "";
+    const hasPeriod = c0.includes("period") || c0.includes("month") || c0.includes("date");
+    const hasTotal = r.some((c) => c.includes("total") || c.includes("incomplete"));
+    const hasPct = r.some((c) => c.includes("%") || c.includes("percent") || c.includes("within 18"));
+    if (hasPeriod || (hasTotal && hasPct)) {
+      headerIdx = i;
+      totalCol = r.findIndex((c) => c.includes("total") && (c.includes("number") || c.includes("incomplete")));
+      if (totalCol < 0) totalCol = r.findIndex((c) => c.includes("incomplete") || c.includes("total"));
+      pctCol = r.findIndex((c) => c.includes("within 18") || (c.includes("%") && c.includes("18")));
+      if (pctCol < 0) pctCol = r.findIndex((c) => c.includes("%") || c.includes("percent"));
+      break;
+    }
+  }
+  if (headerIdx < 0) { console.log("RTT: no header; first 8:"); for (const r of rows.slice(0, 8)) console.log(`   ${JSON.stringify(r).slice(0, 200)}`); throw new Error("RTT: no header row"); }
+  if (totalCol < 0 || pctCol < 0) throw new Error(`RTT: totalCol=${totalCol} pctCol=${pctCol} in [${rows[headerIdx].join("|")}]`);
+  const monMap = { january: 1, february: 2, march: 3, april: 4, may: 5, june: 6, july: 7, august: 8, september: 9, october: 10, november: 11, december: 12, jan: 1, feb: 2, mar: 3, apr: 4, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
+  const toDate = (raw) => {
+    if (raw == null) return null;
+    if (typeof raw === "number" && raw > 30000 && raw < 60000) { const d = new Date((raw - 25569) * 86400000); return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-01`; }
+    const s = String(raw).trim();
+    let m = s.match(/^([A-Za-z]+)\s+(\d{4})$/);
+    if (m && monMap[m[1].toLowerCase()]) return `${m[2]}-${String(monMap[m[1].toLowerCase()]).padStart(2, "0")}-01`;
+    m = s.match(/^([A-Za-z]{3})-(\d{2})$/);
+    if (m && monMap[m[1].toLowerCase()]) return `${2000 + Number(m[2])}-${String(monMap[m[1].toLowerCase()]).padStart(2, "0")}-01`;
+    return null;
+  };
+  const totalPts = [], pctPts = [];
+  for (const r of rows.slice(headerIdx + 1)) {
+    const date = toDate(r[0]); if (!date) continue;
+    const t = r[totalCol], p = r[pctCol];
+    if (typeof t === "number" && Number.isFinite(t) && t > 0) totalPts.push({ date, value: Math.round(t) });
+    if (typeof p === "number" && Number.isFinite(p) && p > 0) pctPts.push({ date, value: +((p > 1 ? p : p * 100)).toFixed(1) });
+  }
+  if (!totalPts.length || !pctPts.length) throw new Error(`RTT: totalPts=${totalPts.length} pctPts=${pctPts.length}`);
+  totalPts.sort((a, b) => (a.date < b.date ? -1 : 1)); pctPts.sort((a, b) => (a.date < b.date ? -1 : 1));
+  return { totalPts, pctPts };
+}
+let _rttCache = null;
+function rttData() { if (!_rttCache) _rttCache = parseRttOverview(); return _rttCache; }
+
 const SOURCES = [
   // --- confirmed working (real ONS data) ---
   { id: "hmt-cost-of-living", line: "cpi", min: -5, max: 30, get: () => ons(INFLATION, "D7G7", "mm23", "years") },
@@ -825,6 +890,190 @@ const SOURCES = [
         for (const r of rows.slice(0, 8)) console.log(`   ${JSON.stringify(r).slice(0, 220)}`);
       }
       throw new Error("DIAG ho-visa-sla — VSI_02 structure logged (pick route/row next)");
+    },
+  },
+
+  // NHS England RTT: incomplete waiting list (raw count → millions via scale) and
+  // % within 18 weeks. Both share one fetch+parse of the overview timeseries.
+  { id: "waiting-list", min: 1, max: 12, scale: 1 / 1_000_000, get: async () => (await rttData()).totalPts },
+  { id: "rtt-18-week", min: 40, max: 100, get: async () => (await rttData()).pctPts },
+
+  // NHS England A&E 4-hour performance (Monthly A&E Time Series XLS; URL scraped
+  // from the current-year stats page).
+  {
+    id: "ae-performance",
+    min: 50,
+    max: 100,
+    get: async () => {
+      const now = new Date();
+      const fy = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+      const base = "https://www.england.nhs.uk/statistics/statistical-work-areas/ae-waiting-times-and-activity";
+      const pages = [
+        `${base}/ae-attendances-and-emergency-admissions-${fy}-${String(fy + 1).slice(2)}/`,
+        `${base}/ae-attendances-and-emergency-admissions-${fy - 1}-${String(fy).slice(2)}/`,
+      ];
+      let xlsUrl = null;
+      for (const pageUrl of pages) {
+        try {
+          const res = await fetch(pageUrl, fetchOpts({ accept: "text/html,*/*" }));
+          if (!res.ok) continue;
+          const html = await res.text();
+          const m = html.match(/href="(https?:\/\/[^"]*Monthly-AE-Time-Series[^"]*\.xlsx?[^"]*)"/i)
+            || html.match(/href="(\/[^"]*Monthly-AE-Time-Series[^"]*\.xlsx?[^"]*)"/i);
+          if (m) { xlsUrl = m[1].startsWith("http") ? m[1] : `https://www.england.nhs.uk${m[1]}`; break; }
+        } catch { /* next */ }
+      }
+      if (!xlsUrl) throw new Error("ae-performance: no timeseries XLS URL found");
+      console.log(`  ae-performance: ${xlsUrl}`);
+      const book = await xlsxBook(xlsUrl);
+      let sheetName = book.SheetNames.find((n) => ["england", "national", "all england", "aggregate"].includes(n.trim().toLowerCase()))
+        ?? book.SheetNames.find((n) => !/cover|note|content|index|key/i.test(n)) ?? book.SheetNames[0];
+      const rows = await sheetRows(book, sheetName);
+      const PCT = [/percentage.*4\s*hour/i, /%.*4\s*hour/i, /4\s*hour.*percentage/i, /4\s*hour.*%/i, /within 4/i];
+      const DATE = [/period/i, /month/i, /date/i];
+      let headerIdx = -1, dateCol = -1, pctCol = -1;
+      for (let i = 0; i < Math.min(rows.length, 20); i++) {
+        const row = rows[i]; if (!Array.isArray(row)) continue;
+        const hd = row.findIndex((c) => DATE.some((p) => p.test(String(c ?? ""))));
+        const hp = row.findIndex((c) => PCT.some((p) => p.test(String(c ?? ""))));
+        if (hp >= 0) { headerIdx = i; pctCol = hp; dateCol = hd >= 0 ? hd : 0; break; }
+      }
+      if (headerIdx < 0 || pctCol < 0) {
+        console.log(`ae-performance: no pct col; sheet="${sheetName}" first 8:`);
+        for (const r of rows.slice(0, 8)) console.log(`   ${JSON.stringify(r).slice(0, 200)}`);
+        throw new Error("ae-performance: header/pct column not found");
+      }
+      const MON = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
+      const toDate = (raw) => {
+        const s = String(raw ?? "").trim();
+        let m = s.match(/^([A-Za-z]{3,})[- ](\d{2,4})$/);
+        if (m && MON[m[1].toLowerCase().slice(0, 3)]) { let yr = +m[2]; if (yr < 100) yr += yr >= 90 ? 1900 : 2000; return `${yr}-${String(MON[m[1].toLowerCase().slice(0, 3)]).padStart(2, "0")}-01`; }
+        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+        if (typeof raw === "number" && raw > 30000 && raw < 60000) { const d = new Date(Math.round((raw - 25569) * 86400000)); return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-01`; }
+        return null;
+      };
+      const points = [], seen = new Set();
+      for (const r of rows.slice(headerIdx + 1)) {
+        if (!Array.isArray(r)) continue;
+        const date = toDate(r[dateCol]); if (!date || seen.has(date)) continue;
+        let v = typeof r[pctCol] === "number" ? r[pctCol] : parseFloat(String(r[pctCol] ?? "").replace(/[%,]/g, ""));
+        if (!Number.isFinite(v)) continue;
+        if (v <= 1.5) v *= 100;
+        if (v < 50 || v > 100) continue;
+        seen.add(date); points.push({ date, value: +v.toFixed(2) });
+      }
+      if (points.length < 12) throw new Error(`ae-performance: only ${points.length} points`);
+      return points.sort((a, b) => (a.date < b.date ? -1 : 1));
+    },
+  },
+
+  // DfT / ORR rail cancellations score (% of planned trains cancelled, all
+  // operators). ORR data portal Table 3123 ODS (media id may rotate → SKIPs safe).
+  {
+    id: "dft-rail-cancellations",
+    min: 0,
+    max: 25,
+    get: async () => {
+      const book = await xlsxBook("https://dataportal.orr.gov.uk/media/2177/table-3123-trains-planned-and-cancellations-by-operator-and-cause.ods");
+      const sheetName = book.SheetNames.find((n) => /3123|cancellation/i.test(String(n))) ?? book.SheetNames[0];
+      const rows = await sheetRows(book, sheetName);
+      // Layout: "Time period" ("Apr to Jun 2019"), "National or Operator" (GB = aggregate),
+      // planned/part/full counts, and a weighted "Cancellations" (CaSL) column.
+      // Score % = weighted cancellations ÷ trains planned × 100.
+      const headerIdx = rows.findIndex((r) => r.some((c) => /time period/i.test(String(c ?? ""))) && r.some((c) => /national or operator/i.test(String(c ?? ""))));
+      if (headerIdx < 0) {
+        console.log(`dft-rail-cancellations: no header; sheets=[${book.SheetNames.join("|")}]`);
+        for (const r of rows.slice(0, 6)) console.log("  " + JSON.stringify(r).slice(0, 200));
+        throw new Error("dft-rail-cancellations: header row not found");
+      }
+      const header = rows[headerIdx];
+      const periodCol = header.findIndex((c) => /time period/i.test(String(c ?? "")));
+      const opCol = header.findIndex((c) => /national or operator/i.test(String(c ?? "")));
+      const plannedCol = header.findIndex((c) => /trains planned/i.test(String(c ?? "")));
+      let canCol = header.findIndex((c) => /^cancellations\s*$/i.test(String(c ?? "")));
+      if (canCol < 0) canCol = header.findIndex((c) => /cancellation/i.test(String(c ?? "")) && !/part|full|responsib|by /i.test(String(c ?? "")));
+      if (plannedCol < 0 || canCol < 0) throw new Error(`dft-rail-cancellations: cols planned=${plannedCol} can=${canCol} in [${header.join("|")}]`);
+      const MON = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
+      const qend = { 3: "03-31", 6: "06-30", 9: "09-30", 12: "12-31" };
+      const byDate = new Map();
+      for (const r of rows.slice(headerIdx + 1)) {
+        if (!/great britain|national/i.test(String(r[opCol] ?? ""))) continue;
+        const m = String(r[periodCol] ?? "").match(/to\s+([A-Za-z]{3})[a-z]*\s+(\d{4})/i);
+        if (!m) continue;
+        const em = MON[m[1].toLowerCase()];
+        if (!em || !qend[em]) continue;
+        const planned = Number(r[plannedCol]), can = Number(r[canCol]);
+        if (!Number.isFinite(planned) || planned <= 0 || !Number.isFinite(can)) continue;
+        const score = can / planned * 100;
+        if (score <= 0 || score > 25) continue;
+        const date = `${m[2]}-${qend[em]}`;
+        if (!byDate.has(date)) byDate.set(date, +score.toFixed(2));
+      }
+      const points = [...byDate.entries()].map(([date, value]) => ({ date, value })).sort((a, b) => (a.date < b.date ? -1 : 1));
+      if (points.length < 4) throw new Error(`dft-rail-cancellations: only ${points.length} points`);
+      return points;
+    },
+  },
+
+  // MoJ Crown Court timeliness: mean/median days to completion (Criminal court
+  // statistics quarterly — Crown Court timeliness sheet E1/E2/T2).
+  {
+    id: "moj-completion-days",
+    min: 50,
+    max: 1000,
+    get: async () => {
+      const path = await govukCollectionLatest("criminal-court-statistics", (d) => /criminal court statistics quarterly/i.test(d.title || ""));
+      const atts = await govukAttachments(path);
+      const sheet = atts.find((a) => /table/i.test(a.title || "") && /\.(ods|xlsx?|xlsb)(\?|$)/i.test(a.url || ""))
+        ?? atts.find((a) => /\.(ods|xlsx?|xlsb)(\?|$)/i.test(a.url || ""));
+      if (!sheet) throw new Error(`moj-completion-days: no spreadsheet in ${path}`);
+      const book = await xlsxBook(sheet.url);
+      let rows = null, usedSheet = null;
+      for (const cand of ["Table_E1", "Table_E2", "Table_T2", "Table_T1"]) {
+        const n = book.SheetNames.find((s) => new RegExp(`^${cand}$`, "i").test(s.trim()));
+        if (!n) continue;
+        const r = await sheetRows(book, n);
+        const combined = r.slice(0, 10).map((row) => row.join(" ")).join(" ").toLowerCase();
+        if ((combined.includes("median") || combined.includes("mean") || combined.includes("days")) && (combined.includes("charge") || combined.includes("crown") || combined.includes("completion"))) { rows = r; usedSheet = n; break; }
+      }
+      if (!rows) {
+        for (const n of book.SheetNames) {
+          const r = await sheetRows(book, n);
+          const combined = r.slice(0, 10).map((row) => row.join(" ")).join(" ").toLowerCase();
+          if (combined.includes("crown") && (combined.includes("days") || combined.includes("median")) && combined.includes("charge")) { rows = r; usedSheet = n; break; }
+        }
+      }
+      if (!rows) {
+        console.log(`moj-completion-days: sheets=[${book.SheetNames.join("|")}] att=${sheet.url}`);
+        throw new Error("moj-completion-days: no Crown Court timeliness sheet found");
+      }
+      const headerIdx = rows.findIndex((r) => r.some((c) => /^year$/i.test(String(c ?? "").trim())) && r.some((c) => /median|mean|days/i.test(String(c ?? ""))));
+      if (headerIdx < 0) {
+        console.log(`moj-completion-days: no header in ${usedSheet}; first 6:`);
+        for (const r of rows.slice(0, 6)) console.log(`   ${JSON.stringify(r).slice(0, 220)}`);
+        throw new Error(`moj-completion-days: header not found in ${usedSheet}`);
+      }
+      const header = rows[headerIdx];
+      const yearCol = header.findIndex((c) => /^year$/i.test(String(c ?? "").trim()));
+      const qCol = header.findIndex((c) => /^quarter$/i.test(String(c ?? "").trim()));
+      let valCol = header.findIndex((c) => /median/i.test(String(c ?? "")) && /day|charg|complet/i.test(String(c ?? "")));
+      if (valCol < 0) valCol = header.findIndex((c) => /median/i.test(String(c ?? "")));
+      if (valCol < 0) valCol = header.findIndex((c) => /mean/i.test(String(c ?? "")) && /day|charg|complet/i.test(String(c ?? "")));
+      if (valCol < 0) valCol = header.findIndex((c) => /mean/i.test(String(c ?? "")));
+      if (valCol < 0) throw new Error(`moj-completion-days: no median/mean column in ${usedSheet}`);
+      const qEnd = { Q1: "03-31", Q2: "06-30", Q3: "09-30", Q4: "12-31" };
+      const byDate = new Map();
+      for (const r of rows.slice(headerIdx + 1)) {
+        const year = Number(r[yearCol]);
+        if (!Number.isInteger(year) || year < 2000 || year > 2035) continue;
+        const q = String(r[qCol] ?? "").trim().toUpperCase().replace(/\s+/g, "");
+        const v = r[valCol];
+        if (typeof v !== "number" || !Number.isFinite(v) || v <= 0) continue;
+        byDate.set(`${year}-${qEnd[q] ?? "12-31"}`, Math.round(v));
+      }
+      const points = [...byDate.entries()].map(([date, value]) => ({ date, value }));
+      if (points.length < 4) throw new Error(`moj-completion-days: only ${points.length} points (sheet=${usedSheet})`);
+      return points.sort((a, b) => (a.date < b.date ? -1 : 1));
     },
   },
 ];
