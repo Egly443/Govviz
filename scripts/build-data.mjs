@@ -577,37 +577,33 @@ const SOURCES = [
         throw new Error("moj-crown-backlog: C1 sheet not found");
       }
       const rows = await sheetRows(book, sheetName);
-      console.log(`moj-crown-backlog: using sheet "${sheetName}"`);
-      let headerIdx = -1;
-      for (let i = 0; i < rows.length; i++) {
-        const joined = rows[i].map((c) => String(c ?? "")).join(" ");
-        if (/\d{4}\s*Q[1-4]|Q[1-4]\s*\d{4}/i.test(joined) && rows[i].filter((c) => /\d{4}/.test(String(c ?? ""))).length > 3) {
-          headerIdx = i;
-          break;
-        }
-      }
-      let dataRow = null;
-      for (let i = Math.max(0, headerIdx); i < rows.length; i++) {
-        if (/outstanding/i.test(String(rows[i][0] ?? rows[i][1] ?? ""))) { dataRow = rows[i]; break; }
-      }
-      if (!dataRow || headerIdx < 0) {
-        console.log(`moj-crown-backlog: headerIdx=${headerIdx}; first 8 of ${sheetName}:`);
-        for (const r of rows.slice(0, 8)) console.log(`   ${JSON.stringify(r).slice(0, 200)}`);
-        throw new Error("moj-crown-backlog: header/outstanding row not located");
+      // C1 is row-per-(year, quarter) with an "All cases: open" column = the
+      // outstanding caseload at end of period.
+      const headerIdx = rows.findIndex((r) =>
+        r.some((c) => /^year$/i.test(String(c ?? "").trim())) && r.some((c) => /open/i.test(String(c ?? ""))),
+      );
+      if (headerIdx < 0) {
+        console.log(`moj-crown-backlog: no header in ${sheetName}; first 6:`);
+        for (const r of rows.slice(0, 6)) console.log(`   ${JSON.stringify(r).slice(0, 200)}`);
+        throw new Error("moj-crown-backlog: header row not located");
       }
       const header = rows[headerIdx];
-      const qMonth = { Q1: "03", Q2: "06", Q3: "09", Q4: "12" };
-      const qDay = { Q1: "31", Q2: "30", Q3: "30", Q4: "31" };
-      const points = [];
-      for (let col = 0; col < header.length; col++) {
-        const m = String(header[col] ?? "").match(/(\d{4})\s*Q([1-4])|Q([1-4])\s*(\d{4})/);
-        if (!m) continue;
-        const year = m[1] ?? m[4];
-        const q = `Q${m[2] ?? m[3]}`;
-        const val = dataRow[col];
+      const yearCol = header.findIndex((c) => /^year$/i.test(String(c ?? "").trim()));
+      const qCol = header.findIndex((c) => /^quarter$/i.test(String(c ?? "").trim()));
+      let openCol = header.findIndex((c) => /all cases.*open/i.test(String(c ?? "")));
+      if (openCol < 0) openCol = header.findIndex((c) => /(^|:)\s*open\b/i.test(String(c ?? "")));
+      if (openCol < 0) throw new Error(`moj-crown-backlog: no open column in [${header.join("|")}]`);
+      const qEnd = { Q1: "03-31", Q2: "06-30", Q3: "09-30", Q4: "12-31" };
+      const byDate = new Map();
+      for (const r of rows.slice(headerIdx + 1)) {
+        const year = Number(r[yearCol]);
+        if (!Number.isInteger(year) || year < 2000 || year > 2035) continue;
+        const q = String(r[qCol] ?? "").trim().toUpperCase().replace(/\s+/g, "");
+        const val = r[openCol];
         if (typeof val !== "number" || !Number.isFinite(val) || val <= 0) continue;
-        points.push({ date: `${year}-${qMonth[q]}-${qDay[q]}`, value: Math.round(val) });
+        byDate.set(`${year}-${qEnd[q] ?? "12-31"}`, Math.round(val));
       }
+      const points = [...byDate.entries()].map(([date, value]) => ({ date, value }));
       if (points.length < 4) throw new Error(`moj-crown-backlog: only ${points.length} points`);
       return points.sort((a, b) => (a.date < b.date ? -1 : 1));
     },
