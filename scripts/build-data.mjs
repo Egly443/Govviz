@@ -571,12 +571,13 @@ const SOURCES = [
         ?? atts.find((a) => /\.(ods|xlsx?|xlsb)(\?|$)/i.test(a.url || ""));
       if (!sheet) throw new Error(`moj-crown-backlog: no spreadsheet in ${path}`);
       const book = await xlsxBook(sheet.url);
-      const sheetName = book.SheetNames.find((n) => /^C\s*1$/i.test(String(n).trim()));
+      const sheetName = book.SheetNames.find((n) => /(^|_)c\s*1$/i.test(String(n).trim()));
       if (!sheetName) {
         console.log(`moj-crown-backlog: sheets=[${book.SheetNames.join("|")}] att=${sheet.url}`);
         throw new Error("moj-crown-backlog: C1 sheet not found");
       }
       const rows = await sheetRows(book, sheetName);
+      console.log(`moj-crown-backlog: using sheet "${sheetName}"`);
       let headerIdx = -1;
       for (let i = 0; i < rows.length; i++) {
         const joined = rows[i].map((c) => String(c ?? "")).join(" ");
