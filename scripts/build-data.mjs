@@ -669,11 +669,16 @@ const SOURCES = [
         ?? atts.find((a) => /\.(ods|xlsx?)(\?|$)/i.test(a.url || ""));
       if (!ods) throw new Error(`moj-officer-resignations: no ODS in ${path}`);
       const book = await xlsxBook(ods.url);
-      // Find the sheet carrying a "leaving rate" / "resignation rate" row.
+      // Pick the DATA sheet (skip Contents/Notes, whose cells contain table
+      // titles like "Table 10b: …leaving rate…"): require a year header AND a
+      // leaving/resignation-rate signal that isn't a "Table N:" title.
       let rows = null, used = null;
       for (const n of book.SheetNames) {
+        if (/content|cover|notes|definition|guidance/i.test(n)) continue;
         const r = await sheetRows(book, n);
-        if (r.some((row) => row.some((c) => /(leaving|resignation)\s*rate/i.test(String(c ?? ""))))) { rows = r; used = n; break; }
+        const hasYears = r.some((row) => row.filter((c) => c instanceof Date || /\b20\d{2}\b/.test(String(c ?? ""))).length >= 3);
+        const hasRate = r.some((row) => /(leaving|resignation)\s*rate/i.test(row.map((c) => String(c ?? "")).join(" ")) && !/^table\s*\d/i.test(String(row[0] ?? "").trim()));
+        if (hasYears && hasRate) { rows = r; used = n; break; }
       }
       if (!rows) {
         console.log(`moj-officer-resignations: no rate sheet; sheets=[${book.SheetNames.join("|")}] att=${ods.url}`);
@@ -684,8 +689,8 @@ const SOURCES = [
         const n = rows[i].filter((c) => c instanceof Date || /\d{4}[-/]\d{2}|\b(19|20)\d{2}\b|[A-Za-z]{3}[-\s]\d{2,4}/.test(String(c ?? ""))).length;
         if (n > best) { best = n; header = rows[i]; hi = i; }
       }
-      const dataRow = rows.slice(hi + 1).find((r) => /leaving\s*rate/i.test(String(r[0] ?? r[1] ?? "")))
-        ?? rows.slice(hi + 1).find((r) => /resignation\s*rate/i.test(String(r[0] ?? r[1] ?? "")));
+      const pick = (re) => rows.slice(hi + 1).find((r) => re.test(String(r[0] ?? r[1] ?? "")));
+      const dataRow = pick(/band\s*3[-–—]?5?|prison\s*officer/i) ?? pick(/leaving\s*rate/i) ?? pick(/resignation\s*rate/i) ?? pick(/all\s*staff|^total|national/i);
       if (!dataRow || hi < 0) {
         console.log(`moj-officer-resignations: sheet "${used}" rows 0-10:`);
         for (const r of rows.slice(0, 10)) console.log(`   ${JSON.stringify(r).slice(0, 220)}`);
