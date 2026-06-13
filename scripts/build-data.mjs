@@ -201,6 +201,68 @@ async function wb(indicator, country = "GBR") {
   throw lastErr || new Error(`WB ${indicator}: failed`);
 }
 
+// --- gov.uk Content & Search APIs + spreadsheet (ODS/XLSX) parsing ---
+// Many official series are published only as dated Excel/ODS files whose asset
+// URLs change each release. The gov.uk Content API exposes a page's *current*
+// attachments under a stable slug, and the Search API finds the newest edition
+// of a yearly-republished series — together they let a fetcher track a moving
+// target without hard-coding a media id. SheetJS reads .ods/.xlsx/.xls; it is
+// installed in CI via `npm install --no-save xlsx`, so we import it lazily
+// (local/offline runs produce an empty dataset and never reach this code).
+let _sheetjs;
+async function sheetjs() {
+  if (!_sheetjs) {
+    const m = await import("xlsx");
+    _sheetjs = m.default ?? m;
+  }
+  return _sheetjs;
+}
+// Fetch a spreadsheet URL and return the parsed SheetJS workbook.
+async function xlsxBook(url) {
+  const res = await fetch(url, fetchOpts({ accept: "application/octet-stream,*/*" }));
+  if (!res.ok) throw new Error(`spreadsheet ${url} → HTTP ${res.status}`);
+  const buf = Buffer.from(await res.arrayBuffer());
+  const XLSX = await sheetjs();
+  return XLSX.read(buf, { type: "buffer" });
+}
+// Read one sheet as an array-of-arrays (header:1), blank rows removed.
+async function sheetRows(book, name) {
+  const XLSX = await sheetjs();
+  return XLSX.utils.sheet_to_json(book.Sheets[name], { header: 1, blankrows: false });
+}
+// gov.uk Search API → path (no leading slash) of the newest result accepted by
+// `accept`. Lets a fetcher follow a series that is republished under a new slug
+// each year (e.g. "...financial-year-2024-to-2025-estimates").
+async function govukLatest(q, accept = () => true) {
+  const url = `https://www.gov.uk/api/search.json?q=${encodeURIComponent(q)}&order=-public_timestamp&count=20`;
+  const res = await fetch(url, fetchOpts({ accept: "application/json" }));
+  if (!res.ok) throw new Error(`gov.uk search → HTTP ${res.status}`);
+  const j = await res.json();
+  const hit = (j.results || []).find((r) => accept(r));
+  if (!hit) throw new Error(`gov.uk search: no match for "${q}"`);
+  return String(hit.link || "").replace(/^\//, "");
+}
+async function govukContent(path) {
+  const url = `https://www.gov.uk/api/content/${path}`;
+  const res = await fetch(url, fetchOpts({ accept: "application/json" }));
+  if (!res.ok) throw new Error(`gov.uk content ${path} → HTTP ${res.status}`);
+  return res.json();
+}
+async function govukAttachments(path) {
+  const j = await govukContent(path);
+  return j?.details?.attachments || [];
+}
+// Newest document (by public_updated_at) in a gov.uk document collection whose
+// title passes `accept`. Collections are stable slugs that list every edition of
+// a recurring statistics release — the robust way to follow a yearly series.
+async function govukCollectionLatest(slug, accept = () => true) {
+  const j = await govukContent(`government/collections/${slug}`);
+  const docs = (j?.links?.documents || []).filter((d) => accept(d));
+  if (!docs.length) throw new Error(`collection ${slug}: no document matched`);
+  docs.sort((a, b) => String(b.public_updated_at || "").localeCompare(String(a.public_updated_at || "")));
+  return String(docs[0].base_path || "").replace(/^\//, "");
+}
+
 const INFLATION = "economy/inflationandpriceindices";
 const PUBFIN = "economy/governmentpublicsectorandtaxes/publicsectorfinance";
 const EARN = "employmentandlabourmarket/peopleinwork/earningsandworkinghours";
@@ -317,28 +379,36 @@ const SOURCES = [
     max: 130,
     get: async () => {
       const { rows } = await eesCsv("04e0590d-63a9-45d4-b924-98c7a5bc5e76");
-      const src = rows.filter((r) => {
-        const topic = (r["breakdown_topic"] ?? "").toLowerCase();
-        const subj = (r["itt_subject"] ?? "").toLowerCase();
-        return topic === "target" && (subj.includes("all") || subj === "");
+      // The all-subjects aggregate label varies across releases; try the known
+      // variants on either itt_subject or breakdown.
+      const AGG = new Set([
+        "all", "total", "all subjects", "all itt subjects",
+        "total (all subjects)", "all (postgraduate)", "all postgraduate",
+        "secondary total", "",
+      ]);
+      const target = rows.filter((r) => {
+        const topic = (r["breakdown_topic"] ?? "").trim().toLowerCase();
+        const subj = (r["itt_subject"] ?? "").trim().toLowerCase();
+        const brk = (r["breakdown"] ?? "").trim().toLowerCase();
+        return topic === "target" && (AGG.has(subj) || AGG.has(brk));
       });
       const seen = new Set();
       const points = [];
-      for (const r of src) {
+      for (const r of target) {
         const m = (r["time_period"] ?? "").match(/^(\d{4})/);
         if (!m) continue;
         const val = parseFloat(r["trainee_percentage"] ?? "");
-        if (!Number.isFinite(val) || val < 30 || val > 150) continue;
+        if (!Number.isFinite(val) || val < 30 || val > 200) continue;
         if (seen.has(m[1])) continue;
         seen.add(m[1]);
         points.push({ date: `${m[1]}-09-01`, value: val });
       }
       if (!points.length) {
-        // Surface the live column values in the CI log so a schema change is
-        // diagnosable without re-running locally (sandbox has no internet).
-        const topics = [...new Set(rows.map((r) => r["breakdown_topic"]))].slice(0, 6).join("|");
-        const subjects = [...new Set(src.map((r) => r["itt_subject"]))].slice(0, 6).join("|");
-        throw new Error(`dfe-teacher-recruitment: no usable rows (topics: ${topics}; target subjects: ${subjects})`);
+        // Surface the live label values so the next CI run reveals the schema.
+        const allT = rows.filter((r) => (r["breakdown_topic"] ?? "").trim().toLowerCase() === "target");
+        const subs = [...new Set(allT.map((r) => r["itt_subject"] ?? ""))].slice(0, 12).join(" | ");
+        const brks = [...new Set(allT.map((r) => r["breakdown"] ?? ""))].slice(0, 12).join(" | ");
+        throw new Error(`dfe-teacher-recruitment: no aggregate rows (itt_subject: [${subs}]; breakdown: [${brks}])`);
       }
       return points.sort((a, b) => (a.date < b.date ? -1 : 1));
     },
@@ -388,6 +458,394 @@ const SOURCES = [
   { id: "hmt-productivity", min: 30, max: 130, get: () => ons("employmentandlabourmarket/peopleinwork/labourproductivity", ["LZVB", "LZVD"], ["prdy"], "years") },
   // Real households' disposable income per head, chained-volume £ (ONS CRXX).
   { id: "hmt-real-income", min: 5000, max: 35000, get: () => ons(GDP, "CRXX", ["ukea"], "years") },
+
+  // --- Excel/ODS backlog (gov.uk Content API + SheetJS) ---
+  // DWP fraud & error: All-Benefits total overpayments as % of expenditure.
+  // The publication is republished yearly; resolve the latest edition via the
+  // collection, then read "Table 2: Time series of percentage of expenditure
+  // overpaid" from its main-tables ODS. The header row carries one FYE-year
+  // label per 3-column (central/lower/upper) group, offset one column right of
+  // the data; the "All Benefits → Total" row is the headline rate. The latest
+  // edition restates the prior year ("FYE 2025 (revised)") before the original,
+  // so the first value seen per year (the revision) wins.
+  {
+    id: "dwp-fraud-error",
+    min: 0.5,
+    max: 6,
+    get: async () => {
+      const path = await govukCollectionLatest(
+        "fraud-and-error-in-the-benefit-system",
+        (d) => /estimates/i.test(d.title || ""),
+      );
+      const atts = await govukAttachments(path);
+      const sheet = atts.find((a) => /\.(ods|xlsx?|xlsb)(\?|$)/i.test(a.url || ""));
+      if (!sheet) throw new Error(`no spreadsheet attachment in ${path}`);
+      const book = await xlsxBook(sheet.url);
+      let rows;
+      for (const name of book.SheetNames) {
+        const r = await sheetRows(book, name);
+        const title = String(r[0]?.[0] ?? r[0]?.[1] ?? "");
+        if (/time series/i.test(title) && /percentage of expenditure overpaid/i.test(title)) {
+          rows = r;
+          break;
+        }
+      }
+      if (!rows) throw new Error("overpayment time-series sheet not found");
+      // The header row has one FYE label per year-group; pick the row with the
+      // most FYE cells so the single-cell title ("…FYE 2006 to FYE 2026") loses.
+      let header = null;
+      let best = 1;
+      for (const r of rows) {
+        const n = r.filter((c) => /FYE\s*\d{4}/.test(String(c ?? ""))).length;
+        if (n > best) { best = n; header = r; }
+      }
+      if (!header) throw new Error("no FYE header row");
+      let group = "";
+      let total = null;
+      for (const r of rows) {
+        if (r[0] != null && String(r[0]).trim()) group = String(r[0]);
+        if (/all benefits/i.test(group) && String(r[1] ?? "").trim().toLowerCase() === "total") {
+          total = r;
+          break;
+        }
+      }
+      if (!total) throw new Error("All Benefits Total row not found");
+      const byYear = {};
+      for (let g = 2; g < total.length; g += 3) {
+        const m = String(header[g + 1] ?? "").match(/FYE\s*(\d{4})/);
+        // Real values arrive as numbers; suppression markers ("w"/"x"/"z") as
+        // strings — require a number so empty cells can't become false zeros.
+        if (!m || typeof total[g] !== "number" || !Number.isFinite(total[g])) continue;
+        if (!(m[1] in byYear)) byYear[m[1]] = total[g]; // first (revised) per year wins
+      }
+      const points = Object.entries(byYear)
+        .map(([y, v]) => ({ date: `${y}-01-01`, value: v }))
+        .sort((a, b) => (a.date < b.date ? -1 : 1));
+      if (points.length < 5) throw new Error(`only ${points.length} usable points`);
+      return points;
+    },
+  },
+
+  // DfE disadvantaged attainment: KS4 disadvantage gap index (EES). This is the
+  // DfE gap *index* (~3.0–3.5), not EPI "months behind" — the chart label is
+  // updated to match; no scaling (a fabricated transform would be dishonest).
+  {
+    id: "dfe-attainment-gap",
+    min: 2,
+    max: 6,
+    get: async () => {
+      const { headers, rows } = await eesCsv("dbff4e55-5b10-44bc-be2b-23d9d68e0f98");
+      const gapCol = headers.find((h) => h.includes("disadvantage_gap_index") || h.includes("gap_index"));
+      if (!gapCol) throw new Error(`dfe-attainment-gap: no gap-index column in [${headers.join(",")}]`);
+      const national = rows.filter((r) => (r["geographic_level"] ?? "").trim().toLowerCase() === "national");
+      const src = national.length ? national : rows;
+      const seen = new Set();
+      const points = [];
+      for (const r of src) {
+        const m = (r["time_period"] ?? "").match(/^(\d{4})/);
+        if (!m) continue;
+        const val = parseFloat(r[gapCol] ?? "");
+        if (!Number.isFinite(val) || val < 1 || val > 8) continue;
+        if (seen.has(m[1])) continue;
+        seen.add(m[1]);
+        points.push({ date: `${m[1]}-09-01`, value: val });
+      }
+      if (!points.length) throw new Error(`dfe-attainment-gap: no usable rows (headers: ${headers.join(",")})`);
+      return points.sort((a, b) => (a.date < b.date ? -1 : 1));
+    },
+  },
+
+  // MoJ Crown Court outstanding caseload (Criminal court statistics quarterly,
+  // sheet C1, "outstanding" row). Raw case count.
+  {
+    id: "moj-crown-backlog",
+    min: 5000,
+    max: 120000,
+    get: async () => {
+      const path = await govukCollectionLatest(
+        "criminal-court-statistics",
+        (d) => /criminal court statistics quarterly/i.test(d.title || ""),
+      );
+      const atts = await govukAttachments(path);
+      const sheet = atts.find((a) => /table/i.test(a.title || "") && /\.(ods|xlsx?|xlsb)(\?|$)/i.test(a.url || ""))
+        ?? atts.find((a) => /\.(ods|xlsx?|xlsb)(\?|$)/i.test(a.url || ""));
+      if (!sheet) throw new Error(`moj-crown-backlog: no spreadsheet in ${path}`);
+      const book = await xlsxBook(sheet.url);
+      const sheetName = book.SheetNames.find((n) => /(^|_)c\s*1$/i.test(String(n).trim()));
+      if (!sheetName) {
+        console.log(`moj-crown-backlog: sheets=[${book.SheetNames.join("|")}] att=${sheet.url}`);
+        throw new Error("moj-crown-backlog: C1 sheet not found");
+      }
+      const rows = await sheetRows(book, sheetName);
+      // C1 is row-per-(year, quarter) with an "All cases: open" column = the
+      // outstanding caseload at end of period.
+      const headerIdx = rows.findIndex((r) =>
+        r.some((c) => /^year$/i.test(String(c ?? "").trim())) && r.some((c) => /open/i.test(String(c ?? ""))),
+      );
+      if (headerIdx < 0) {
+        console.log(`moj-crown-backlog: no header in ${sheetName}; first 6:`);
+        for (const r of rows.slice(0, 6)) console.log(`   ${JSON.stringify(r).slice(0, 200)}`);
+        throw new Error("moj-crown-backlog: header row not located");
+      }
+      const header = rows[headerIdx];
+      const yearCol = header.findIndex((c) => /^year$/i.test(String(c ?? "").trim()));
+      const qCol = header.findIndex((c) => /^quarter$/i.test(String(c ?? "").trim()));
+      let openCol = header.findIndex((c) => /all cases.*open/i.test(String(c ?? "")));
+      if (openCol < 0) openCol = header.findIndex((c) => /(^|:)\s*open\b/i.test(String(c ?? "")));
+      if (openCol < 0) throw new Error(`moj-crown-backlog: no open column in [${header.join("|")}]`);
+      const qEnd = { Q1: "03-31", Q2: "06-30", Q3: "09-30", Q4: "12-31" };
+      const byDate = new Map();
+      for (const r of rows.slice(headerIdx + 1)) {
+        const year = Number(r[yearCol]);
+        if (!Number.isInteger(year) || year < 2000 || year > 2035) continue;
+        const q = String(r[qCol] ?? "").trim().toUpperCase().replace(/\s+/g, "");
+        const val = r[openCol];
+        if (typeof val !== "number" || !Number.isFinite(val) || val <= 0) continue;
+        byDate.set(`${year}-${qEnd[q] ?? "12-31"}`, Math.round(val));
+      }
+      const points = [...byDate.entries()].map(([date, value]) => ({ date, value }));
+      if (points.length < 4) throw new Error(`moj-crown-backlog: only ${points.length} points`);
+      return points.sort((a, b) => (a.date < b.date ? -1 : 1));
+    },
+  },
+
+  // MoJ overall cost per prisoner (£/yr). Annual editions under the prison
+  // performance collection; read each edition's costs supplementary ODS and
+  // take the England & Wales aggregate row (value in the £20k–£80k band).
+  {
+    id: "moj-cost-per-prisoner",
+    min: 20000,
+    max: 80000,
+    get: async () => {
+      const coll = await govukContent("government/collections/prison-and-probation-trusts-performance-statistics");
+      const docs = (coll?.links?.documents || []).filter((d) => /prison-performance-data/i.test(d.base_path || ""));
+      if (!docs.length) throw new Error("moj-cost-per-prisoner: no prison-performance-data docs");
+      const points = [];
+      for (const doc of docs) {
+        try {
+          const p = String(doc.base_path || "").replace(/^\//, "");
+          const atts = await govukAttachments(p);
+          const ods = atts.find((a) => /\.(ods|xlsx?)(\?|$)/i.test(a.url || "") && /cost/i.test(a.title || "") && /supplement/i.test(a.title || ""))
+            ?? atts.find((a) => /\.(ods|xlsx?)(\?|$)/i.test(a.url || "") && /(cost|supplement)/i.test((a.title || "") + (a.url || "")));
+          if (!ods) continue;
+          const book = await xlsxBook(ods.url);
+          let val = null;
+          for (const name of book.SheetNames) {
+            const rows = await sheetRows(book, name);
+            for (const row of rows) {
+              const label = String(row[0] ?? row[1] ?? "").trim();
+              if (!/(england.*wales|all prisons|national)/i.test(label)) continue;
+              const nums = row.map((c) => typeof c === "number" ? c : parseFloat(String(c ?? "").replace(/,/g, "")))
+                .filter((v) => Number.isFinite(v) && v >= 20000 && v <= 80000);
+              if (nums.length) { val = nums[nums.length - 1]; break; }
+            }
+            if (val != null) break;
+          }
+          const ym = String(doc.base_path || "").match(/(\d{4})-to-(\d{4})/);
+          if (val != null && ym) points.push({ date: `${ym[2]}-04-01`, value: Math.round(val) });
+        } catch { /* skip this edition */ }
+      }
+      if (!points.length) throw new Error("moj-cost-per-prisoner: no usable points");
+      const seen = new Set();
+      return points
+        .filter((p) => { const k = p.date.slice(0, 4); if (seen.has(k)) return false; seen.add(k); return true; })
+        .sort((a, b) => (a.date < b.date ? -1 : 1));
+    },
+  },
+
+  // MoJ prison-officer resignation rate (HMPPS workforce quarterly ODS). Band
+  // 3–5 / prison-officer resignation rate, %.
+  {
+    id: "moj-officer-resignations",
+    min: 2,
+    max: 20,
+    get: async () => {
+      const path = await govukCollectionLatest(
+        "hm-prison-probation-service-workforce-statistics",
+        (d) => /workforce/i.test(d.title || ""),
+      );
+      const atts = await govukAttachments(path);
+      const ods = atts.find((a) => /\.(ods|xlsx?)(\?|$)/i.test(a.url || "") && /(table|statistics)/i.test((a.title || "") + (a.url || "")))
+        ?? atts.find((a) => /\.(ods|xlsx?)(\?|$)/i.test(a.url || ""));
+      if (!ods) throw new Error(`moj-officer-resignations: no ODS in ${path}`);
+      const book = await xlsxBook(ods.url);
+      let targetRows = null;
+      for (const name of book.SheetNames) {
+        const rows = await sheetRows(book, name);
+        if (rows.some((r) => r.some((c) => /(resignation|band\s*3|prison officer)/i.test(String(c ?? ""))))) { targetRows = rows; break; }
+      }
+      if (!targetRows) {
+        console.log(`moj-officer-resignations: sheets=[${book.SheetNames.join("|")}] att=${ods.url}`);
+        throw new Error("moj-officer-resignations: no resignation sheet");
+      }
+      let headerRow = null, headerIdx = -1, bestN = 0;
+      for (let i = 0; i < Math.min(targetRows.length, 15); i++) {
+        const n = targetRows[i].filter((c) => c instanceof Date || /\d{4}.*Q[1-4]|Q[1-4].*\d{4}|[A-Za-z]{3}[\s-]\d{2,4}/i.test(String(c ?? ""))).length;
+        if (n > bestN) { bestN = n; headerRow = targetRows[i]; headerIdx = i; }
+      }
+      let dataRow = null;
+      for (const r of targetRows.slice(headerIdx + 1)) {
+        if (/(band\s*3[-–—]?5?|prison officer)/i.test(String(r[0] ?? r[1] ?? ""))) { dataRow = r; break; }
+      }
+      if (!dataRow || !headerRow) {
+        console.log(`moj-officer-resignations: header/data row not found; first 8:`);
+        for (const r of targetRows.slice(0, 8)) console.log(`   ${JSON.stringify(r).slice(0, 200)}`);
+        throw new Error("moj-officer-resignations: row not located");
+      }
+      const points = [];
+      for (let i = 1; i < dataRow.length; i++) {
+        const val = typeof dataRow[i] === "number" ? dataRow[i] : parseFloat(String(dataRow[i] ?? ""));
+        if (!Number.isFinite(val) || val < 0.5 || val > 30) continue;
+        const h = headerRow[i];
+        let date = null, m;
+        if (h instanceof Date) date = h.toISOString().slice(0, 10);
+        else if ((m = String(h ?? "").match(/([A-Za-z]{3})[\s-](\d{2,4})/))) {
+          const mo = MONTHS[m[1].toUpperCase().slice(0, 3)];
+          if (mo) { const yr = m[2].length === 2 ? 2000 + +m[2] : +m[2]; date = `${yr}-${String(mo).padStart(2, "0")}-01`; }
+        } else if ((m = String(h ?? "").match(/Q([1-4])[^0-9]*(\d{4})|(\d{4})[^0-9]*Q([1-4])/i))) {
+          const q = +(m[1] ?? m[4]); const yr = +(m[2] ?? m[3]); date = `${yr}-${String((q - 1) * 3 + 1).padStart(2, "0")}-01`;
+        }
+        if (date) points.push({ date, value: val });
+      }
+      if (points.length < 3) throw new Error(`moj-officer-resignations: only ${points.length} points`);
+      const seen = new Set();
+      return points.filter((p) => { if (seen.has(p.date)) return false; seen.add(p.date); return true; })
+        .sort((a, b) => (a.date < b.date ? -1 : 1));
+    },
+  },
+
+  // MoD personnel shortfall: (requirement − trained strength) / requirement %,
+  // from DASA quarterly service personnel statistics ODS.
+  {
+    id: "mod-personnel-shortfall",
+    min: 0,
+    max: 20,
+    get: async () => {
+      const path = await govukCollectionLatest("quarterly-service-personnel-statistics-index");
+      const atts = await govukAttachments(path);
+      const sheet = atts.find((a) => /\.(ods|xlsx?|xlsb)(\?|$)/i.test(a.url || ""));
+      if (!sheet) throw new Error(`mod-personnel-shortfall: no spreadsheet in ${path}`);
+      const book = await xlsxBook(sheet.url);
+      let points = null;
+      for (const name of book.SheetNames) {
+        const rows = await sheetRows(book, name);
+        const hi = rows.findIndex((r) => r.some((c) => /trained/i.test(String(c ?? ""))) && r.some((c) => /requirement/i.test(String(c ?? ""))));
+        if (hi === -1) continue;
+        const header = rows[hi];
+        const tCols = header.reduce((a, c, i) => /trained/i.test(String(c ?? "")) ? [...a, i] : a, []);
+        const rCols = header.reduce((a, c, i) => /requirement/i.test(String(c ?? "")) ? [...a, i] : a, []);
+        if (!tCols.length || !rCols.length) continue;
+        const tCol = tCols[tCols.length - 1], rCol = rCols[rCols.length - 1];
+        const pts = [];
+        for (const row of rows.slice(hi + 1)) {
+          const raw = String(row[0] ?? "").trim();
+          let date = null, m;
+          if ((m = raw.match(/(\d{1,2})\s+([A-Za-z]+)\s+(\d{2,4})/))) {
+            const mo = MONTHS[m[2].slice(0, 3).toUpperCase()]; const yr = m[3].length === 2 ? `20${m[3]}` : m[3];
+            if (mo) date = `${yr}-${String(mo).padStart(2, "0")}-01`;
+          } else if ((m = raw.match(/(\d{4})\s*Q(\d)/))) date = `${m[1]}-${String((+m[2] - 1) * 3 + 1).padStart(2, "0")}-01`;
+          else if ((m = raw.match(/([A-Za-z]{3})-(\d{2,4})/))) {
+            const mo = MONTHS[m[1].toUpperCase()]; const yr = m[2].length === 2 ? `20${m[2]}` : m[2];
+            if (mo) date = `${yr}-${String(mo).padStart(2, "0")}-01`;
+          }
+          if (!date) continue;
+          const trained = Number(row[tCol]), req = Number(row[rCol]);
+          if (!Number.isFinite(trained) || !Number.isFinite(req) || req <= 0) continue;
+          const shortfall = +((req - trained) / req * 100).toFixed(2);
+          if (shortfall < 0 || shortfall > 30) continue;
+          pts.push({ date, value: shortfall });
+        }
+        if (pts.length >= 4) {
+          const seen = new Set();
+          points = pts.sort((a, b) => (a.date < b.date ? -1 : 1)).filter((p) => { if (seen.has(p.date)) return false; seen.add(p.date); return true; });
+          break;
+        }
+      }
+      if (!points || !points.length) throw new Error(`mod-personnel-shortfall: not extracted (sheets: ${book.SheetNames.join("|")})`);
+      return points;
+    },
+  },
+
+  // MoD voluntary outflow rate (%) from the DASA quarterly ODS.
+  {
+    id: "mod-voluntary-outflow",
+    min: 2,
+    max: 15,
+    get: async () => {
+      const path = await govukCollectionLatest("quarterly-service-personnel-statistics-index");
+      const atts = await govukAttachments(path);
+      const sheet = atts.find((a) => /\.(ods|xlsx?|xlsb)(\?|$)/i.test(a.url || ""));
+      if (!sheet) throw new Error(`mod-voluntary-outflow: no spreadsheet in ${path}`);
+      const book = await xlsxBook(sheet.url);
+      const parseDate = (raw) => {
+        let m;
+        if ((m = raw.match(/(\d{1,2})\s+([A-Za-z]+)\s+(\d{2,4})/))) {
+          const mo = MONTHS[m[2].slice(0, 3).toUpperCase()]; const yr = m[3].length === 2 ? `20${m[3]}` : m[3];
+          return mo ? `${yr}-${String(mo).padStart(2, "0")}-01` : null;
+        }
+        if ((m = raw.match(/(\d{4})\s*Q(\d)/))) return `${m[1]}-${String((+m[2] - 1) * 3 + 1).padStart(2, "0")}-01`;
+        if ((m = raw.match(/([A-Za-z]{3})-(\d{2,4})/))) {
+          const mo = MONTHS[m[1].toUpperCase()]; const yr = m[2].length === 2 ? `20${m[2]}` : m[2];
+          return mo ? `${yr}-${String(mo).padStart(2, "0")}-01` : null;
+        }
+        return null;
+      };
+      let points = null;
+      for (const name of book.SheetNames) {
+        const rows = await sheetRows(book, name);
+        if (!rows.some((r) => r.some((c) => /voluntary\s+outflow/i.test(String(c ?? ""))))) continue;
+        // Row-per-period layout: a header column labelled VO rate.
+        const hi = rows.findIndex((r) => r.some((c) => /voluntary\s+outflow\s+rate|VO\s+rate/i.test(String(c ?? ""))));
+        if (hi !== -1) {
+          const header = rows[hi];
+          const voCols = header.reduce((a, c, i) => /voluntary\s+outflow\s+rate|VO\s+rate/i.test(String(c ?? "")) ? [...a, i] : a, []);
+          const useCol = voCols[voCols.length - 1];
+          if (useCol != null) {
+            const pts = [];
+            for (const row of rows.slice(hi + 1)) {
+              const date = parseDate(String(row[0] ?? "").trim());
+              const val = Number(row[useCol]);
+              if (date && Number.isFinite(val) && val >= 1 && val <= 20) pts.push({ date, value: +val.toFixed(2) });
+            }
+            if (pts.length >= 4) {
+              const seen = new Set();
+              points = pts.sort((a, b) => (a.date < b.date ? -1 : 1)).filter((p) => { if (seen.has(p.date)) return false; seen.add(p.date); return true; });
+              break;
+            }
+          }
+        }
+      }
+      if (!points || !points.length) throw new Error(`mod-voluntary-outflow: not extracted (sheets: ${book.SheetNames.join("|")})`);
+      return points;
+    },
+  },
+
+  // Home Office UKVI visa service standard %: "Visas, status and immigration
+  // data" ODS, sheet VSI_02 (route-keyed). DIAGNOSTIC PASS — the right route/row
+  // to headline is ambiguous, so log structure before committing an extraction.
+  {
+    id: "ho-visa-sla",
+    min: 30,
+    max: 100,
+    get: async () => {
+      const path = await govukCollectionLatest(
+        "migration-transparency-data",
+        (d) => /visas,?\s*status\s*and\s*immigration/i.test(d.title || ""),
+      );
+      const atts = await govukAttachments(path);
+      const sheet = atts.find((a) => /\.(ods|xlsx?|xlsb)(\?|$)/i.test(a.url || "") && /(vsi|visas)/i.test((a.title || "") + (a.url || "")))
+        ?? atts.find((a) => /\.(ods|xlsx?|xlsb)(\?|$)/i.test(a.url || ""));
+      if (!sheet) throw new Error(`ho-visa-sla: no spreadsheet in ${path}`);
+      const book = await xlsxBook(sheet.url);
+      const name = book.SheetNames.find((n) => /vsi[_\s-]?0?2/i.test(n)) ?? book.SheetNames.find((n) => /service|standard/i.test(n));
+      console.log(`ho-visa-sla: edition=${path} sheets=[${book.SheetNames.join("|")}] picked=${name}`);
+      if (name) {
+        const rows = await sheetRows(book, name);
+        for (const r of rows.slice(0, 8)) console.log(`   ${JSON.stringify(r).slice(0, 220)}`);
+      }
+      throw new Error("DIAG ho-visa-sla — VSI_02 structure logged (pick route/row next)");
+    },
+  },
 ];
 
 const out = {};

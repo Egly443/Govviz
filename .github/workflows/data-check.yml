@@ -1,0 +1,28 @@
+name: Data fetch check
+
+# Runs the data fetcher on feature branches WITHOUT deploying, so new
+# Excel/ODS/CSV parsers can be validated against live sources (CI has internet;
+# the dev sandbox does not) before being promoted to main. The fetcher always
+# exits 0 and writes only the gitignored generated file — nothing is published.
+on:
+  push:
+    branches-ignore: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      # SheetJS for .ods/.xlsx parsing; --no-save keeps package-lock.json intact.
+      - run: npm install --no-save xlsx
+      - name: Fetch live data (no deploy)
+        run: node scripts/build-data.mjs

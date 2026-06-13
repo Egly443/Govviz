@@ -35,6 +35,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # SheetJS for .ods/.xlsx source parsing; --no-save keeps package-lock.json
+      # in sync (npm ci would fail on a drifted lockfile).
+      - name: Install spreadsheet parser
+        run: npm install --no-save xlsx
+
       # Fetch official statistics and bake them into src/generated/seriesData.ts.
       # Best-effort: any source that fails is skipped (bundled illustrative data
       # is used for it). The script always exits 0 by design, so no
