@@ -298,7 +298,8 @@ async function parseRttOverview() {
   let headerIdx = -1, totalCol = -1, pctCol = -1;
   for (let i = 0; i < Math.min(rows.length, 15); i++) {
     const r = rows[i].map((c) => String(c ?? "").toLowerCase().trim());
-    const hasPeriod = r[0].includes("period") || r[0].includes("month") || r[0].includes("date");
+    const c0 = r[0] ?? "";
+    const hasPeriod = c0.includes("period") || c0.includes("month") || c0.includes("date");
     const hasTotal = r.some((c) => c.includes("total") || c.includes("incomplete"));
     const hasPct = r.some((c) => c.includes("%") || c.includes("percent") || c.includes("within 18"));
     if (hasPeriod || (hasTotal && hasPct)) {
@@ -974,34 +975,39 @@ const SOURCES = [
     max: 25,
     get: async () => {
       const book = await xlsxBook("https://dataportal.orr.gov.uk/media/2177/table-3123-trains-planned-and-cancellations-by-operator-and-cause.ods");
-      const sheetName = book.SheetNames.find((n) => /all\s*operator|summary|3123/i.test(String(n))) ?? book.SheetNames[0];
+      const sheetName = book.SheetNames.find((n) => /3123|cancellation/i.test(String(n))) ?? book.SheetNames[0];
       const rows = await sheetRows(book, sheetName);
-      const headerIdx = rows.findIndex((r) => r.some((c) => /^year$/i.test(String(c ?? "").trim())) && r.some((c) => /cancel/i.test(String(c ?? "")) && /score|%|pct|percent/i.test(String(c ?? ""))));
+      // Layout: "Time period" ("Apr to Jun 2019"), "National or Operator" (GB = aggregate),
+      // planned/part/full counts, and a weighted "Cancellations" (CaSL) column.
+      // Score % = weighted cancellations ÷ trains planned × 100.
+      const headerIdx = rows.findIndex((r) => r.some((c) => /time period/i.test(String(c ?? ""))) && r.some((c) => /national or operator/i.test(String(c ?? ""))));
       if (headerIdx < 0) {
-        console.log(`dft-rail-cancellations: no header; sheet="${sheetName}" sheets=[${book.SheetNames.join("|")}]`);
-        for (const r of rows.slice(0, 5)) console.log("  " + JSON.stringify(r).slice(0, 200));
+        console.log(`dft-rail-cancellations: no header; sheets=[${book.SheetNames.join("|")}]`);
+        for (const r of rows.slice(0, 6)) console.log("  " + JSON.stringify(r).slice(0, 200));
         throw new Error("dft-rail-cancellations: header row not found");
       }
       const header = rows[headerIdx];
-      const yearCol = header.findIndex((c) => /^year$/i.test(String(c ?? "").trim()));
-      const qCol = header.findIndex((c) => /^quarter$/i.test(String(c ?? "").trim()));
-      let scoreCol = header.findIndex((c) => /cancel/i.test(String(c ?? "")) && /score/i.test(String(c ?? "")));
-      if (scoreCol < 0) scoreCol = header.findIndex((c) => /cancel/i.test(String(c ?? "")) && /%|percent|pct/i.test(String(c ?? "")));
-      if (scoreCol < 0) throw new Error(`dft-rail-cancellations: no score col in [${header.join("|")}]`);
-      const opCol = header.findIndex((c) => /operator|toc/i.test(String(c ?? "").trim()));
-      const qEnd = { Q1: [0, "06-30"], Q2: [0, "09-30"], Q3: [0, "12-31"], Q4: [1, "03-31"] };
+      const periodCol = header.findIndex((c) => /time period/i.test(String(c ?? "")));
+      const opCol = header.findIndex((c) => /national or operator/i.test(String(c ?? "")));
+      const plannedCol = header.findIndex((c) => /trains planned/i.test(String(c ?? "")));
+      let canCol = header.findIndex((c) => /^cancellations\s*$/i.test(String(c ?? "")));
+      if (canCol < 0) canCol = header.findIndex((c) => /cancellation/i.test(String(c ?? "")) && !/part|full|responsib|by /i.test(String(c ?? "")));
+      if (plannedCol < 0 || canCol < 0) throw new Error(`dft-rail-cancellations: cols planned=${plannedCol} can=${canCol} in [${header.join("|")}]`);
+      const MON = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
+      const qend = { 3: "03-31", 6: "06-30", 9: "09-30", 12: "12-31" };
       const byDate = new Map();
       for (const r of rows.slice(headerIdx + 1)) {
-        if (opCol >= 0 && !/all\s*operator/i.test(String(r[opCol] ?? ""))) continue;
-        const year = Number(r[yearCol]);
-        if (!Number.isInteger(year) || year < 2010 || year > 2030) continue;
-        const q = String(r[qCol] ?? "").trim().toUpperCase().replace(/\s+/g, "");
-        if (!qEnd[q]) continue;
-        const v = r[scoreCol];
-        if (typeof v !== "number" || !Number.isFinite(v) || v <= 0) continue;
-        const [off, mmdd] = qEnd[q];
-        const date = `${year + off}-${mmdd}`;
-        if (!byDate.has(date)) byDate.set(date, v);
+        if (!/great britain|national/i.test(String(r[opCol] ?? ""))) continue;
+        const m = String(r[periodCol] ?? "").match(/to\s+([A-Za-z]{3})[a-z]*\s+(\d{4})/i);
+        if (!m) continue;
+        const em = MON[m[1].toLowerCase()];
+        if (!em || !qend[em]) continue;
+        const planned = Number(r[plannedCol]), can = Number(r[canCol]);
+        if (!Number.isFinite(planned) || planned <= 0 || !Number.isFinite(can)) continue;
+        const score = can / planned * 100;
+        if (score <= 0 || score > 25) continue;
+        const date = `${m[2]}-${qend[em]}`;
+        if (!byDate.has(date)) byDate.set(date, +score.toFixed(2));
       }
       const points = [...byDate.entries()].map(([date, value]) => ({ date, value })).sort((a, b) => (a.date < b.date ? -1 : 1));
       if (points.length < 4) throw new Error(`dft-rail-cancellations: only ${points.length} points`);
