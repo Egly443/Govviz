@@ -497,7 +497,9 @@ const mojCompletionDays: TrendSeries = {
   sourceUrl:
     "https://www.gov.uk/government/collections/criminal-court-statistics",
   cadence: "quarterly",
-  points: trajectory(
+  points: realPoints(
+    "moj-completion-days",
+    trajectory(
     [
       ["2014-01-01", 391],
       ["2018-01-01", 478],
@@ -511,7 +513,7 @@ const mojCompletionDays: TrendSeries = {
     104,
     6,
     3,
-  ),
+  )),
   annotations: [
     { date: "2020-03-01", label: "Covid-19" },
   ],
@@ -801,7 +803,9 @@ const dftCancellations: TrendSeries = {
   source: "Office of Rail and Road, cancellation statistics",
   sourceUrl: "https://dataportal.orr.gov.uk/statistics/performance/passenger-rail-performance/",
   cadence: "monthly",
-  points: trajectory(
+  points: realPoints(
+    "dft-rail-cancellations",
+    trajectory(
     [
       ["2015-01-01", 2.8],
       ["2018-06-01", 3.4],
@@ -815,7 +819,7 @@ const dftCancellations: TrendSeries = {
     131,
     0.15,
     0.18,
-  ),
+  )),
   annotations: [
     { date: "2018-05-01", label: "May 2018 timetable" },
     { date: "2022-06-01", label: "Industrial action" },
