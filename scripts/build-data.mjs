@@ -452,10 +452,14 @@ const SOURCES = [
   { id: "hmt-real-income", min: 5000, max: 35000, get: () => ons(GDP, "CRXX", ["ukea"], "years") },
 
   // --- Excel/ODS backlog (gov.uk Content API + SheetJS) ---
-  // DWP fraud & error: total overpayments as % of benefit expenditure (annual).
-  // Edition is republished yearly; resolve the latest via search, then read its
-  // data-tables ODS. DIAGNOSTIC PASS: log the workbook structure to CI so the
-  // exact sheet/row of the overpayment time series can be wired next.
+  // DWP fraud & error: All-Benefits total overpayments as % of expenditure.
+  // The publication is republished yearly; resolve the latest edition via the
+  // collection, then read "Table 2: Time series of percentage of expenditure
+  // overpaid" from its main-tables ODS. The header row carries one FYE-year
+  // label per 3-column (central/lower/upper) group, offset one column right of
+  // the data; the "All Benefits → Total" row is the headline rate. The latest
+  // edition restates the prior year ("FYE 2025 (revised)") before the original,
+  // so the first value seen per year (the revision) wins.
   {
     id: "dwp-fraud-error",
     min: 0.5,
@@ -466,18 +470,43 @@ const SOURCES = [
         (d) => /estimates/i.test(d.title || ""),
       );
       const atts = await govukAttachments(path);
-      const sheets = atts.filter((a) => /\.(ods|xlsx?|xlsb)(\?|$)/i.test(a.url || ""));
-      console.log(`  dwp-fraud-error: edition=${path}; ${sheets.length} spreadsheet attachment(s)`);
-      for (const a of atts) console.log(`    att: ${a.title} → ${a.url}`);
-      if (!sheets.length) throw new Error("no spreadsheet attachment");
-      const book = await xlsxBook(sheets[0].url);
-      console.log(`  sheets=[${book.SheetNames.join(" | ")}]`);
-      for (const name of book.SheetNames.slice(0, 16)) {
-        const rows = await sheetRows(book, name);
-        console.log(`  --- "${name}" (${rows.length} rows) first 8:`);
-        for (const r of rows.slice(0, 8)) console.log(`      ${JSON.stringify(r).slice(0, 240)}`);
+      const sheet = atts.find((a) => /\.(ods|xlsx?|xlsb)(\?|$)/i.test(a.url || ""));
+      if (!sheet) throw new Error(`no spreadsheet attachment in ${path}`);
+      const book = await xlsxBook(sheet.url);
+      let rows;
+      for (const name of book.SheetNames) {
+        const r = await sheetRows(book, name);
+        const title = String(r[0]?.[0] ?? r[0]?.[1] ?? "");
+        if (/time series/i.test(title) && /percentage of expenditure overpaid/i.test(title)) {
+          rows = r;
+          break;
+        }
       }
-      throw new Error("DIAG only — workbook logged above");
+      if (!rows) throw new Error("overpayment time-series sheet not found");
+      const header = rows.find((r) => r.some((c) => /FYE\s*\d{4}/.test(String(c ?? ""))));
+      if (!header) throw new Error("no FYE header row");
+      let group = "";
+      let total = null;
+      for (const r of rows) {
+        if (r[0] != null && String(r[0]).trim()) group = String(r[0]);
+        if (/all benefits/i.test(group) && String(r[1] ?? "").trim().toLowerCase() === "total") {
+          total = r;
+          break;
+        }
+      }
+      if (!total) throw new Error("All Benefits Total row not found");
+      const byYear = {};
+      for (let g = 2; g < total.length; g += 3) {
+        const m = String(header[g + 1] ?? "").match(/FYE\s*(\d{4})/);
+        const v = Number(total[g]);
+        if (!m || !Number.isFinite(v) || !(total[g] !== "" && total[g] != null)) continue;
+        if (!(m[1] in byYear)) byYear[m[1]] = v; // first (revised) per year wins
+      }
+      const points = Object.entries(byYear)
+        .map(([y, v]) => ({ date: `${y}-01-01`, value: v }))
+        .sort((a, b) => (a.date < b.date ? -1 : 1));
+      if (points.length < 5) throw new Error(`only ${points.length} usable points`);
+      return points;
     },
   },
 ];
