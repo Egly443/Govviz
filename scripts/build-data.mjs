@@ -252,6 +252,16 @@ async function govukAttachments(path) {
   const j = await govukContent(path);
   return j?.details?.attachments || [];
 }
+// Newest document (by public_updated_at) in a gov.uk document collection whose
+// title passes `accept`. Collections are stable slugs that list every edition of
+// a recurring statistics release — the robust way to follow a yearly series.
+async function govukCollectionLatest(slug, accept = () => true) {
+  const j = await govukContent(`government/collections/${slug}`);
+  const docs = (j?.links?.documents || []).filter((d) => accept(d));
+  if (!docs.length) throw new Error(`collection ${slug}: no document matched`);
+  docs.sort((a, b) => String(b.public_updated_at || "").localeCompare(String(a.public_updated_at || "")));
+  return String(docs[0].base_path || "").replace(/^\//, "");
+}
 
 const INFLATION = "economy/inflationandpriceindices";
 const PUBFIN = "economy/governmentpublicsectorandtaxes/publicsectorfinance";
@@ -451,24 +461,23 @@ const SOURCES = [
     min: 0.5,
     max: 6,
     get: async () => {
-      // DIAGNOSTIC: dump what the search API and the collection return so the
-      // right resolver + edition path can be wired.
-      try {
-        const sres = await fetch(
-          `https://www.gov.uk/api/search.json?q=${encodeURIComponent("fraud and error in the benefit system")}&order=-public_timestamp&count=10`,
-          fetchOpts({ accept: "application/json" }),
-        );
-        const sj = await sres.json();
-        console.log(`  search HTTP ${sres.status}; ${(sj.results || []).length} results:`);
-        for (const r of sj.results || []) console.log(`    s: ${r.title} → ${r.link}`);
-      } catch (e) { console.log(`  search err: ${e.message}`); }
-      try {
-        const cj = await govukContent("government/collections/fraud-and-error-in-the-benefit-system");
-        const docs = cj?.links?.documents || [];
-        console.log(`  collection docs: ${docs.length}`);
-        for (const d of docs.slice(0, 12)) console.log(`    d: ${d.title} → ${d.base_path} (${d.public_updated_at || ""})`);
-      } catch (e) { console.log(`  collection err: ${e.message}`); }
-      throw new Error("DIAG only — search/collection logged above");
+      const path = await govukCollectionLatest(
+        "fraud-and-error-in-the-benefit-system",
+        (d) => /estimates/i.test(d.title || ""),
+      );
+      const atts = await govukAttachments(path);
+      const sheets = atts.filter((a) => /\.(ods|xlsx?|xlsb)(\?|$)/i.test(a.url || ""));
+      console.log(`  dwp-fraud-error: edition=${path}; ${sheets.length} spreadsheet attachment(s)`);
+      for (const a of atts) console.log(`    att: ${a.title} → ${a.url}`);
+      if (!sheets.length) throw new Error("no spreadsheet attachment");
+      const book = await xlsxBook(sheets[0].url);
+      console.log(`  sheets=[${book.SheetNames.join(" | ")}]`);
+      for (const name of book.SheetNames.slice(0, 16)) {
+        const rows = await sheetRows(book, name);
+        console.log(`  --- "${name}" (${rows.length} rows) first 8:`);
+        for (const r of rows.slice(0, 8)) console.log(`      ${JSON.stringify(r).slice(0, 240)}`);
+      }
+      throw new Error("DIAG only — workbook logged above");
     },
   },
 ];
