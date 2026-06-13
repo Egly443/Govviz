@@ -624,26 +624,25 @@ const SOURCES = [
       for (const doc of docs) {
         try {
           const p = String(doc.base_path || "").replace(/^\//, "");
-          const atts = await govukAttachments(p);
-          const ods = atts.find((a) => /\.(ods|xlsx?)(\?|$)/i.test(a.url || "") && /cost/i.test(a.title || "") && /supplement/i.test(a.title || ""))
-            ?? atts.find((a) => /\.(ods|xlsx?)(\?|$)/i.test(a.url || "") && /(cost|supplement)/i.test((a.title || "") + (a.url || "")));
-          if (!ods) continue;
-          const book = await xlsxBook(ods.url);
+          const ym = p.match(/(\d{4})-to-(\d{4})/);
+          if (!ym) continue;
+          const odsList = (await govukAttachments(p)).filter((a) => /\.(ods|xlsx?)(\?|$)/i.test(a.url || ""));
           let val = null;
-          for (const name of book.SheetNames) {
-            const rows = await sheetRows(book, name);
-            for (const row of rows) {
-              const label = String(row[0] ?? row[1] ?? "").trim();
-              if (!/(england.*wales|all prisons|national)/i.test(label)) continue;
-              const nums = row.map((c) => typeof c === "number" ? c : parseFloat(String(c ?? "").replace(/,/g, "")))
-                .filter((v) => Number.isFinite(v) && v >= 20000 && v <= 80000);
-              if (nums.length) { val = nums[nums.length - 1]; break; }
-            }
-            if (val != null) break;
+          for (const ods of odsList) {
+            const book = await xlsxBook(ods.url);
+            // "Table 2: Summary Comparison" has a "{yy}-{yy} Totals" row with the
+            // national overall Cost per Prisoner (£/yr, direct + overheads).
+            const sn = book.SheetNames.find((n) => /summary.*comparison|^t2/i.test(n)) ?? book.SheetNames.find((n) => /summary/i.test(n));
+            if (!sn) continue;
+            const rows = await sheetRows(book, sn);
+            const row = rows.find((r) => /totals?/i.test(String(r[0] ?? "")) && String(r[0] ?? "").includes(ym[2].slice(2)))
+              ?? rows.find((r) => /totals?/i.test(String(r[0] ?? "")));
+            if (!row) continue;
+            const nums = row.map((c) => typeof c === "number" ? c : parseFloat(String(c ?? "").replace(/,/g, ""))).filter((x) => Number.isFinite(x) && x >= 20000 && x <= 80000);
+            if (nums.length) { val = nums[nums.length - 1]; break; }
           }
-          const ym = String(doc.base_path || "").match(/(\d{4})-to-(\d{4})/);
-          if (val != null && ym) points.push({ date: `${ym[2]}-04-01`, value: Math.round(val) });
-        } catch { /* skip this edition */ }
+          if (val != null) points.push({ date: `${ym[2]}-04-01`, value: Math.round(val) });
+        } catch { /* skip edition */ }
       }
       if (!points.length) throw new Error("moj-cost-per-prisoner: no usable points");
       const seen = new Set();
@@ -662,55 +661,61 @@ const SOURCES = [
     get: async () => {
       const path = await govukCollectionLatest(
         "hm-prison-probation-service-workforce-statistics",
-        (d) => /workforce/i.test(d.title || ""),
+        (d) => /workforce quarterly/i.test(d.title || ""),
       );
       const atts = await govukAttachments(path);
-      const ods = atts.find((a) => /\.(ods|xlsx?)(\?|$)/i.test(a.url || "") && /(table|statistics)/i.test((a.title || "") + (a.url || "")))
+      const ods = atts.find((a) => /\.(ods|xlsx?)(\?|$)/i.test(a.url || "") && /hmpps[-_]workforce[-_]statistics[-_]tables/i.test((a.title || "") + (a.url || "")))
+        ?? atts.find((a) => /\.(ods|xlsx?)(\?|$)/i.test(a.url || "") && /table/i.test(a.title || ""))
         ?? atts.find((a) => /\.(ods|xlsx?)(\?|$)/i.test(a.url || ""));
       if (!ods) throw new Error(`moj-officer-resignations: no ODS in ${path}`);
       const book = await xlsxBook(ods.url);
-      let targetRows = null;
-      for (const name of book.SheetNames) {
-        const rows = await sheetRows(book, name);
-        if (rows.some((r) => r.some((c) => /(resignation|band\s*3|prison officer)/i.test(String(c ?? ""))))) { targetRows = rows; break; }
+      // Pick the DATA sheet (skip Contents/Notes, whose cells contain table
+      // titles like "Table 10b: …leaving rate…"): require a year header AND a
+      // leaving/resignation-rate signal that isn't a "Table N:" title.
+      let rows = null, used = null;
+      for (const n of book.SheetNames) {
+        if (/content|cover|notes|definition|guidance/i.test(n)) continue;
+        const r = await sheetRows(book, n);
+        const hasYears = r.some((row) => row.filter((c) => c instanceof Date || /\b20\d{2}\b/.test(String(c ?? ""))).length >= 3);
+        const hasRate = r.some((row) => /(leaving|resignation)\s*rate/i.test(row.map((c) => String(c ?? "")).join(" ")) && !/^table\s*\d/i.test(String(row[0] ?? "").trim()));
+        if (hasYears && hasRate) { rows = r; used = n; break; }
       }
-      if (!targetRows) {
-        console.log(`moj-officer-resignations: sheets=[${book.SheetNames.join("|")}] att=${ods.url}`);
-        throw new Error("moj-officer-resignations: no resignation sheet");
+      if (!rows) {
+        console.log(`moj-officer-resignations: no rate sheet; sheets=[${book.SheetNames.join("|")}] att=${ods.url}`);
+        throw new Error("moj-officer-resignations: no leaving-rate sheet");
       }
-      let headerRow = null, headerIdx = -1, bestN = 0;
-      for (let i = 0; i < Math.min(targetRows.length, 15); i++) {
-        const n = targetRows[i].filter((c) => c instanceof Date || /\d{4}.*Q[1-4]|Q[1-4].*\d{4}|[A-Za-z]{3}[\s-]\d{2,4}/i.test(String(c ?? ""))).length;
-        if (n > bestN) { bestN = n; headerRow = targetRows[i]; headerIdx = i; }
+      let hi = -1, header = null, best = 0;
+      for (let i = 0; i < Math.min(rows.length, 20); i++) {
+        const n = rows[i].filter((c) => c instanceof Date || /\d{4}[-/]\d{2}|\b(19|20)\d{2}\b|[A-Za-z]{3}[-\s]\d{2,4}/.test(String(c ?? ""))).length;
+        if (n > best) { best = n; header = rows[i]; hi = i; }
       }
-      let dataRow = null;
-      for (const r of targetRows.slice(headerIdx + 1)) {
-        if (/(band\s*3[-–—]?5?|prison officer)/i.test(String(r[0] ?? r[1] ?? ""))) { dataRow = r; break; }
-      }
-      if (!dataRow || !headerRow) {
-        console.log(`moj-officer-resignations: header/data row not found; first 8:`);
-        for (const r of targetRows.slice(0, 8)) console.log(`   ${JSON.stringify(r).slice(0, 200)}`);
-        throw new Error("moj-officer-resignations: row not located");
+      const pick = (re) => rows.slice(hi + 1).find((r) => re.test(String(r[0] ?? r[1] ?? "")));
+      const dataRow = pick(/band\s*3[-–—]?5?|prison\s*officer/i) ?? pick(/leaving\s*rate/i) ?? pick(/resignation\s*rate/i) ?? pick(/all\s*staff|^total|national/i);
+      if (!dataRow || hi < 0) {
+        console.log(`moj-officer-resignations: sheet "${used}" rows 0-10:`);
+        for (const r of rows.slice(0, 10)) console.log(`   ${JSON.stringify(r).slice(0, 220)}`);
+        throw new Error("moj-officer-resignations: rate row/header not located");
       }
       const points = [];
-      for (let i = 1; i < dataRow.length; i++) {
-        const val = typeof dataRow[i] === "number" ? dataRow[i] : parseFloat(String(dataRow[i] ?? ""));
-        if (!Number.isFinite(val) || val < 0.5 || val > 30) continue;
-        const h = headerRow[i];
+      for (let i = 0; i < dataRow.length; i++) {
+        let v = typeof dataRow[i] === "number" ? dataRow[i] : parseFloat(String(dataRow[i] ?? ""));
+        if (!Number.isFinite(v)) continue;
+        if (v > 0 && v < 1) v *= 100;
+        if (v < 1 || v > 25) continue;
+        const h = header[i];
         let date = null, m;
         if (h instanceof Date) date = h.toISOString().slice(0, 10);
-        else if ((m = String(h ?? "").match(/([A-Za-z]{3})[\s-](\d{2,4})/))) {
-          const mo = MONTHS[m[1].toUpperCase().slice(0, 3)];
-          if (mo) { const yr = m[2].length === 2 ? 2000 + +m[2] : +m[2]; date = `${yr}-${String(mo).padStart(2, "0")}-01`; }
-        } else if ((m = String(h ?? "").match(/Q([1-4])[^0-9]*(\d{4})|(\d{4})[^0-9]*Q([1-4])/i))) {
-          const q = +(m[1] ?? m[4]); const yr = +(m[2] ?? m[3]); date = `${yr}-${String((q - 1) * 3 + 1).padStart(2, "0")}-01`;
-        }
-        if (date) points.push({ date, value: val });
+        else if ((m = String(h ?? "").match(/(\d{4})[-/](\d{2})\b/))) date = `${2000 + +m[2]}-03-01`;
+        else if ((m = String(h ?? "").match(/([A-Za-z]{3})[-\s](\d{2,4})/))) { const mo = MONTHS[m[1].toUpperCase().slice(0, 3)]; if (mo) { const yr = m[2].length === 2 ? 2000 + +m[2] : +m[2]; date = `${yr}-${String(mo).padStart(2, "0")}-01`; } }
+        else if ((m = String(h ?? "").match(/\b(20\d{2})\b/))) date = `${m[1]}-03-01`;
+        if (date) points.push({ date, value: +v.toFixed(1) });
       }
-      if (points.length < 3) throw new Error(`moj-officer-resignations: only ${points.length} points`);
+      if (points.length < 2) {
+        console.log(`moj-officer-resignations: header=${JSON.stringify(header).slice(0, 200)} dataRow=${JSON.stringify(dataRow).slice(0, 200)}`);
+        throw new Error(`moj-officer-resignations: only ${points.length} pts`);
+      }
       const seen = new Set();
-      return points.filter((p) => { if (seen.has(p.date)) return false; seen.add(p.date); return true; })
-        .sort((a, b) => (a.date < b.date ? -1 : 1));
+      return points.filter((p) => { if (seen.has(p.date)) return false; seen.add(p.date); return true; }).sort((a, b) => (a.date < b.date ? -1 : 1));
     },
   },
 
@@ -726,43 +731,34 @@ const SOURCES = [
       const sheet = atts.find((a) => /\.(ods|xlsx?|xlsb)(\?|$)/i.test(a.url || ""));
       if (!sheet) throw new Error(`mod-personnel-shortfall: no spreadsheet in ${path}`);
       const book = await xlsxBook(sheet.url);
-      let points = null;
-      for (const name of book.SheetNames) {
-        const rows = await sheetRows(book, name);
-        const hi = rows.findIndex((r) => r.some((c) => /trained/i.test(String(c ?? ""))) && r.some((c) => /requirement/i.test(String(c ?? ""))));
-        if (hi === -1) continue;
-        const header = rows[hi];
-        const tCols = header.reduce((a, c, i) => /trained/i.test(String(c ?? "")) ? [...a, i] : a, []);
-        const rCols = header.reduce((a, c, i) => /requirement/i.test(String(c ?? "")) ? [...a, i] : a, []);
-        if (!tCols.length || !rCols.length) continue;
-        const tCol = tCols[tCols.length - 1], rCol = rCols[rCols.length - 1];
-        const pts = [];
-        for (const row of rows.slice(hi + 1)) {
-          const raw = String(row[0] ?? "").trim();
-          let date = null, m;
-          if ((m = raw.match(/(\d{1,2})\s+([A-Za-z]+)\s+(\d{2,4})/))) {
-            const mo = MONTHS[m[2].slice(0, 3).toUpperCase()]; const yr = m[3].length === 2 ? `20${m[3]}` : m[3];
-            if (mo) date = `${yr}-${String(mo).padStart(2, "0")}-01`;
-          } else if ((m = raw.match(/(\d{4})\s*Q(\d)/))) date = `${m[1]}-${String((+m[2] - 1) * 3 + 1).padStart(2, "0")}-01`;
-          else if ((m = raw.match(/([A-Za-z]{3})-(\d{2,4})/))) {
-            const mo = MONTHS[m[1].toUpperCase()]; const yr = m[2].length === 2 ? `20${m[2]}` : m[2];
-            if (mo) date = `${yr}-${String(mo).padStart(2, "0")}-01`;
-          }
-          if (!date) continue;
-          const trained = Number(row[tCol]), req = Number(row[rCol]);
-          if (!Number.isFinite(trained) || !Number.isFinite(req) || req <= 0) continue;
-          const shortfall = +((req - trained) / req * 100).toFixed(2);
-          if (shortfall < 0 || shortfall > 30) continue;
-          pts.push({ date, value: shortfall });
-        }
-        if (pts.length >= 4) {
-          const seen = new Set();
-          points = pts.sort((a, b) => (a.date < b.date ? -1 : 1)).filter((p) => { if (seen.has(p.date)) return false; seen.add(p.date); return true; });
-          break;
-        }
+      // Worksheet 3a: (Trade) Trained Strength against the Workforce Requirement.
+      const name = book.SheetNames.find((n) => /^3a$/i.test(String(n).trim()));
+      if (!name) throw new Error(`mod-personnel-shortfall: no 3a sheet (${book.SheetNames.join("|")})`);
+      const rows = await sheetRows(book, name);
+      // Transposed: header row of quarter-end dates; the tri-service
+      // "…Surplus/Deficit (percentage)" row holds the deficit as a fraction
+      // (e.g. -0.028 = 2.8% under requirement → shortfall 2.8%).
+      const isDate = (c) => /\d{1,2}\s+[A-Za-z]+\s+\d{4}/.test(String(c ?? "").replace(/\n/g, " "));
+      const hi = rows.findIndex((r) => r.filter(isDate).length >= 4);
+      if (hi < 0) throw new Error("mod-personnel-shortfall: no date header in 3a");
+      const header = rows[hi];
+      const pctRow = rows.find((r) => /surplus\/deficit\s*\(percentage\)/i.test(String(r[0] ?? "")) && !/officer/i.test(String(r[0] ?? "")));
+      if (!pctRow) throw new Error("mod-personnel-shortfall: no tri-service deficit% row in 3a");
+      const pts = [];
+      for (let i = 1; i < header.length; i++) {
+        const m = String(header[i] ?? "").replace(/\n/g, " ").match(/(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/);
+        if (!m) continue;
+        const mo = MONTHS[m[2].slice(0, 3).toUpperCase()];
+        if (!mo) continue;
+        let v = typeof pctRow[i] === "number" ? pctRow[i] : parseFloat(String(pctRow[i] ?? ""));
+        if (!Number.isFinite(v)) continue;
+        const sh = (Math.abs(v) <= 1 ? -v * 100 : -v); // deficit (negative) → positive shortfall
+        if (sh < 0 || sh > 30) continue;
+        pts.push({ date: `${m[3]}-${String(mo).padStart(2, "0")}-01`, value: +sh.toFixed(2) });
       }
-      if (!points || !points.length) throw new Error(`mod-personnel-shortfall: not extracted (sheets: ${book.SheetNames.join("|")})`);
-      return points;
+      if (pts.length < 4) throw new Error(`mod-personnel-shortfall: only ${pts.length} pts from 3a`);
+      const seen = new Set();
+      return pts.sort((a, b) => (a.date < b.date ? -1 : 1)).filter((p) => { if (seen.has(p.date)) return false; seen.add(p.date); return true; });
     },
   },
 
@@ -777,46 +773,31 @@ const SOURCES = [
       const sheet = atts.find((a) => /\.(ods|xlsx?|xlsb)(\?|$)/i.test(a.url || ""));
       if (!sheet) throw new Error(`mod-voluntary-outflow: no spreadsheet in ${path}`);
       const book = await xlsxBook(sheet.url);
-      const parseDate = (raw) => {
-        let m;
-        if ((m = raw.match(/(\d{1,2})\s+([A-Za-z]+)\s+(\d{2,4})/))) {
-          const mo = MONTHS[m[2].slice(0, 3).toUpperCase()]; const yr = m[3].length === 2 ? `20${m[3]}` : m[3];
-          return mo ? `${yr}-${String(mo).padStart(2, "0")}-01` : null;
-        }
-        if ((m = raw.match(/(\d{4})\s*Q(\d)/))) return `${m[1]}-${String((+m[2] - 1) * 3 + 1).padStart(2, "0")}-01`;
-        if ((m = raw.match(/([A-Za-z]{3})-(\d{2,4})/))) {
-          const mo = MONTHS[m[1].toUpperCase()]; const yr = m[2].length === 2 ? `20${m[2]}` : m[2];
-          return mo ? `${yr}-${String(mo).padStart(2, "0")}-01` : null;
-        }
-        return null;
-      };
-      let points = null;
-      for (const name of book.SheetNames) {
-        const rows = await sheetRows(book, name);
-        if (!rows.some((r) => r.some((c) => /voluntary\s+outflow/i.test(String(c ?? ""))))) continue;
-        // Row-per-period layout: a header column labelled VO rate.
-        const hi = rows.findIndex((r) => r.some((c) => /voluntary\s+outflow\s+rate|VO\s+rate/i.test(String(c ?? ""))));
-        if (hi !== -1) {
-          const header = rows[hi];
-          const voCols = header.reduce((a, c, i) => /voluntary\s+outflow\s+rate|VO\s+rate/i.test(String(c ?? "")) ? [...a, i] : a, []);
-          const useCol = voCols[voCols.length - 1];
-          if (useCol != null) {
-            const pts = [];
-            for (const row of rows.slice(hi + 1)) {
-              const date = parseDate(String(row[0] ?? "").trim());
-              const val = Number(row[useCol]);
-              if (date && Number.isFinite(val) && val >= 1 && val <= 20) pts.push({ date, value: +val.toFixed(2) });
-            }
-            if (pts.length >= 4) {
-              const seen = new Set();
-              points = pts.sort((a, b) => (a.date < b.date ? -1 : 1)).filter((p) => { if (seen.has(p.date)) return false; seen.add(p.date); return true; });
-              break;
-            }
-          }
-        }
+      // Worksheet 5e: 12-months-ending trained outflow RATE by service & exit reason.
+      const name = book.SheetNames.find((n) => /^5e$/i.test(String(n).trim()));
+      if (!name) throw new Error(`mod-voluntary-outflow: no 5e sheet (${book.SheetNames.join("|")})`);
+      const rows = await sheetRows(book, name);
+      // Transposed: a header row of quarter-end dates ("31 March 2013 (percentage)"),
+      // with category rows incl. "Tri-Service … Voluntary Outflow Rate" (all ranks).
+      const isDate = (c) => /\d{1,2}\s+[A-Za-z]+\s+\d{4}/.test(String(c ?? "").replace(/\n/g, " "));
+      const hi = rows.findIndex((r) => r.filter(isDate).length >= 4);
+      if (hi < 0) throw new Error("mod-voluntary-outflow: no date header in 5e");
+      const header = rows[hi];
+      const dataRow = rows.slice(hi + 1).find((r) => /voluntary outflow rate/i.test(String(r[0] ?? "")) && !/officer/i.test(String(r[0] ?? "")));
+      if (!dataRow) throw new Error("mod-voluntary-outflow: no tri-service VO rate row");
+      const pts = [];
+      for (let i = 1; i < header.length; i++) {
+        const m = String(header[i] ?? "").replace(/\n/g, " ").match(/(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/);
+        if (!m) continue;
+        const mo = MONTHS[m[2].slice(0, 3).toUpperCase()];
+        if (!mo) continue;
+        let v = typeof dataRow[i] === "number" ? dataRow[i] : parseFloat(String(dataRow[i] ?? ""));
+        if (!Number.isFinite(v) || v < 1 || v > 20) continue;
+        pts.push({ date: `${m[3]}-${String(mo).padStart(2, "0")}-01`, value: +v.toFixed(2) });
       }
-      if (!points || !points.length) throw new Error(`mod-voluntary-outflow: not extracted (sheets: ${book.SheetNames.join("|")})`);
-      return points;
+      if (pts.length < 4) throw new Error(`mod-voluntary-outflow: only ${pts.length} pts from 5e`);
+      const seen = new Set();
+      return pts.sort((a, b) => (a.date < b.date ? -1 : 1)).filter((p) => { if (seen.has(p.date)) return false; seen.add(p.date); return true; });
     },
   },
 
