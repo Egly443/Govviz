@@ -710,19 +710,22 @@ const dwpFraudError: TrendSeries = {
   sourceUrl:
     "https://www.gov.uk/government/collections/fraud-and-error-in-the-benefit-system",
   cadence: "annual",
-  points: annual(
-    [
-      [2011, 2.0],
-      [2015, 1.9],
-      [2019, 2.4],
-      [2021, 3.9],
-      [2023, 3.7],
-      [2025, 3.3],
-    ],
-    2011,
-    2025,
-    123,
-    0.05,
+  points: realPoints(
+    "dwp-fraud-error",
+    annual(
+      [
+        [2011, 2.0],
+        [2015, 1.9],
+        [2019, 2.4],
+        [2021, 3.9],
+        [2023, 3.7],
+        [2025, 3.3],
+      ],
+      2011,
+      2025,
+      123,
+      0.05,
+    ),
   ),
   annotations: [
     { date: "2020-01-01", label: "Covid-19 easements" },

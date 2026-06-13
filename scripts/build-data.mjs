@@ -201,6 +201,58 @@ async function wb(indicator, country = "GBR") {
   throw lastErr || new Error(`WB ${indicator}: failed`);
 }
 
+// --- gov.uk Content & Search APIs + spreadsheet (ODS/XLSX) parsing ---
+// Many official series are published only as dated Excel/ODS files whose asset
+// URLs change each release. The gov.uk Content API exposes a page's *current*
+// attachments under a stable slug, and the Search API finds the newest edition
+// of a yearly-republished series — together they let a fetcher track a moving
+// target without hard-coding a media id. SheetJS reads .ods/.xlsx/.xls; it is
+// installed in CI via `npm install --no-save xlsx`, so we import it lazily
+// (local/offline runs produce an empty dataset and never reach this code).
+let _sheetjs;
+async function sheetjs() {
+  if (!_sheetjs) {
+    const m = await import("xlsx");
+    _sheetjs = m.default ?? m;
+  }
+  return _sheetjs;
+}
+// Fetch a spreadsheet URL and return the parsed SheetJS workbook.
+async function xlsxBook(url) {
+  const res = await fetch(url, fetchOpts({ accept: "application/octet-stream,*/*" }));
+  if (!res.ok) throw new Error(`spreadsheet ${url} → HTTP ${res.status}`);
+  const buf = Buffer.from(await res.arrayBuffer());
+  const XLSX = await sheetjs();
+  return XLSX.read(buf, { type: "buffer" });
+}
+// Read one sheet as an array-of-arrays (header:1), blank rows removed.
+async function sheetRows(book, name) {
+  const XLSX = await sheetjs();
+  return XLSX.utils.sheet_to_json(book.Sheets[name], { header: 1, blankrows: false });
+}
+// gov.uk Search API → path (no leading slash) of the newest result accepted by
+// `accept`. Lets a fetcher follow a series that is republished under a new slug
+// each year (e.g. "...financial-year-2024-to-2025-estimates").
+async function govukLatest(q, accept = () => true) {
+  const url = `https://www.gov.uk/api/search.json?q=${encodeURIComponent(q)}&order=-public_timestamp&count=20`;
+  const res = await fetch(url, fetchOpts({ accept: "application/json" }));
+  if (!res.ok) throw new Error(`gov.uk search → HTTP ${res.status}`);
+  const j = await res.json();
+  const hit = (j.results || []).find((r) => accept(r));
+  if (!hit) throw new Error(`gov.uk search: no match for "${q}"`);
+  return String(hit.link || "").replace(/^\//, "");
+}
+async function govukContent(path) {
+  const url = `https://www.gov.uk/api/content/${path}`;
+  const res = await fetch(url, fetchOpts({ accept: "application/json" }));
+  if (!res.ok) throw new Error(`gov.uk content ${path} → HTTP ${res.status}`);
+  return res.json();
+}
+async function govukAttachments(path) {
+  const j = await govukContent(path);
+  return j?.details?.attachments || [];
+}
+
 const INFLATION = "economy/inflationandpriceindices";
 const PUBFIN = "economy/governmentpublicsectorandtaxes/publicsectorfinance";
 const EARN = "employmentandlabourmarket/peopleinwork/earningsandworkinghours";
@@ -388,6 +440,36 @@ const SOURCES = [
   { id: "hmt-productivity", min: 30, max: 130, get: () => ons("employmentandlabourmarket/peopleinwork/labourproductivity", ["LZVB", "LZVD"], ["prdy"], "years") },
   // Real households' disposable income per head, chained-volume £ (ONS CRXX).
   { id: "hmt-real-income", min: 5000, max: 35000, get: () => ons(GDP, "CRXX", ["ukea"], "years") },
+
+  // --- Excel/ODS backlog (gov.uk Content API + SheetJS) ---
+  // DWP fraud & error: total overpayments as % of benefit expenditure (annual).
+  // Edition is republished yearly; resolve the latest via search, then read its
+  // data-tables ODS. DIAGNOSTIC PASS: log the workbook structure to CI so the
+  // exact sheet/row of the overpayment time series can be wired next.
+  {
+    id: "dwp-fraud-error",
+    min: 0.5,
+    max: 6,
+    get: async () => {
+      const path = await govukLatest(
+        "Fraud and error in the benefit system Financial Year Ending estimates",
+        (r) => /fraud and error in the benefit system/i.test(r.title || "") && /20\d\d/.test(r.title || ""),
+      );
+      const atts = await govukAttachments(path);
+      const sheets = atts.filter((a) => /\.(ods|xlsx?|xlsb)(\?|$)/i.test(a.url || ""));
+      console.log(`  dwp-fraud-error: edition=${path}; ${sheets.length} spreadsheet attachment(s)`);
+      for (const a of sheets) console.log(`    att: ${a.title} → ${a.url}`);
+      if (!sheets.length) throw new Error(`no spreadsheet attachment (atts: ${atts.map((a) => a.url).slice(0, 8).join(",")})`);
+      const book = await xlsxBook(sheets[0].url);
+      console.log(`  dwp-fraud-error: sheets=[${book.SheetNames.join(" | ")}]`);
+      for (const name of book.SheetNames.slice(0, 14)) {
+        const rows = await sheetRows(book, name);
+        console.log(`  --- "${name}" (${rows.length} rows); first 6:`);
+        for (const r of rows.slice(0, 6)) console.log(`      ${JSON.stringify(r).slice(0, 220)}`);
+      }
+      throw new Error("DIAG only — workbook structure logged above");
+    },
+  },
 ];
 
 const out = {};
