@@ -104,29 +104,33 @@ function annual(
 const dfeAttainmentGap: TrendSeries = {
   id: "dfe-attainment-gap",
   title: "Disadvantaged attainment gap",
-  subtitle: "Months of progress behind peers, Key Stage 4",
+  subtitle: "KS4 disadvantage gap index (higher = wider gap)",
   unit: "count",
-  format: fmtMonths,
-  shortFormat: (v) => `${v.toFixed(1)}mo`,
-  yFormat: (v) => `${v.toFixed(1)}`,
-  deltaFormat: fmtMonthsSigned,
+  format: (v) => v.toFixed(2),
+  shortFormat: (v) => v.toFixed(1),
+  yFormat: (v) => v.toFixed(1),
+  deltaFormat: (v) => `${v > 0 ? "+" : ""}${v.toFixed(2)}`,
   goodDirection: "down",
-  source: "Education Policy Institute, annual",
-  sourceUrl: "https://epi.org.uk/annual-report-2024/",
+  source: "DfE, Explore Education Statistics (KS4 performance)",
+  sourceUrl:
+    "https://explore-education-statistics.service.gov.uk/find-statistics/key-stage-4-performance",
   cadence: "annual",
-  points: annual(
-    [
-      [2011, 17.6],
-      [2017, 18.1],
-      [2019, 18.1],
-      [2021, 18.8],
-      [2023, 19.2],
-      [2025, 19.5],
-    ],
-    2011,
-    2025,
-    81,
-    0.05,
+  points: realPoints(
+    "dfe-attainment-gap",
+    annual(
+      [
+        [2011, 3.0],
+        [2017, 2.9],
+        [2019, 2.9],
+        [2021, 3.2],
+        [2023, 3.4],
+        [2025, 3.5],
+      ],
+      2011,
+      2025,
+      81,
+      0.02,
+    ),
   ),
   annotations: [
     { date: "2020-01-01", label: "School closures" },
@@ -347,20 +351,23 @@ const hoVisaSla: TrendSeries = {
   sourceUrl:
     "https://www.gov.uk/government/collections/migration-transparency-data",
   cadence: "monthly",
-  points: trajectory(
-    [
-      ["2016-01-01", 96],
-      ["2019-06-01", 93],
-      ["2020-06-01", 71],
-      ["2022-06-01", 65],
-      ["2024-06-01", 82],
-      ["2026-04-01", 88],
-    ],
-    "2016-01-01",
-    "2026-04-01",
-    94,
-    1.0,
-    0.6,
+  points: realPoints(
+    "ho-visa-sla",
+    trajectory(
+      [
+        ["2016-01-01", 96],
+        ["2019-06-01", 93],
+        ["2020-06-01", 71],
+        ["2022-06-01", 65],
+        ["2024-06-01", 82],
+        ["2026-04-01", 88],
+      ],
+      "2016-01-01",
+      "2026-04-01",
+      94,
+      1.0,
+      0.6,
+    ),
   ),
   annotations: [
     { date: "2022-03-01", label: "Ukraine schemes surge" },
@@ -384,21 +391,24 @@ const mojCrownBacklog: TrendSeries = {
   sourceUrl:
     "https://www.gov.uk/government/collections/criminal-court-statistics",
   cadence: "monthly",
-  points: trajectory(
-    [
-      ["2014-01-01", 49000],
-      ["2018-12-01", 33000],
-      ["2020-03-01", 39000],
-      ["2021-06-01", 60000],
-      ["2023-12-01", 67000],
-      ["2025-06-01", 72000],
-      ["2026-04-01", 73500],
-    ],
-    "2014-01-01",
-    "2026-04-01",
-    101,
-    900,
-    0,
+  points: realPoints(
+    "moj-crown-backlog",
+    trajectory(
+      [
+        ["2014-01-01", 49000],
+        ["2018-12-01", 33000],
+        ["2020-03-01", 39000],
+        ["2021-06-01", 60000],
+        ["2023-12-01", 67000],
+        ["2025-06-01", 72000],
+        ["2026-04-01", 73500],
+      ],
+      "2014-01-01",
+      "2026-04-01",
+      101,
+      900,
+      0,
+    ),
   ),
   annotations: [
     { date: "2020-03-01", label: "Covid-19 court closures" },
@@ -418,20 +428,23 @@ const mojPrisonOfficerResign: TrendSeries = {
   sourceUrl:
     "https://www.gov.uk/government/collections/her-majestys-prison-and-probation-service-workforce-quarterly",
   cadence: "monthly",
-  points: trajectory(
-    [
-      ["2014-01-01", 5.1],
-      ["2017-06-01", 11.2],
-      ["2019-06-01", 9.6],
-      ["2022-06-01", 15.3],
-      ["2024-06-01", 13.1],
-      ["2026-04-01", 11.4],
-    ],
-    "2014-01-01",
-    "2026-04-01",
-    102,
-    0.25,
-    0.1,
+  points: realPoints(
+    "moj-officer-resignations",
+    trajectory(
+      [
+        ["2014-01-01", 5.1],
+        ["2017-06-01", 11.2],
+        ["2019-06-01", 9.6],
+        ["2022-06-01", 15.3],
+        ["2024-06-01", 13.1],
+        ["2026-04-01", 11.4],
+      ],
+      "2014-01-01",
+      "2026-04-01",
+      102,
+      0.25,
+      0.1,
+    ),
   ),
   annotations: [
     { date: "2017-09-01", label: "Pay & retention crisis" },
@@ -452,18 +465,21 @@ const mojCostPerPrisoner: TrendSeries = {
   sourceUrl:
     "https://www.gov.uk/government/collections/her-majestys-prison-service-annual-report-and-accounts",
   cadence: "annual",
-  points: annual(
-    [
-      [2014, 35200],
-      [2017, 37900],
-      [2020, 42500],
-      [2023, 51700],
-      [2025, 54600],
-    ],
-    2014,
-    2025,
-    103,
-    300,
+  points: realPoints(
+    "moj-cost-per-prisoner",
+    annual(
+      [
+        [2014, 35200],
+        [2017, 37900],
+        [2020, 42500],
+        [2023, 51700],
+        [2025, 54600],
+      ],
+      2014,
+      2025,
+      103,
+      300,
+    ),
   ),
   annotations: [],
 };
@@ -517,20 +533,23 @@ const modPersonnelShortfall: TrendSeries = {
   sourceUrl:
     "https://www.gov.uk/government/collections/uk-armed-forces-monthly-service-personnel-statistics-index",
   cadence: "quarterly",
-  points: trajectory(
-    [
-      ["2014-01-01", 1.6],
-      ["2017-06-01", 4.1],
-      ["2020-06-01", 4.4],
-      ["2023-06-01", 6.8],
-      ["2025-06-01", 7.4],
-      ["2026-04-01", 6.9],
-    ],
-    "2014-01-01",
-    "2026-04-01",
-    111,
-    0.15,
-    0,
+  points: realPoints(
+    "mod-personnel-shortfall",
+    trajectory(
+      [
+        ["2014-01-01", 1.6],
+        ["2017-06-01", 4.1],
+        ["2020-06-01", 4.4],
+        ["2023-06-01", 6.8],
+        ["2025-06-01", 7.4],
+        ["2026-04-01", 6.9],
+      ],
+      "2014-01-01",
+      "2026-04-01",
+      111,
+      0.15,
+      0,
+    ),
   ),
   annotations: [
     { date: "2022-02-01", label: "Ukraine invasion" },
@@ -549,19 +568,22 @@ const modVoluntaryOutflow: TrendSeries = {
   sourceUrl:
     "https://www.gov.uk/government/collections/uk-armed-forces-quarterly-service-personnel-statistics-index",
   cadence: "quarterly",
-  points: trajectory(
-    [
-      ["2014-01-01", 5.1],
-      ["2018-06-01", 6.7],
-      ["2021-06-01", 6.3],
-      ["2023-12-01", 8.4],
-      ["2026-04-01", 7.6],
-    ],
-    "2014-01-01",
-    "2026-04-01",
-    112,
-    0.2,
-    0.05,
+  points: realPoints(
+    "mod-voluntary-outflow",
+    trajectory(
+      [
+        ["2014-01-01", 5.1],
+        ["2018-06-01", 6.7],
+        ["2021-06-01", 6.3],
+        ["2023-12-01", 8.4],
+        ["2026-04-01", 7.6],
+      ],
+      "2014-01-01",
+      "2026-04-01",
+      112,
+      0.2,
+      0.05,
+    ),
   ),
   annotations: [],
 };
