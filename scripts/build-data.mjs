@@ -451,23 +451,24 @@ const SOURCES = [
     min: 0.5,
     max: 6,
     get: async () => {
-      const path = await govukLatest(
-        "Fraud and error in the benefit system Financial Year Ending estimates",
-        (r) => /fraud and error in the benefit system/i.test(r.title || "") && /20\d\d/.test(r.title || ""),
-      );
-      const atts = await govukAttachments(path);
-      const sheets = atts.filter((a) => /\.(ods|xlsx?|xlsb)(\?|$)/i.test(a.url || ""));
-      console.log(`  dwp-fraud-error: edition=${path}; ${sheets.length} spreadsheet attachment(s)`);
-      for (const a of sheets) console.log(`    att: ${a.title} → ${a.url}`);
-      if (!sheets.length) throw new Error(`no spreadsheet attachment (atts: ${atts.map((a) => a.url).slice(0, 8).join(",")})`);
-      const book = await xlsxBook(sheets[0].url);
-      console.log(`  dwp-fraud-error: sheets=[${book.SheetNames.join(" | ")}]`);
-      for (const name of book.SheetNames.slice(0, 14)) {
-        const rows = await sheetRows(book, name);
-        console.log(`  --- "${name}" (${rows.length} rows); first 6:`);
-        for (const r of rows.slice(0, 6)) console.log(`      ${JSON.stringify(r).slice(0, 220)}`);
-      }
-      throw new Error("DIAG only — workbook structure logged above");
+      // DIAGNOSTIC: dump what the search API and the collection return so the
+      // right resolver + edition path can be wired.
+      try {
+        const sres = await fetch(
+          `https://www.gov.uk/api/search.json?q=${encodeURIComponent("fraud and error in the benefit system")}&order=-public_timestamp&count=10`,
+          fetchOpts({ accept: "application/json" }),
+        );
+        const sj = await sres.json();
+        console.log(`  search HTTP ${sres.status}; ${(sj.results || []).length} results:`);
+        for (const r of sj.results || []) console.log(`    s: ${r.title} → ${r.link}`);
+      } catch (e) { console.log(`  search err: ${e.message}`); }
+      try {
+        const cj = await govukContent("government/collections/fraud-and-error-in-the-benefit-system");
+        const docs = cj?.links?.documents || [];
+        console.log(`  collection docs: ${docs.length}`);
+        for (const d of docs.slice(0, 12)) console.log(`    d: ${d.title} → ${d.base_path} (${d.public_updated_at || ""})`);
+      } catch (e) { console.log(`  collection err: ${e.message}`); }
+      throw new Error("DIAG only — search/collection logged above");
     },
   },
 ];
