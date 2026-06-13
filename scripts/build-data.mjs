@@ -620,20 +620,35 @@ const SOURCES = [
       const coll = await govukContent("government/collections/prison-and-probation-trusts-performance-statistics");
       const docs = (coll?.links?.documents || []).filter((d) => /prison-performance-data/i.test(d.base_path || ""));
       if (!docs.length) throw new Error("moj-cost-per-prisoner: no prison-performance-data docs");
-      const p = String(docs[0].base_path || "").replace(/^\//, "");
-      const atts = await govukAttachments(p);
-      console.log(`moj-cost: edition=${p}; attachments:`);
-      for (const a of atts) console.log(`   ${a.title} → ${a.url}`);
-      const ods = atts.find((a) => /\.(ods|xlsx?)(\?|$)/i.test(a.url || "") && /(cost|supplement|place)/i.test((a.title || "") + (a.url || "")))
-        ?? atts.find((a) => /\.(ods|xlsx?)(\?|$)/i.test(a.url || ""));
-      if (!ods) throw new Error("moj-cost: no spreadsheet attachment");
-      const book = await xlsxBook(ods.url);
-      console.log(`moj-cost: chose=${ods.title}; sheets=[${book.SheetNames.join("|")}]`);
-      for (const name of book.SheetNames.slice(0, 12)) {
-        const rows = await sheetRows(book, name);
-        console.log(`  "${name}": ${JSON.stringify(rows.slice(0, 6)).slice(0, 320)}`);
+      const points = [];
+      for (const doc of docs) {
+        try {
+          const p = String(doc.base_path || "").replace(/^\//, "");
+          const ym = p.match(/(\d{4})-to-(\d{4})/);
+          if (!ym) continue;
+          const odsList = (await govukAttachments(p)).filter((a) => /\.(ods|xlsx?)(\?|$)/i.test(a.url || ""));
+          let val = null;
+          for (const ods of odsList) {
+            const book = await xlsxBook(ods.url);
+            // "Table 2: Summary Comparison" has a "{yy}-{yy} Totals" row with the
+            // national overall Cost per Prisoner (£/yr, direct + overheads).
+            const sn = book.SheetNames.find((n) => /summary.*comparison|^t2/i.test(n)) ?? book.SheetNames.find((n) => /summary/i.test(n));
+            if (!sn) continue;
+            const rows = await sheetRows(book, sn);
+            const row = rows.find((r) => /totals?/i.test(String(r[0] ?? "")) && String(r[0] ?? "").includes(ym[2].slice(2)))
+              ?? rows.find((r) => /totals?/i.test(String(r[0] ?? "")));
+            if (!row) continue;
+            const nums = row.map((c) => typeof c === "number" ? c : parseFloat(String(c ?? "").replace(/,/g, ""))).filter((x) => Number.isFinite(x) && x >= 20000 && x <= 80000);
+            if (nums.length) { val = nums[nums.length - 1]; break; }
+          }
+          if (val != null) points.push({ date: `${ym[2]}-04-01`, value: Math.round(val) });
+        } catch { /* skip edition */ }
       }
-      throw new Error("DIAG moj-cost — structure logged");
+      if (!points.length) throw new Error("moj-cost-per-prisoner: no usable points");
+      const seen = new Set();
+      return points
+        .filter((p) => { const k = p.date.slice(0, 4); if (seen.has(k)) return false; seen.add(k); return true; })
+        .sort((a, b) => (a.date < b.date ? -1 : 1));
     },
   },
 
@@ -715,28 +730,28 @@ const SOURCES = [
       const name = book.SheetNames.find((n) => /^3a$/i.test(String(n).trim()));
       if (!name) throw new Error(`mod-personnel-shortfall: no 3a sheet (${book.SheetNames.join("|")})`);
       const rows = await sheetRows(book, name);
-      const dump = () => { console.log(`mod-personnel-shortfall: 3a rows 0-16:`); for (const r of rows.slice(0, 16)) console.log(`   ${JSON.stringify(r).slice(0, 240)}`); };
-      const hi = rows.findIndex((r) => r.some((c) => /requirement/i.test(String(c ?? ""))) && r.some((c) => /(trained|strength|deficit|surplus)/i.test(String(c ?? ""))));
-      if (hi < 0) { dump(); throw new Error("mod-personnel-shortfall: no header in 3a"); }
+      // Transposed: header row of quarter-end dates; the tri-service
+      // "…Surplus/Deficit (percentage)" row holds the deficit as a fraction
+      // (e.g. -0.028 = 2.8% under requirement → shortfall 2.8%).
+      const isDate = (c) => /\d{1,2}\s+[A-Za-z]+\s+\d{4}/.test(String(c ?? "").replace(/\n/g, " "));
+      const hi = rows.findIndex((r) => r.filter(isDate).length >= 4);
+      if (hi < 0) throw new Error("mod-personnel-shortfall: no date header in 3a");
       const header = rows[hi];
-      const reqCol = header.findIndex((c) => /requirement/i.test(String(c ?? "")));
-      const strCol = header.findIndex((c) => /(trained|trade\s*trained).*strength|strength.*(trained)|^.*ftt?s/i.test(String(c ?? "")) || /\bstrength\b/i.test(String(c ?? "")));
-      const dateCol = 0;
+      const pctRow = rows.find((r) => /surplus\/deficit\s*\(percentage\)/i.test(String(r[0] ?? "")) && !/officer/i.test(String(r[0] ?? "")));
+      if (!pctRow) throw new Error("mod-personnel-shortfall: no tri-service deficit% row in 3a");
       const pts = [];
-      for (const r of rows.slice(hi + 1)) {
-        const raw = String(r[dateCol] ?? "").trim();
-        let date = null, m;
-        if ((m = raw.match(/(\d{1,2})\s+([A-Za-z]{3,})\s+(\d{4})/))) { const mo = MONTHS[m[2].slice(0, 3).toUpperCase()]; if (mo) date = `${m[3]}-${String(mo).padStart(2, "0")}-01`; }
-        else if ((m = raw.match(/^([A-Za-z]{3,})\s+(\d{4})$/))) { const mo = MONTHS[m[1].slice(0, 3).toUpperCase()]; if (mo) date = `${m[2]}-${String(mo).padStart(2, "0")}-01`; }
-        else if ((m = raw.match(/(\d{4})\s*Q([1-4])/))) date = `${m[1]}-${String((+m[2] - 1) * 3 + 1).padStart(2, "0")}-01`;
-        if (!date) continue;
-        const str = Number(r[strCol]), req = Number(r[reqCol]);
-        if (!Number.isFinite(str) || !Number.isFinite(req) || req <= 0) continue;
-        const shortfall = (req - str) / req * 100;
-        if (shortfall < 0 || shortfall > 30) continue;
-        pts.push({ date, value: +shortfall.toFixed(2) });
+      for (let i = 1; i < header.length; i++) {
+        const m = String(header[i] ?? "").replace(/\n/g, " ").match(/(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/);
+        if (!m) continue;
+        const mo = MONTHS[m[2].slice(0, 3).toUpperCase()];
+        if (!mo) continue;
+        let v = typeof pctRow[i] === "number" ? pctRow[i] : parseFloat(String(pctRow[i] ?? ""));
+        if (!Number.isFinite(v)) continue;
+        const sh = (Math.abs(v) <= 1 ? -v * 100 : -v); // deficit (negative) → positive shortfall
+        if (sh < 0 || sh > 30) continue;
+        pts.push({ date: `${m[3]}-${String(mo).padStart(2, "0")}-01`, value: +sh.toFixed(2) });
       }
-      if (pts.length < 4) { dump(); throw new Error(`mod-personnel-shortfall: only ${pts.length} pts from 3a`); }
+      if (pts.length < 4) throw new Error(`mod-personnel-shortfall: only ${pts.length} pts from 3a`);
       const seen = new Set();
       return pts.sort((a, b) => (a.date < b.date ? -1 : 1)).filter((p) => { if (seen.has(p.date)) return false; seen.add(p.date); return true; });
     },
@@ -757,31 +772,25 @@ const SOURCES = [
       const name = book.SheetNames.find((n) => /^5e$/i.test(String(n).trim()));
       if (!name) throw new Error(`mod-voluntary-outflow: no 5e sheet (${book.SheetNames.join("|")})`);
       const rows = await sheetRows(book, name);
-      const dump = () => { console.log(`mod-voluntary-outflow: 5e rows 0-16:`); for (const r of rows.slice(0, 16)) console.log(`   ${JSON.stringify(r).slice(0, 260)}`); };
-      const hi = rows.findIndex((r) => r.some((c) => /voluntary/i.test(String(c ?? ""))));
-      if (hi < 0) { dump(); throw new Error("mod-voluntary-outflow: no voluntary header in 5e"); }
-      const ncol = Math.max(...rows.slice(hi - 1 < 0 ? 0 : hi - 1, hi + 2).map((r) => r.length));
-      const colLabel = (i) => [rows[hi - 1], rows[hi], rows[hi + 1]].map((rr) => String((rr || [])[i] ?? "")).join(" ");
-      let voCol = -1;
-      for (let i = 0; i < ncol; i++) {
-        const l = colLabel(i);
-        if (/voluntary/i.test(l)) { voCol = i; if (/all|uk regular|total/i.test(l)) break; }
-      }
-      if (voCol < 0) { dump(); throw new Error("mod-voluntary-outflow: no voluntary column in 5e"); }
+      // Transposed: a header row of quarter-end dates ("31 March 2013 (percentage)"),
+      // with category rows incl. "Tri-Service … Voluntary Outflow Rate" (all ranks).
+      const isDate = (c) => /\d{1,2}\s+[A-Za-z]+\s+\d{4}/.test(String(c ?? "").replace(/\n/g, " "));
+      const hi = rows.findIndex((r) => r.filter(isDate).length >= 4);
+      if (hi < 0) throw new Error("mod-voluntary-outflow: no date header in 5e");
+      const header = rows[hi];
+      const dataRow = rows.slice(hi + 1).find((r) => /voluntary outflow rate/i.test(String(r[0] ?? "")) && !/officer/i.test(String(r[0] ?? "")));
+      if (!dataRow) throw new Error("mod-voluntary-outflow: no tri-service VO rate row");
       const pts = [];
-      for (const r of rows.slice(hi + 1)) {
-        const raw = String(r[0] ?? "").trim();
-        let date = null, m;
-        if ((m = raw.match(/(\d{1,2})\s+([A-Za-z]{3,})\s+(\d{4})/))) { const mo = MONTHS[m[2].slice(0, 3).toUpperCase()]; if (mo) date = `${m[3]}-${String(mo).padStart(2, "0")}-01`; }
-        else if ((m = raw.match(/^([A-Za-z]{3,})\s+(\d{4})$/))) { const mo = MONTHS[m[1].slice(0, 3).toUpperCase()]; if (mo) date = `${m[2]}-${String(mo).padStart(2, "0")}-01`; }
-        else if ((m = raw.match(/(\d{4})\s*Q([1-4])/))) date = `${m[1]}-${String((+m[2] - 1) * 3 + 1).padStart(2, "0")}-01`;
-        if (!date) continue;
-        let val = typeof r[voCol] === "number" ? r[voCol] : parseFloat(String(r[voCol] ?? ""));
-        if (val > 0 && val < 1) val *= 100;
-        if (!Number.isFinite(val) || val < 1 || val > 20) continue;
-        pts.push({ date, value: +val.toFixed(2) });
+      for (let i = 1; i < header.length; i++) {
+        const m = String(header[i] ?? "").replace(/\n/g, " ").match(/(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/);
+        if (!m) continue;
+        const mo = MONTHS[m[2].slice(0, 3).toUpperCase()];
+        if (!mo) continue;
+        let v = typeof dataRow[i] === "number" ? dataRow[i] : parseFloat(String(dataRow[i] ?? ""));
+        if (!Number.isFinite(v) || v < 1 || v > 20) continue;
+        pts.push({ date: `${m[3]}-${String(mo).padStart(2, "0")}-01`, value: +v.toFixed(2) });
       }
-      if (pts.length < 4) { dump(); throw new Error(`mod-voluntary-outflow: only ${pts.length} pts from 5e`); }
+      if (pts.length < 4) throw new Error(`mod-voluntary-outflow: only ${pts.length} pts from 5e`);
       const seen = new Set();
       return pts.sort((a, b) => (a.date < b.date ? -1 : 1)).filter((p) => { if (seen.has(p.date)) return false; seen.add(p.date); return true; });
     },
