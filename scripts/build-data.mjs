@@ -320,7 +320,15 @@ async function parseRttOverview() {
       break;
     }
   }
-  if (headerIdx < 0) { console.log("RTT: no header; first 8:"); for (const r of rows.slice(0, 8)) console.log(`   ${JSON.stringify(r).slice(0, 200)}`); throw new Error("RTT: no header row"); }
+  if (headerIdx < 0) {
+    console.log(`RTT no header. sheets=[${book.SheetNames.join("|")}] chosen="${sheetName}"`);
+    for (const sn of book.SheetNames) {
+      const rr = await sheetRows(book, sn);
+      console.log(`  -- "${sn}" (${rr.length} rows):`);
+      for (const r of rr.slice(0, 3)) console.log(`     ${JSON.stringify(r).slice(0, 240)}`);
+    }
+    throw new Error("RTT: no header row");
+  }
   if (totalCol < 0 || pctCol < 0) throw new Error(`RTT: totalCol=${totalCol} pctCol=${pctCol} in [${rows[headerIdx].join("|")}]`);
   const monMap = { january: 1, february: 2, march: 3, april: 4, may: 5, june: 6, july: 7, august: 8, september: 9, october: 10, november: 11, december: 12, jan: 1, feb: 2, mar: 3, apr: 4, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
   const toDate = (raw) => {
@@ -918,6 +926,7 @@ const SOURCES = [
       const fy = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
       const base = "https://www.england.nhs.uk/statistics/statistical-work-areas/ae-waiting-times-and-activity";
       const pages = [
+        `${base}/`,
         `${base}/ae-attendances-and-emergency-admissions-${fy}-${String(fy + 1).slice(2)}/`,
         `${base}/ae-attendances-and-emergency-admissions-${fy - 1}-${String(fy).slice(2)}/`,
       ];
