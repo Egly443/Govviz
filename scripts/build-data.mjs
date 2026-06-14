@@ -277,25 +277,28 @@ const UNEMP = "employmentandlabourmarket/peoplenotinwork/unemployment";
 // changes monthly, so scrape the landing page for the current link; a stale
 // hardcoded fallback (the file is cumulative) keeps CI working if the scrape fails. ---
 async function rttOverviewUrl() {
+  // Year pages carry the CURRENT cumulative file; the landing page also links a
+  // stale 2007–2014 archive, so gather all candidates and prefer the current
+  // "Including Estimates for Missing Trusts" file.
   const pages = [
-    "https://www.england.nhs.uk/statistics/statistical-work-areas/rtt-waiting-times/",
     "https://www.england.nhs.uk/statistics/statistical-work-areas/rtt-waiting-times/rtt-data-2025-26/",
     "https://www.england.nhs.uk/statistics/statistical-work-areas/rtt-waiting-times/rtt-data-2024-25/",
+    "https://www.england.nhs.uk/statistics/statistical-work-areas/rtt-waiting-times/",
   ];
-  const samples = [];
+  const cands = [];
   for (const p of pages) {
     try {
       const res = await fetch(p, fetchOpts({ accept: "text/html,*/*" }));
-      if (!res.ok) { samples.push(`${p} -> HTTP ${res.status}`); continue; }
+      if (!res.ok) continue;
       const html = await res.text();
-      const m = html.match(/href="([^"]*Overview[- ]Timeseries[^"]*\.xlsx?[^"]*)"/i)
-        || html.match(/href="([^"]*Overview[- ]Timeseries[^"]*\.xlsx?[^"]*)"/i);
-      if (m) return m[1].startsWith("http") ? m[1] : `https://www.england.nhs.uk${m[1]}`;
-      const all = [...html.matchAll(/href="([^"]*\.xlsx?[^"]*)"/gi)].map((x) => x[1]).slice(0, 8);
-      samples.push(`${p} (${html.length}b): ${all.join(" , ") || "no .xls hrefs"}`);
-    } catch (e) { samples.push(`${p} ERR ${e.message}`); }
+      for (const x of html.matchAll(/href="([^"]*Overview[- ]?Time[- ]?series[^"]*\.xlsx?[^"]*)"/gi)) {
+        cands.push(x[1].startsWith("http") ? x[1] : `https://www.england.nhs.uk${x[1]}`);
+      }
+    } catch { /* next */ }
   }
-  console.log("  RTT discovery failed; samples:\n   " + samples.join("\n   "));
+  const pick = cands.find((u) => /[Ii]ncluding[- ][Ee]stimates/.test(u)) ?? cands[0];
+  if (pick) { console.log(`  RTT candidates=${cands.length}; picked=${pick}`); return pick; }
+  console.log("  RTT discovery: no Overview-Timeseries candidates found");
   throw new Error("RTT: overview timeseries URL not found");
 }
 async function parseRttOverview() {
@@ -946,10 +949,11 @@ const SOURCES = [
       if (!xlsUrl) { console.log("  ae-performance discovery failed; samples:\n   " + samples.join("\n   ")); throw new Error("ae-performance: no timeseries XLS URL found"); }
       console.log(`  ae-performance: ${xlsUrl}`);
       const book = await xlsxBook(xlsUrl);
-      let sheetName = book.SheetNames.find((n) => ["england", "national", "all england", "aggregate"].includes(n.trim().toLowerCase()))
-        ?? book.SheetNames.find((n) => !/cover|note|content|index|key/i.test(n)) ?? book.SheetNames[0];
+      let sheetName = book.SheetNames.find((n) => /performance/i.test(n))
+        ?? book.SheetNames.find((n) => !/cover|note|content|index|key|definition|activity/i.test(n))
+        ?? book.SheetNames[0];
       const rows = await sheetRows(book, sheetName);
-      const PCT = [/percentage.*4\s*hour/i, /%.*4\s*hour/i, /4\s*hour.*percentage/i, /4\s*hour.*%/i, /within 4/i];
+      const PCT = [/percentage.*4\s*hour/i, /%.*4\s*hour/i, /4\s*hour.*percentage/i, /4\s*hour.*%/i, /within 4/i, /in 4 hours/i, /4 hours? or less/i, /percentage in 4/i];
       const DATE = [/period/i, /month/i, /date/i];
       let headerIdx = -1, dateCol = -1, pctCol = -1;
       for (let i = 0; i < Math.min(rows.length, 20); i++) {
@@ -959,8 +963,8 @@ const SOURCES = [
         if (hp >= 0) { headerIdx = i; pctCol = hp; dateCol = hd >= 0 ? hd : 0; break; }
       }
       if (headerIdx < 0 || pctCol < 0) {
-        console.log(`ae-performance: no pct col; sheet="${sheetName}" first 8:`);
-        for (const r of rows.slice(0, 8)) console.log(`   ${JSON.stringify(r).slice(0, 200)}`);
+        console.log(`ae-performance: no pct col; sheets=[${book.SheetNames.join("|")}] chosen="${sheetName}" first 18:`);
+        for (const r of rows.slice(0, 18)) console.log(`   ${JSON.stringify(r).slice(0, 240)}`);
         throw new Error("ae-performance: header/pct column not found");
       }
       const MON = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
