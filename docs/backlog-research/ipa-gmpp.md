@@ -334,3 +334,27 @@ points: realPoints("dft-capital-overrun", annual([...], 2012, 2025, 133, 1.2))
 ```
 
 Both `realPoints` and `realLine` are already imported in departments.ts (line 13).
+
+## UPDATE (CI-verified 2026-06-14) — fetcher SKIPs; column assumption was wrong
+
+CI ran the fetcher against the real CSVs. Findings:
+- 2021–2024 consolidated CSV columns are: `gmpp id number | project name |
+  department | annual report category | description / aims | ipa delivery
+  confidence assessment` — there is **NO `Financial Year Variance (%)` column**.
+  The drafted fetcher's target metric does not exist in this file.
+- 2016–2020 editions are pivoted differently (project names/ids as columns) and
+  have no `department` column at all.
+
+**Actionable options for a future session:**
+1. **DCA-based metric (recommended, data exists):** compute % of MoD / DfT
+   projects rated `Red` or `Amber/Red` in the `ipa delivery confidence
+   assessment` column, per annual edition. This requires RELABELLING the charts
+   (`mod-procurement` / `dft-capital-overrun`) from "cost variance %" to
+   "delivery-confidence: % of major projects rated Amber/Red or Red" (edit
+   title/subtitle in departments.ts). Honest + uses the real published field.
+2. **Find a financials CSV:** the whole-life-cost / annual-variance figures may
+   live in a *separate* attachment (e.g. an IPA "financial data" CSV) or only in
+   the PDF annual report. Probe each edition's other attachments.
+
+The fetcher + realPoints wiring are already in place (they SKIP safely); only the
+extraction metric + (for option 1) the chart labels need changing.

@@ -603,19 +603,22 @@ const modProcurement: TrendSeries = {
   sourceUrl:
     "https://www.gov.uk/government/collections/ipa-annual-report-on-major-projects",
   cadence: "annual",
-  points: annual(
-    [
-      [2012, 12],
-      [2015, 16],
-      [2018, 21],
-      [2021, 28],
-      [2024, 34],
-      [2025, 31],
-    ],
-    2012,
-    2025,
-    113,
-    1.0,
+  points: realPoints(
+    "mod-procurement",
+    annual(
+      [
+        [2012, 12],
+        [2015, 16],
+        [2018, 21],
+        [2021, 28],
+        [2024, 34],
+        [2025, 31],
+      ],
+      2012,
+      2025,
+      113,
+      1.0,
+    ),
   ),
   annotations: [
     { date: "2023-01-01", label: "Equipment Plan unaffordable" },
@@ -873,19 +876,22 @@ const dftCapitalOverrun: TrendSeries = {
   sourceUrl:
     "https://www.gov.uk/government/collections/ipa-annual-report-on-major-projects",
   cadence: "annual",
-  points: annual(
-    [
-      [2012, 14],
-      [2015, 19],
-      [2018, 26],
-      [2021, 38],
-      [2023, 52],
-      [2025, 47],
-    ],
-    2012,
-    2025,
-    133,
-    1.2,
+  points: realPoints(
+    "dft-capital-overrun",
+    annual(
+      [
+        [2012, 14],
+        [2015, 19],
+        [2018, 26],
+        [2021, 38],
+        [2023, 52],
+        [2025, 47],
+      ],
+      2012,
+      2025,
+      133,
+      1.2,
+    ),
   ),
   annotations: [
     { date: "2023-10-01", label: "HS2 northern leg cancelled" },

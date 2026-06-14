@@ -358,6 +358,60 @@ async function parseRttOverview() {
 let _rttCache = null;
 function rttData() { if (!_rttCache) _rttCache = parseRttOverview(); return _rttCache; }
 
+// IPA/NISTA Government Major Projects Portfolio: mean in-year cost variance % for
+// one department across all published annual CSV editions. Hardcoded 2021–2024
+// asset URLs (stable) plus collection-API discovery of newer editions.
+async function gmppVariance(deptRe, deptFull) {
+  const entries = [
+    { date: "2021-03-31", url: "https://assets.publishing.service.gov.uk/media/60eecae48fa8f50c7ca55af1/GMPP_Government_Major_Projects_Portofolio_AR_Data_March_2021.csv" },
+    { date: "2022-03-31", url: "https://assets.publishing.service.gov.uk/media/62d6c047e90e071e753d6936/GMPP_Government_Major_Projects_Portfolio_AR_Data_March_2022.csv" },
+    { date: "2023-03-31", url: "https://assets.publishing.service.gov.uk/media/64b79c5171749c001389ee41/GMPP_Government_Major_Projects_Portofolio_AR_Data_March_2023.csv" },
+    { date: "2024-03-31", url: "https://assets.publishing.service.gov.uk/media/6787e8ee1124a2c3ceb646be/Government_Major_Projects_Portofolio_AR_Data_March_2024.csv" },
+  ];
+  try {
+    const coll = await govukContent("government/collections/major-projects-data");
+    const docs = (coll?.links?.documents || []).filter((d) => /government major projects portfolio/i.test(d.title || "") && /data/i.test(d.title || ""));
+    for (const doc of docs) {
+      const p = String(doc.base_path || "").replace(/^\//, "");
+      const ym = (p + " " + (doc.title || "")).match(/\b(20\d{2})\b/);
+      if (!ym) continue;
+      const dateStr = `${ym[1]}-03-31`;
+      if (entries.some((k) => k.date === dateStr)) continue;
+      try {
+        const atts = await govukAttachments(p);
+        const csv = atts.find((a) => /\.csv(\?|$)/i.test(a.url || "") && /GMPP|Major_Projects_Portfolio.*AR/i.test(a.url || "")) ?? atts.find((a) => /\.csv(\?|$)/i.test(a.url || ""));
+        if (csv) entries.push({ date: dateStr, url: csv.url });
+      } catch { /* skip edition */ }
+    }
+  } catch (e) { console.log(`gmpp: collection discovery failed (${e.message})`); }
+  const points = [];
+  for (const { date, url } of entries.sort((a, b) => a.date.localeCompare(b.date))) {
+    try {
+      const res = await fetch(url, fetchOpts({ accept: "text/csv,*/*" }));
+      if (!res.ok) { console.log(`gmpp ${date} -> HTTP ${res.status}`); continue; }
+      const lines = (await res.text()).trim().split(/\r?\n/);
+      if (lines.length < 2) continue;
+      const headers = parseCsvLine(lines[0]).map((h) => h.toLowerCase().trim());
+      const deptCol = headers.findIndex((h) => h === "department" || h.includes("dept"));
+      const varCol = headers.findIndex((h) => /financial year variance/i.test(h) && /%/.test(h));
+      if (deptCol < 0 || varCol < 0) { console.log(`gmpp ${date}: deptCol=${deptCol} varCol=${varCol} headers=[${headers.slice(0, 12).join("|")}]`); continue; }
+      const vals = [];
+      for (const l of lines.slice(1)) {
+        const cells = parseCsvLine(l);
+        const d = String(cells[deptCol] ?? "").trim().toUpperCase().replace(/\s+/g, "");
+        if (!(deptRe.test(d) || d === deptFull.toUpperCase())) continue;
+        const v = parseFloat(String(cells[varCol] ?? "").replace(/,/g, ""));
+        if (Number.isFinite(v) && v > -200 && v < 500) vals.push(v);
+      }
+      if (!vals.length) { console.log(`gmpp ${date}: 0 dept rows`); continue; }
+      points.push({ date, value: +(vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) });
+    } catch (e) { console.log(`gmpp ${date} err ${e.message}`); }
+  }
+  if (points.length < 2) throw new Error(`gmpp: only ${points.length} annual points`);
+  const seen = new Set();
+  return points.filter((p) => { if (seen.has(p.date)) return false; seen.add(p.date); return true; });
+}
+
 const SOURCES = [
   // --- confirmed working (real ONS data) ---
   { id: "hmt-cost-of-living", line: "cpi", min: -5, max: 30, get: () => ons(INFLATION, "D7G7", "mm23", "years") },
@@ -1110,6 +1164,23 @@ const SOURCES = [
       if (points.length < 4) throw new Error(`moj-completion-days: only ${points.length} points (sheet=${usedSheet})`);
       return points.sort((a, b) => (a.date < b.date ? -1 : 1));
     },
+  },
+
+  // IPA/NISTA Government Major Projects Portfolio: MoD in-year cost variance %.
+  // Consolidated annual CSV under the major-projects-data collection; filter to
+  // MoD rows and average "Financial Year Variance (%)".
+  {
+    id: "mod-procurement",
+    min: -5,
+    max: 80,
+    get: () => gmppVariance(/^MOD/, "ministryofdefence"),
+  },
+  // IPA/NISTA GMPP: DfT in-year cost variance % (same CSV, DfT rows).
+  {
+    id: "dft-capital-overrun",
+    min: -10,
+    max: 100,
+    get: () => gmppVariance(/^DFT/, "departmentfortransport"),
   },
 ];
 
