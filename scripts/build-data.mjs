@@ -277,17 +277,29 @@ const UNEMP = "employmentandlabourmarket/peoplenotinwork/unemployment";
 // changes monthly, so scrape the landing page for the current link; a stale
 // hardcoded fallback (the file is cumulative) keeps CI working if the scrape fails. ---
 async function rttOverviewUrl() {
-  const FALLBACK = "https://www.england.nhs.uk/statistics/wp-content/uploads/sites/2/2024/09/RTT-Overview-Timeseries-Including-Estimates-for-Missing-Trusts-Jul24-XLS-109K-88372.xlsx";
-  try {
-    const res = await fetch("https://www.england.nhs.uk/statistics/statistical-work-areas/rtt-waiting-times/", fetchOpts({ accept: "text/html,*/*" }));
-    if (res.ok) {
+  // Year pages carry the CURRENT cumulative file; the landing page also links a
+  // stale 2007–2014 archive, so gather all candidates and prefer the current
+  // "Including Estimates for Missing Trusts" file.
+  const pages = [
+    "https://www.england.nhs.uk/statistics/statistical-work-areas/rtt-waiting-times/rtt-data-2025-26/",
+    "https://www.england.nhs.uk/statistics/statistical-work-areas/rtt-waiting-times/rtt-data-2024-25/",
+    "https://www.england.nhs.uk/statistics/statistical-work-areas/rtt-waiting-times/",
+  ];
+  const cands = [];
+  for (const p of pages) {
+    try {
+      const res = await fetch(p, fetchOpts({ accept: "text/html,*/*" }));
+      if (!res.ok) continue;
       const html = await res.text();
-      const m = html.match(/href="(https?:\/\/[^"]*RTT-Overview-Timeseries[^"]*\.xlsx[^"]*)"/i) || html.match(/href="([^"]*RTT-Overview-Timeseries[^"]*\.xlsx[^"]*)"/i);
-      if (m) return m[1].startsWith("http") ? m[1] : `https://www.england.nhs.uk${m[1]}`;
-    }
-  } catch { /* fall through */ }
-  console.log("  RTT: landing-page scrape failed; using hardcoded fallback URL");
-  return FALLBACK;
+      for (const x of html.matchAll(/href="([^"]*Overview[- ]?Time[- ]?series[^"]*\.xlsx?[^"]*)"/gi)) {
+        cands.push(x[1].startsWith("http") ? x[1] : `https://www.england.nhs.uk${x[1]}`);
+      }
+    } catch { /* next */ }
+  }
+  const pick = cands.find((u) => /[Ii]ncluding[- ][Ee]stimates/.test(u)) ?? cands[0];
+  if (pick) { console.log(`  RTT candidates=${cands.length}; picked=${pick}`); return pick; }
+  console.log("  RTT discovery: no Overview-Timeseries candidates found");
+  throw new Error("RTT: overview timeseries URL not found");
 }
 async function parseRttOverview() {
   const url = await rttOverviewUrl();
@@ -311,7 +323,15 @@ async function parseRttOverview() {
       break;
     }
   }
-  if (headerIdx < 0) { console.log("RTT: no header; first 8:"); for (const r of rows.slice(0, 8)) console.log(`   ${JSON.stringify(r).slice(0, 200)}`); throw new Error("RTT: no header row"); }
+  if (headerIdx < 0) {
+    console.log(`RTT no header. sheets=[${book.SheetNames.join("|")}] chosen="${sheetName}"`);
+    for (const sn of book.SheetNames) {
+      const rr = await sheetRows(book, sn);
+      console.log(`  -- "${sn}" (${rr.length} rows):`);
+      for (const r of rr.slice(0, 3)) console.log(`     ${JSON.stringify(r).slice(0, 240)}`);
+    }
+    throw new Error("RTT: no header row");
+  }
   if (totalCol < 0 || pctCol < 0) throw new Error(`RTT: totalCol=${totalCol} pctCol=${pctCol} in [${rows[headerIdx].join("|")}]`);
   const monMap = { january: 1, february: 2, march: 3, april: 4, may: 5, june: 6, july: 7, august: 8, september: 9, october: 10, november: 11, december: 12, jan: 1, feb: 2, mar: 3, apr: 4, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
   const toDate = (raw) => {
@@ -909,27 +929,31 @@ const SOURCES = [
       const fy = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
       const base = "https://www.england.nhs.uk/statistics/statistical-work-areas/ae-waiting-times-and-activity";
       const pages = [
+        `${base}/`,
         `${base}/ae-attendances-and-emergency-admissions-${fy}-${String(fy + 1).slice(2)}/`,
         `${base}/ae-attendances-and-emergency-admissions-${fy - 1}-${String(fy).slice(2)}/`,
       ];
       let xlsUrl = null;
+      const samples = [];
       for (const pageUrl of pages) {
         try {
           const res = await fetch(pageUrl, fetchOpts({ accept: "text/html,*/*" }));
-          if (!res.ok) continue;
+          if (!res.ok) { samples.push(`${pageUrl} -> HTTP ${res.status}`); continue; }
           const html = await res.text();
-          const m = html.match(/href="(https?:\/\/[^"]*Monthly-AE-Time-Series[^"]*\.xlsx?[^"]*)"/i)
-            || html.match(/href="(\/[^"]*Monthly-AE-Time-Series[^"]*\.xlsx?[^"]*)"/i);
+          const m = html.match(/href="([^"]*Monthly[- ]AE[- ]Time[- ]Series[^"]*\.xlsx?[^"]*)"/i);
           if (m) { xlsUrl = m[1].startsWith("http") ? m[1] : `https://www.england.nhs.uk${m[1]}`; break; }
-        } catch { /* next */ }
+          const all = [...html.matchAll(/href="([^"]*\.xlsx?[^"]*)"/gi)].map((x) => x[1]).slice(0, 8);
+          samples.push(`${pageUrl} (${html.length}b): ${all.join(" , ") || "no .xls hrefs"}`);
+        } catch (e) { samples.push(`${pageUrl} ERR ${e.message}`); }
       }
-      if (!xlsUrl) throw new Error("ae-performance: no timeseries XLS URL found");
+      if (!xlsUrl) { console.log("  ae-performance discovery failed; samples:\n   " + samples.join("\n   ")); throw new Error("ae-performance: no timeseries XLS URL found"); }
       console.log(`  ae-performance: ${xlsUrl}`);
       const book = await xlsxBook(xlsUrl);
-      let sheetName = book.SheetNames.find((n) => ["england", "national", "all england", "aggregate"].includes(n.trim().toLowerCase()))
-        ?? book.SheetNames.find((n) => !/cover|note|content|index|key/i.test(n)) ?? book.SheetNames[0];
+      let sheetName = book.SheetNames.find((n) => /performance/i.test(n))
+        ?? book.SheetNames.find((n) => !/cover|note|content|index|key|definition|activity/i.test(n))
+        ?? book.SheetNames[0];
       const rows = await sheetRows(book, sheetName);
-      const PCT = [/percentage.*4\s*hour/i, /%.*4\s*hour/i, /4\s*hour.*percentage/i, /4\s*hour.*%/i, /within 4/i];
+      const PCT = [/percentage.*4\s*hour/i, /%.*4\s*hour/i, /4\s*hour.*percentage/i, /4\s*hour.*%/i, /within 4/i, /in 4 hours/i, /4 hours? or less/i, /percentage in 4/i];
       const DATE = [/period/i, /month/i, /date/i];
       let headerIdx = -1, dateCol = -1, pctCol = -1;
       for (let i = 0; i < Math.min(rows.length, 20); i++) {
@@ -939,9 +963,15 @@ const SOURCES = [
         if (hp >= 0) { headerIdx = i; pctCol = hp; dateCol = hd >= 0 ? hd : 0; break; }
       }
       if (headerIdx < 0 || pctCol < 0) {
-        console.log(`ae-performance: no pct col; sheet="${sheetName}" first 8:`);
-        for (const r of rows.slice(0, 8)) console.log(`   ${JSON.stringify(r).slice(0, 200)}`);
+        console.log(`ae-performance: no pct col; sheets=[${book.SheetNames.join("|")}] chosen="${sheetName}" first 18:`);
+        for (const r of rows.slice(0, 18)) console.log(`   ${JSON.stringify(r).slice(0, 240)}`);
         throw new Error("ae-performance: header/pct column not found");
+      }
+      // The "Period" dates are Excel serials in a column (often col 1); the
+      // header label sits in a sub-row, so locate the serial-date column directly.
+      for (const r of rows.slice(headerIdx + 1, headerIdx + 6)) {
+        const idx = r.findIndex((c) => typeof c === "number" && c > 30000 && c < 60000);
+        if (idx >= 0) { dateCol = idx; break; }
       }
       const MON = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
       const toDate = (raw) => {
@@ -962,7 +992,12 @@ const SOURCES = [
         if (v < 50 || v > 100) continue;
         seen.add(date); points.push({ date, value: +v.toFixed(2) });
       }
-      if (points.length < 12) throw new Error(`ae-performance: only ${points.length} points`);
+      if (points.length < 12) {
+        console.log(`ae-performance: only ${points.length} pts; sheet="${sheetName}" headerIdx=${headerIdx} dateCol=${dateCol} pctCol=${pctCol}`);
+        console.log(`   header=${JSON.stringify(rows[headerIdx]).slice(0, 320)}`);
+        for (const r of rows.slice(headerIdx + 1, headerIdx + 4)) console.log(`   data=${JSON.stringify(r).slice(0, 320)}`);
+        throw new Error(`ae-performance: only ${points.length} points`);
+      }
       return points.sort((a, b) => (a.date < b.date ? -1 : 1));
     },
   },
