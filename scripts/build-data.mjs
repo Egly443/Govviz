@@ -811,53 +811,48 @@ const SOURCES = [
         ?? atts.find((a) => /\.(ods|xlsx?)(\?|$)/i.test(a.url || ""));
       if (!ods) throw new Error(`moj-officer-resignations: no ODS in ${path}`);
       const book = await xlsxBook(ods.url);
-      // Pick the DATA sheet (skip Contents/Notes, whose cells contain table
-      // titles like "Table 10b: …leaving rate…"): require a year header AND a
-      // leaving/resignation-rate signal that isn't a "Table N:" title.
-      let rows = null, used = null;
+      // HMPPS leaving-rate tables use grouped "{date} Rate" columns (Leavers /
+      // Avg SIP / Rate per period), rows by grade or structure/region. Prefer a
+      // "main grades" sheet (has Band 3-5), pick that row, read the Rate columns.
+      const candidates = book.SheetNames.filter((n) => !/content|cover|notes|definition|guidance/i.test(n));
+      candidates.sort((a, b) => (/(grade|10b)/i.test(b) ? 1 : 0) - (/(grade|10b)/i.test(a) ? 1 : 0));
+      for (const n of candidates) {
+        const rows = await sheetRows(book, n);
+        let hi = -1, header = null, best = 0;
+        for (let i = 0; i < Math.min(rows.length, 15); i++) {
+          const cnt = rows[i].filter((c) => /rate/i.test(String(c ?? "")) && /\d{1,2}[- ][A-Za-z]{3}[- ]\d{2,4}|\b20\d{2}\b/.test(String(c ?? ""))).length;
+          if (cnt > best) { best = cnt; header = rows[i]; hi = i; }
+        }
+        if (hi < 0 || best < 2) continue;
+        const rateCols = [];
+        header.forEach((c, idx) => { const s = String(c ?? ""); if (/rate/i.test(s) && /\d{1,2}[- ][A-Za-z]{3}[- ]\d{2,4}|\b20\d{2}\b/.test(s)) rateCols.push({ idx, label: s }); });
+        if (rateCols.length < 2) continue;
+        const pickRow = (re) => rows.slice(hi + 1).find((r) => re.test(String(r[0] ?? "") + " " + String(r[1] ?? "")));
+        const dataRow = pickRow(/band\s*3|prison\s*officer/i) ?? pickRow(/^total|all staff|hmpps|england/i);
+        if (!dataRow) continue;
+        const points = [];
+        for (const { idx, label } of rateCols) {
+          let v = typeof dataRow[idx] === "number" ? dataRow[idx] : parseFloat(String(dataRow[idx] ?? ""));
+          if (!Number.isFinite(v)) continue;
+          if (v > 0 && v < 1) v *= 100;
+          if (v < 1 || v > 25) continue;
+          let date = null, m;
+          if ((m = label.match(/(\d{1,2})[- ]([A-Za-z]{3})[- ](\d{2,4})/))) { const mo = MONTHS[m[2].toUpperCase().slice(0, 3)]; if (mo) { const yr = m[3].length === 2 ? 2000 + +m[3] : +m[3]; date = `${yr}-${String(mo).padStart(2, "0")}-01`; } }
+          else if ((m = label.match(/\b(20\d{2})\b/))) date = `${m[1]}-03-01`;
+          if (date) points.push({ date, value: +v.toFixed(1) });
+        }
+        if (points.length >= 3) {
+          const seen = new Set();
+          return points.filter((p) => { if (seen.has(p.date)) return false; seen.add(p.date); return true; }).sort((a, b) => (a.date < b.date ? -1 : 1));
+        }
+      }
+      console.log(`moj-officer: sheets=[${book.SheetNames.join("|")}]`);
       for (const n of book.SheetNames) {
-        if (/content|cover|notes|definition|guidance/i.test(n)) continue;
-        const r = await sheetRows(book, n);
-        const hasYears = r.some((row) => row.filter((c) => c instanceof Date || /\b20\d{2}\b/.test(String(c ?? ""))).length >= 3);
-        const hasRate = r.some((row) => /(leaving|resignation)\s*rate/i.test(row.map((c) => String(c ?? "")).join(" ")) && !/^table\s*\d/i.test(String(row[0] ?? "").trim()));
-        if (hasYears && hasRate) { rows = r; used = n; break; }
+        if (/content|cover|notes|definition/i.test(n)) continue;
+        const rr = await sheetRows(book, n);
+        console.log(`  -- "${n}": ${JSON.stringify(rr.slice(0, 4)).slice(0, 300)}`);
       }
-      if (!rows) {
-        console.log(`moj-officer-resignations: no rate sheet; sheets=[${book.SheetNames.join("|")}] att=${ods.url}`);
-        throw new Error("moj-officer-resignations: no leaving-rate sheet");
-      }
-      let hi = -1, header = null, best = 0;
-      for (let i = 0; i < Math.min(rows.length, 20); i++) {
-        const n = rows[i].filter((c) => c instanceof Date || /\d{4}[-/]\d{2}|\b(19|20)\d{2}\b|[A-Za-z]{3}[-\s]\d{2,4}/.test(String(c ?? ""))).length;
-        if (n > best) { best = n; header = rows[i]; hi = i; }
-      }
-      const pick = (re) => rows.slice(hi + 1).find((r) => re.test(String(r[0] ?? r[1] ?? "")));
-      const dataRow = pick(/band\s*3[-–—]?5?|prison\s*officer/i) ?? pick(/leaving\s*rate/i) ?? pick(/resignation\s*rate/i) ?? pick(/all\s*staff|^total|national/i);
-      if (!dataRow || hi < 0) {
-        console.log(`moj-officer-resignations: sheet "${used}" rows 0-10:`);
-        for (const r of rows.slice(0, 10)) console.log(`   ${JSON.stringify(r).slice(0, 220)}`);
-        throw new Error("moj-officer-resignations: rate row/header not located");
-      }
-      const points = [];
-      for (let i = 0; i < dataRow.length; i++) {
-        let v = typeof dataRow[i] === "number" ? dataRow[i] : parseFloat(String(dataRow[i] ?? ""));
-        if (!Number.isFinite(v)) continue;
-        if (v > 0 && v < 1) v *= 100;
-        if (v < 1 || v > 25) continue;
-        const h = header[i];
-        let date = null, m;
-        if (h instanceof Date) date = h.toISOString().slice(0, 10);
-        else if ((m = String(h ?? "").match(/(\d{4})[-/](\d{2})\b/))) date = `${2000 + +m[2]}-03-01`;
-        else if ((m = String(h ?? "").match(/([A-Za-z]{3})[-\s](\d{2,4})/))) { const mo = MONTHS[m[1].toUpperCase().slice(0, 3)]; if (mo) { const yr = m[2].length === 2 ? 2000 + +m[2] : +m[2]; date = `${yr}-${String(mo).padStart(2, "0")}-01`; } }
-        else if ((m = String(h ?? "").match(/\b(20\d{2})\b/))) date = `${m[1]}-03-01`;
-        if (date) points.push({ date, value: +v.toFixed(1) });
-      }
-      if (points.length < 2) {
-        console.log(`moj-officer-resignations: header=${JSON.stringify(header).slice(0, 200)} dataRow=${JSON.stringify(dataRow).slice(0, 200)}`);
-        throw new Error(`moj-officer-resignations: only ${points.length} pts`);
-      }
-      const seen = new Set();
-      return points.filter((p) => { if (seen.has(p.date)) return false; seen.add(p.date); return true; }).sort((a, b) => (a.date < b.date ? -1 : 1));
+      throw new Error("moj-officer-resignations: no usable rate row");
     },
   },
 
@@ -951,22 +946,26 @@ const SOURCES = [
     min: 30,
     max: 100,
     get: async () => {
-      const path = await govukCollectionLatest(
-        "migration-transparency-data",
-        (d) => /visas,?\s*status\s*and\s*immigration/i.test(d.title || ""),
-      );
-      const atts = await govukAttachments(path);
-      const sheet = atts.find((a) => /\.(ods|xlsx?|xlsb)(\?|$)/i.test(a.url || "") && /(vsi|visas)/i.test((a.title || "") + (a.url || "")))
-        ?? atts.find((a) => /\.(ods|xlsx?|xlsb)(\?|$)/i.test(a.url || ""));
-      if (!sheet) throw new Error(`ho-visa-sla: no spreadsheet in ${path}`);
+      // migration-transparency-data is a statistical-data-set (not a collection);
+      // read its attachments directly, or follow its linked documents.
+      const c = await govukContent("government/statistical-data-sets/migration-transparency-data");
+      let atts = c?.details?.attachments || [];
+      console.log(`ho-visa: data-set atts=${atts.length} docs=${(c?.links?.documents || []).length}`);
+      if (!atts.some((a) => /\.(ods|xlsx?)(\?|$)/i.test(a.url || ""))) {
+        const docs = (c?.links?.documents || []).filter((d) => /visas.*status.*immigration|migration transparency/i.test(d.title || ""));
+        docs.sort((a, b) => String(b.public_updated_at || "").localeCompare(String(a.public_updated_at || "")));
+        if (docs[0]) { const p = String(docs[0].base_path || "").replace(/^\//, ""); console.log(`ho-visa: doc=${p}`); atts = await govukAttachments(p); }
+      }
+      const ss = atts.filter((a) => /\.(ods|xlsx?)(\?|$)/i.test(a.url || ""));
+      console.log(`ho-visa: ${ss.length} spreadsheet atts`);
+      for (const a of ss.slice(0, 12)) console.log(`   att: ${a.title} -> ${a.url}`);
+      const sheet = ss.find((a) => /vsi|visas/i.test((a.title || "") + (a.url || ""))) ?? ss[0];
+      if (!sheet) throw new Error("ho-visa-sla: no spreadsheet attachment");
       const book = await xlsxBook(sheet.url);
       const name = book.SheetNames.find((n) => /vsi[_\s-]?0?2/i.test(n)) ?? book.SheetNames.find((n) => /service|standard/i.test(n));
-      console.log(`ho-visa-sla: edition=${path} sheets=[${book.SheetNames.join("|")}] picked=${name}`);
-      if (name) {
-        const rows = await sheetRows(book, name);
-        for (const r of rows.slice(0, 8)) console.log(`   ${JSON.stringify(r).slice(0, 220)}`);
-      }
-      throw new Error("DIAG ho-visa-sla — VSI_02 structure logged (pick route/row next)");
+      console.log(`ho-visa-sla: sheets=[${book.SheetNames.join("|")}] picked=${name}`);
+      if (name) { const rows = await sheetRows(book, name); for (const r of rows.slice(0, 8)) console.log(`   ${JSON.stringify(r).slice(0, 220)}`); }
+      throw new Error("DIAG ho-visa-sla — structure logged");
     },
   },
 
