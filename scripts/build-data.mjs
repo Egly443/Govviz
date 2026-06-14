@@ -393,18 +393,21 @@ async function gmppVariance(deptRe, deptFull) {
       if (lines.length < 2) continue;
       const headers = parseCsvLine(lines[0]).map((h) => h.toLowerCase().trim());
       const deptCol = headers.findIndex((h) => h === "department" || h.includes("dept"));
-      const varCol = headers.findIndex((h) => /financial year variance/i.test(h) && /%/.test(h));
-      if (deptCol < 0 || varCol < 0) { console.log(`gmpp ${date}: deptCol=${deptCol} varCol=${varCol} headers=[${headers.slice(0, 12).join("|")}]`); continue; }
-      const vals = [];
+      const dcaCol = headers.findIndex((h) => /delivery confidence/i.test(h) && /ipa|assessment/i.test(h));
+      if (deptCol < 0 || dcaCol < 0) { console.log(`gmpp ${date}: deptCol=${deptCol} dcaCol=${dcaCol} headers=[${headers.slice(0, 12).join("|")}]`); continue; }
+      let rated = 0, redAmber = 0;
       for (const l of lines.slice(1)) {
         const cells = parseCsvLine(l);
         const d = String(cells[deptCol] ?? "").trim().toUpperCase().replace(/\s+/g, "");
         if (!(deptRe.test(d) || d === deptFull.toUpperCase())) continue;
-        const v = parseFloat(String(cells[varCol] ?? "").replace(/,/g, ""));
-        if (Number.isFinite(v) && v > -200 && v < 500) vals.push(v);
+        const dca = String(cells[dcaCol] ?? "").trim();
+        if (!/green|amber|red/i.test(dca)) continue; // valid RAG only
+        rated++;
+        if (/red/i.test(dca)) redAmber++; // "Red" and "Amber/Red"
       }
-      if (!vals.length) { console.log(`gmpp ${date}: 0 dept rows`); continue; }
-      points.push({ date, value: +(vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) });
+      if (rated < 1) { console.log(`gmpp ${date}: 0 rated dept rows`); continue; }
+      console.log(`gmpp ${date}: ${redAmber}/${rated} amber-red/red`);
+      points.push({ date, value: +(redAmber / rated * 100).toFixed(1) });
     } catch (e) { console.log(`gmpp ${date} err ${e.message}`); }
   }
   if (points.length < 2) throw new Error(`gmpp: only ${points.length} annual points`);
@@ -1171,14 +1174,14 @@ const SOURCES = [
   // MoD rows and average "Financial Year Variance (%)".
   {
     id: "mod-procurement",
-    min: -5,
-    max: 80,
+    min: 0,
+    max: 100,
     get: () => gmppVariance(/^MOD/, "ministryofdefence"),
   },
   // IPA/NISTA GMPP: DfT in-year cost variance % (same CSV, DfT rows).
   {
     id: "dft-capital-overrun",
-    min: -10,
+    min: 0,
     max: 100,
     get: () => gmppVariance(/^DFT/, "departmentfortransport"),
   },

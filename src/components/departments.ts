@@ -592,16 +592,16 @@ const modVoluntaryOutflow: TrendSeries = {
 
 const modProcurement: TrendSeries = {
   id: "mod-procurement",
-  title: "Equipment procurement cost variance",
-  subtitle: "Weighted overrun across MoD GMPP portfolio",
+  title: "MoD major projects delivery confidence",
+  subtitle: "% of MoD GMPP projects rated Amber/Red or Red",
   unit: "percent",
   format: fmtPct,
   shortFormat: fmtPct,
   goodDirection: "down",
-  target: { value: 0, label: "On budget" },
-  source: "IPA Annual Report on Major Projects",
+  target: { value: 0, label: "None at risk" },
+  source: "IPA/NISTA Government Major Projects Portfolio",
   sourceUrl:
-    "https://www.gov.uk/government/collections/ipa-annual-report-on-major-projects",
+    "https://www.gov.uk/government/collections/major-projects-data",
   cadence: "annual",
   points: realPoints(
     "mod-procurement",
@@ -865,16 +865,16 @@ const dftDvlaBacklog: TrendSeries = {
 
 const dftCapitalOverrun: TrendSeries = {
   id: "dft-capital-overrun",
-  title: "Transport capital portfolio overrun",
-  subtitle: "Weighted cost variance across rail & road majors",
+  title: "DfT major projects delivery confidence",
+  subtitle: "% of DfT GMPP projects rated Amber/Red or Red",
   unit: "percent",
   format: fmtPct,
   shortFormat: fmtPct,
   goodDirection: "down",
-  target: { value: 0, label: "On budget" },
-  source: "IPA Annual Report on Major Projects",
+  target: { value: 0, label: "None at risk" },
+  source: "IPA/NISTA Government Major Projects Portfolio",
   sourceUrl:
-    "https://www.gov.uk/government/collections/ipa-annual-report-on-major-projects",
+    "https://www.gov.uk/government/collections/major-projects-data",
   cadence: "annual",
   points: realPoints(
     "dft-capital-overrun",
