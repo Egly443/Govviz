@@ -943,7 +943,7 @@ const SOURCES = [
   // to headline is ambiguous, so log structure before committing an extraction.
   {
     id: "ho-visa-sla",
-    min: 30,
+    min: 20,
     max: 100,
     get: async () => {
       // migration-transparency-data is a statistical-data-set (not a collection);
@@ -957,15 +957,40 @@ const SOURCES = [
         if (docs[0]) { const p = String(docs[0].base_path || "").replace(/^\//, ""); console.log(`ho-visa: doc=${p}`); atts = await govukAttachments(p); }
       }
       const ss = atts.filter((a) => /\.(ods|xlsx?)(\?|$)/i.test(a.url || ""));
-      console.log(`ho-visa: ${ss.length} spreadsheet atts`);
-      for (const a of ss.slice(0, 12)) console.log(`   att: ${a.title} -> ${a.url}`);
-      const sheet = ss.find((a) => /vsi|visas/i.test((a.title || "") + (a.url || ""))) ?? ss[0];
+      const sheet = ss.find((a) => /visas.*status.*immigration|vsi/i.test((a.title || "") + (a.url || ""))) ?? ss[0];
       if (!sheet) throw new Error("ho-visa-sla: no spreadsheet attachment");
       const book = await xlsxBook(sheet.url);
-      const name = book.SheetNames.find((n) => /vsi[_\s-]?0?2/i.test(n)) ?? book.SheetNames.find((n) => /service|standard/i.test(n));
-      console.log(`ho-visa-sla: sheets=[${book.SheetNames.join("|")}] picked=${name}`);
-      if (name) { const rows = await sheetRows(book, name); for (const r of rows.slice(0, 8)) console.log(`   ${JSON.stringify(r).slice(0, 220)}`); }
-      throw new Error("DIAG ho-visa-sla — structure logged");
+      const sn = book.SheetNames.find((n) => /vsi[_\s-]?0?2/i.test(n));
+      if (!sn) throw new Error(`ho-visa-sla: no VSI_02 sheet in [${book.SheetNames.join("|")}]`);
+      const rows = await sheetRows(book, sn);
+      // VSI_02: one row per (Quarter, Priority, Route, Leave Type). Aggregate the
+      // overall % within service standard = Σ(straightforward decided within SLA)
+      // ÷ Σ(straightforward received) per quarter (excluding "No SLA" rows).
+      const hi = rows.findIndex((r) => r.some((c) => /^quarter$/i.test(String(c ?? "").trim())) && r.some((c) => /route/i.test(String(c ?? ""))));
+      if (hi < 0) throw new Error("ho-visa-sla: no header in VSI_02");
+      const header = rows[hi];
+      const qCol = header.findIndex((c) => /^quarter$/i.test(String(c ?? "").trim()));
+      const prCol = header.findIndex((c) => /priority/i.test(String(c ?? "")));
+      const srCol = header.findIndex((c) => /straightforward applications received/i.test(String(c ?? "")));
+      let withinCol = header.findIndex((c) => /within service standard/i.test(String(c ?? "")) && !/%|percent/i.test(String(c ?? "")));
+      if (withinCol < 0 && srCol >= 0) withinCol = srCol + 1;
+      if (qCol < 0 || srCol < 0 || withinCol < 0) throw new Error(`ho-visa-sla: cols q=${qCol} sr=${srCol} within=${withinCol} in [${header.slice(0, 14).join("|")}]`);
+      const qEnd = { 1: "03-31", 2: "06-30", 3: "09-30", 4: "12-31" };
+      const agg = new Map();
+      for (const r of rows.slice(hi + 1)) {
+        const qm = String(r[qCol] ?? "").match(/(\d{4})\s*Q([1-4])/i);
+        if (!qm) continue;
+        if (prCol >= 0 && /no\s*sla/i.test(String(r[prCol] ?? ""))) continue;
+        const sr = Number(r[srCol]), wi = Number(r[withinCol]);
+        if (!Number.isFinite(sr) || !Number.isFinite(wi) || sr <= 0) continue;
+        const key = `${qm[1]}-${qEnd[+qm[2]]}`;
+        const a = agg.get(key) || { sr: 0, wi: 0 };
+        a.sr += sr; a.wi += wi; agg.set(key, a);
+      }
+      const points = [...agg.entries()].map(([date, { sr, wi }]) => ({ date, value: +(wi / sr * 100).toFixed(1) }))
+        .filter((p) => p.value > 0 && p.value <= 100).sort((a, b) => (a.date < b.date ? -1 : 1));
+      if (points.length < 4) throw new Error(`ho-visa-sla: only ${points.length} points`);
+      return points;
     },
   },
 
