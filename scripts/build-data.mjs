@@ -967,6 +967,12 @@ const SOURCES = [
         for (const r of rows.slice(0, 18)) console.log(`   ${JSON.stringify(r).slice(0, 240)}`);
         throw new Error("ae-performance: header/pct column not found");
       }
+      // The "Period" dates are Excel serials in a column (often col 1); the
+      // header label sits in a sub-row, so locate the serial-date column directly.
+      for (const r of rows.slice(headerIdx + 1, headerIdx + 6)) {
+        const idx = r.findIndex((c) => typeof c === "number" && c > 30000 && c < 60000);
+        if (idx >= 0) { dateCol = idx; break; }
+      }
       const MON = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
       const toDate = (raw) => {
         const s = String(raw ?? "").trim();
