@@ -1396,7 +1396,7 @@ const SOURCES = [
   {
     id: "discharge-delays",
     min: 2000,
-    max: 16000,
+    max: 30000,
     get: async () => {
       const pages = [
         "https://www.england.nhs.uk/statistics/statistical-work-areas/discharge-delays-acute-data/",
@@ -1426,39 +1426,34 @@ const SOURCES = [
         const lines = text.trim().split(/\r?\n/);
         if (lines.length < 2) return [];
         const headers = parseCsvLine(lines[0]).map((h) => h.toLowerCase().trim().replace(/[\s\-/]+/g, "_"));
-        console.log(`  discharge-delays CSV: ${lines.length} rows, cols: ${headers.slice(0, 20).join("|")}`);
-        const dateCol = headers.findIndex((h) => h === "date" || h === "month" || h === "period" || h.includes("reporting_period") || h.includes("reporting_date") || h.startsWith("month_"));
-        const nctrCol = headers.findIndex((h) => h.includes("nctr") || (h.includes("no") && h.includes("criteria")) || (h.includes("not") && h.includes("criteria")) || (h.includes("criteria") && h.includes("reside")));
-        const orgCol = headers.findIndex((h) => h === "code" || h === "org_code" || h === "provider_code" || h === "organisation_code" || h === "name" || h === "org_name" || h === "provider_name" || h === "organisation_name" || h.includes("trust_code") || h.includes("trust_name"));
-        if (dateCol < 0 || nctrCol < 0) {
-          console.log(`  discharge-delays: dateCol=${dateCol} nctrCol=${nctrCol}; first 3 rows:`);
-          for (const l of lines.slice(0, 4)) console.log(`    ${l.slice(0, 200)}`);
+        // Long format: a "metric" column names the measure and "value" holds the
+        // number; "level" = National gives the England aggregate.
+        const dateCol = headers.findIndex((h) => h === "period" || h === "date" || h === "month");
+        const valCol = headers.findIndex((h) => h === "value");
+        const metricCol = headers.findIndex((h) => h === "metric");
+        const levelCol = headers.findIndex((h) => h === "level");
+        if (dateCol < 0 || valCol < 0 || metricCol < 0) {
+          console.log(`  discharge-delays: dateCol=${dateCol} valCol=${valCol} metricCol=${metricCol} headers=${headers.join("|")}`);
           return [];
         }
-        const MON = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
         const toDate = (raw) => {
           const s = String(raw ?? "").trim();
           if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s.slice(0, 7) + "-01";
           let m;
           if ((m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/))) return `${m[3]}-${m[2].padStart(2, "0")}-01`;
-          if ((m = s.match(/^([A-Za-z]{3,})[_\- ](\d{4})$/)) && MON[m[1].toLowerCase().slice(0, 3)]) return `${m[2]}-${String(MON[m[1].toLowerCase().slice(0, 3)]).padStart(2, "0")}-01`;
-          if ((m = s.match(/^([A-Za-z]{3,})[_\- ](\d{2})$/)) && MON[m[1].toLowerCase().slice(0, 3)]) { const yr = +m[2] <= 30 ? 2000 + +m[2] : 1900 + +m[2]; return `${yr}-${String(MON[m[1].toLowerCase().slice(0, 3)]).padStart(2, "0")}-01`; }
           if (/^\d{5}$/.test(s)) { const d = new Date((+s - 25569) * 86400000); return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-01`; }
           return null;
         };
         const byDate = new Map();
         for (const line of lines.slice(1)) {
           const cells = parseCsvLine(line);
-          if (!cells.length || !cells[dateCol]) continue;
+          const metric = String(cells[metricCol] ?? "");
+          if (!/no longer meet the criteria to reside|nctr/i.test(metric) || /percent|proportion|%/i.test(metric)) continue;
+          if (levelCol >= 0 && !/^national$/i.test(String(cells[levelCol] ?? "").trim())) continue;
           const date = toDate(cells[dateCol]);
           if (!date) continue;
-          const rawV = cells[nctrCol];
-          const v = typeof rawV === "number" ? rawV : parseFloat(String(rawV ?? "").replace(/,/g, ""));
-          if (!Number.isFinite(v) || v < 0) continue;
-          const org = orgCol >= 0 ? String(cells[orgCol] ?? "").trim().toLowerCase() : "";
-          const isNational = /^england$|^national$|^e92|^xha|^all$/.test(org);
-          if (isNational) byDate.set(date, v);
-          else byDate.set(date, (byDate.get(date) ?? 0) + v);
+          const v = parseFloat(String(cells[valCol] ?? "").replace(/,/g, ""));
+          if (Number.isFinite(v) && v > 0) byDate.set(date, v);
         }
         return [...byDate.entries()].map(([date, value]) => ({ date, value: Math.round(value) })).filter((p) => p.value > 0);
       };
