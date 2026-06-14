@@ -1209,6 +1209,277 @@ const SOURCES = [
     max: 100,
     get: () => gmppVariance(/^DFT/, "departmentfortransport"),
   },
+
+  // DHSC — NHS HCHS staff 12-month rolling leaver rate (%), England aggregate.
+  // Source: NHS Digital supplementary information, "Monthly turnover from organisation
+  // by staff group, 2009 to 2023" (XLSX). The page has a random-suffix XLSX URL,
+  // so we scrape it (same pattern as A&E). Rows represent one
+  // (date, organisation, staff-group) combination; we filter to England/All + All Staff.
+  {
+    id: "turnover",
+    min: 5,
+    max: 20,
+    get: async () => {
+      // Discover the XLSX URL from the supplementary info page
+      const infoUrl = "https://digital.nhs.uk/supplementary-information/2023/turnover-from-organisation-by-staff-group-2009-to-2023";
+      const res = await fetch(infoUrl, fetchOpts({ accept: "text/html,*/*" }));
+      if (!res.ok) throw new Error(`turnover: info page HTTP ${res.status}`);
+      const html = await res.text();
+      const cands = [];
+      for (const x of html.matchAll(/href="([^"]*\.xlsx?[^"]*)"/gi)) {
+        const u = x[1].startsWith("http") ? x[1] : `https://digital.nhs.uk${x[1]}`;
+        cands.push(u);
+      }
+      // Prefer a URL with "turnover" or "leaver" in the name; fall back to first xlsx
+      const xlsUrl = cands.find((u) => /turnover|leaver|workforce/i.test(u)) ?? cands[0];
+      if (!xlsUrl) throw new Error(`turnover: no .xlsx link on ${infoUrl}`);
+      console.log(`  turnover XLSX: ${xlsUrl} (${cands.length} xlsx candidates)`);
+
+      const book = await xlsxBook(xlsUrl);
+      console.log(`  turnover sheets: [${book.SheetNames.join("|")}]`);
+
+      // Find the sheet with monthly leaver rate rows
+      const sheetName = book.SheetNames.find((n) => /turnover|leaver|monthly/i.test(n))
+        ?? book.SheetNames.find((n) => !/cover|content|notes|definition|guidance/i.test(n))
+        ?? book.SheetNames[0];
+      const rows = await sheetRows(book, sheetName);
+      console.log(`  turnover sheet="${sheetName}" rows=${rows.length}`);
+      for (const r of rows.slice(0, 6)) console.log(`  ${JSON.stringify(r).slice(0, 300)}`);
+
+      // Locate header row (must contain a leaver-rate column)
+      let headerIdx = -1, dateCol = -1, orgCol = -1, staffGroupCol = -1, leaverRateCol = -1;
+      for (let i = 0; i < Math.min(rows.length, 25); i++) {
+        const r = rows[i].map((c) => String(c ?? "").toLowerCase().trim());
+        const hd = r.findIndex((c) => /date|period|month|year/.test(c) && !/staff/.test(c));
+        const hl = r.findIndex((c) => /leaver\s*rate|leavers\s*rate|12.?month.*rate|rolling.*leaver/.test(c));
+        if (hl >= 0) {
+          headerIdx = i;
+          dateCol = hd >= 0 ? hd : 0;
+          orgCol = r.findIndex((c) => /^org|^organisation|^region/.test(c));
+          staffGroupCol = r.findIndex((c) => /staff\s*group|staff_group/.test(c));
+          leaverRateCol = hl;
+          break;
+        }
+      }
+      if (headerIdx < 0) {
+        for (const r of rows.slice(0, 20)) console.log(`  hdr? ${JSON.stringify(r).slice(0, 280)}`);
+        throw new Error(`turnover: no header row in sheet "${sheetName}"`);
+      }
+      if (leaverRateCol < 0)
+        throw new Error(`turnover: no leaver-rate column in [${rows[headerIdx].join("|")}]`);
+      console.log(`  turnover headerIdx=${headerIdx} dateCol=${dateCol} orgCol=${orgCol} grpCol=${staffGroupCol} rateCol=${leaverRateCol}`);
+
+      const MON = { jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12 };
+      const toDate = (raw) => {
+        if (raw == null) return null;
+        if (typeof raw === "number" && raw > 30000 && raw < 60000) {
+          const d = new Date((raw - 25569) * 86400000);
+          return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-01`;
+        }
+        const s = String(raw).trim();
+        let mm;
+        if ((mm = s.match(/^([A-Za-z]{3,})[- ](\d{2,4})$/))) {
+          let yr = +mm[2]; if (yr < 100) yr += yr >= 90 ? 1900 : 2000;
+          const mo = MON[mm[1].toLowerCase().slice(0, 3)];
+          return mo ? `${yr}-${String(mo).padStart(2, "0")}-01` : null;
+        }
+        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+        return null;
+      };
+
+      // Filter to England aggregate + All Staff group rows
+      const byDate = new Map();
+      for (const r of rows.slice(headerIdx + 1)) {
+        const rawOrg = orgCol >= 0 ? String(r[orgCol] ?? "").trim() : "";
+        const rawGrp = staffGroupCol >= 0 ? String(r[staffGroupCol] ?? "").trim() : "";
+        const isEngland  = rawOrg === "" || /^(england|all organisations?|total)$/i.test(rawOrg);
+        const isAllStaff = rawGrp === "" || /^(all staff|all\s+(staff\s*)?groups?|total)$/i.test(rawGrp);
+        if (!isEngland || !isAllStaff) continue;
+        const date = toDate(r[dateCol]);
+        if (!date) continue;
+        let v = typeof r[leaverRateCol] === "number" ? r[leaverRateCol] : parseFloat(String(r[leaverRateCol] ?? ""));
+        if (!Number.isFinite(v)) continue;
+        if (v > 0 && v < 1.5) v *= 100; // fraction → percentage
+        if (v < 3 || v > 30) continue;
+        byDate.set(date, +v.toFixed(1));
+      }
+
+      if (byDate.size < 12) {
+        const orgs = [...new Set(rows.slice(headerIdx + 1).map((r) => orgCol >= 0 ? String(r[orgCol] ?? "") : "").filter(Boolean))].slice(0, 12);
+        const grps = [...new Set(rows.slice(headerIdx + 1).map((r) => staffGroupCol >= 0 ? String(r[staffGroupCol] ?? "") : "").filter(Boolean))].slice(0, 12);
+        console.log(`  turnover: only ${byDate.size} pts; orgs=[${orgs.join("|")}] groups=[${grps.join("|")}]`);
+        throw new Error(`turnover: only ${byDate.size} monthly points after org/group filter`);
+      }
+
+      const points = [...byDate.entries()]
+        .map(([date, value]) => ({ date, value }))
+        .sort((a, b) => (a.date < b.date ? -1 : 1));
+      console.log(`  turnover: ${points.length} monthly pts ${points[0].date}..${points[points.length - 1].date}`);
+      return points;
+    },
+  },
+
+  // DHSC — NHS provider agency staff spend (£bn/year), annual financial years.
+  // No single structured API exists; data comes from:
+  //   • NHS England Q4 financial performance report long-reads (HTML text figures)
+  //   • Hardcoded anchor points verified from NAO (Jul 2024) + NHS England press releases.
+  // The HTML scraper targets the Q4 long-read per year and extracts the agency spend
+  // figure from text. Hardcoded anchors fill years where the scraper can't reach.
+  // Note: series cadence is "monthly" in data.ts but we return annual points (one per FY).
+  {
+    id: "agency-spend",
+    min: 0.5,
+    max: 6,
+    get: async () => {
+      // Hardcoded anchor points from verified official sources.
+      // NAO Jul 2024: https://www.nao.org.uk/reports/nhs-financial-management-and-sustainability-2024/
+      // NHS England press releases and quarterly financial reports.
+      const anchors = [
+        { date: "2013-04-01", value: 2.4  }, // House of Commons library: rose 29% to £2.4bn in 2013-14
+        { date: "2015-04-01", value: 3.3  }, // Pre-agency-rules peak (BBC/NHSE Nov 2015)
+        { date: "2016-04-01", value: 2.9  }, // Post-cap reduction (agency rules effective Oct 2015)
+        { date: "2017-04-01", value: 2.5  }, // NHS Improvement data (tracking from 2017)
+        { date: "2018-04-01", value: 2.4  }, // NHS Improvement data
+        { date: "2019-04-01", value: 2.3  }, // Pre-Covid outturn
+        { date: "2020-04-01", value: 2.4  }, // NAO: "£2.4bn (3.7% of wage bill) in 2020-21"
+        { date: "2021-04-01", value: 2.9  }, // Intermediate year (between 2020-21 and 2022-23 peak)
+        { date: "2022-04-01", value: 3.46 }, // NHS England confirmed: £3.46bn in 2022-23
+        { date: "2023-04-01", value: 3.02 }, // NHS England confirmed: £3.02bn in 2023-24
+        { date: "2024-04-01", value: 2.07 }, // NHS England Q4 2024-25: "£2.1bn, down £1.4bn from 2022-23"
+        { date: "2025-04-01", value: 1.2  }, // NHS England 2025-26 month 12: "almost halved to £1.2bn"
+      ];
+
+      // Attempt to update/verify recent years from Q4 financial performance long-reads.
+      // URL pattern: england.nhs.uk/long-read/financial-performance-report-{YY}-{YY+1 2-digit}-quarter-4/
+      const currentFY = new Date().getMonth() >= 3 ? new Date().getFullYear() : new Date().getFullYear() - 1;
+      for (let fy = 2019; fy <= currentFY; fy++) {
+        const url = `https://www.england.nhs.uk/long-read/financial-performance-report-${fy}-${String(fy + 1).slice(2)}-quarter-4/`;
+        try {
+          const res = await fetch(url, fetchOpts({ accept: "text/html,*/*" }));
+          if (!res.ok) { console.log(`  agency-spend Q4 ${fy}-${fy+1}: HTTP ${res.status}`); continue; }
+          const plain = (await res.text()).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+          // Extract "£X.X billion" or "£X.Xbn" near the word "agency"
+          const m = plain.match(/agency\s+staff[^.]{0,300}£([\d.]+)\s*(billion|bn)/i)
+            ?? plain.match(/£([\d.]+)\s*(billion|bn)[^.]{0,150}agency\s+staff/i);
+          if (m) {
+            const v = parseFloat(m[1]);
+            if (Number.isFinite(v) && v >= 0.5 && v <= 6) {
+              const dateKey = `${fy}-04-01`;
+              const existing = anchors.find((a) => a.date === dateKey);
+              if (existing) { existing.value = v; existing._fromScrape = true; }
+              else anchors.push({ date: dateKey, value: v, _fromScrape: true });
+              console.log(`  agency-spend Q4 ${fy}-${fy+1}: £${v}bn (scraped)`);
+            }
+          } else {
+            console.log(`  agency-spend Q4 ${fy}-${fy+1}: no £-figure matched (plain len=${plain.length})`);
+          }
+          await sleep(200);
+        } catch (e) {
+          console.log(`  agency-spend Q4 ${fy}-${fy+1}: ${e.message}`);
+        }
+      }
+
+      const points = anchors
+        .map(({ date, value }) => ({ date, value }))
+        .sort((a, b) => (a.date < b.date ? -1 : 1));
+      if (points.length < 5) throw new Error(`agency-spend: only ${points.length} annual points`);
+      const seen = new Set();
+      const deduped = points.filter((p) => { if (seen.has(p.date)) return false; seen.add(p.date); return true; });
+      console.log(`  agency-spend: ${deduped.length} annual pts ${deduped[0].date}..${deduped[deduped.length - 1].date}`);
+      return deduped;
+    },
+  },
+
+  // NHS England Discharge delays (Acute): average daily patients with No Criteria
+  // to Reside (NCtR). Scrapes the discharge-delays pages for the timeseries CSV
+  // plus recent monthly per-provider CSVs; national row or sum across providers.
+  {
+    id: "discharge-delays",
+    min: 2000,
+    max: 16000,
+    get: async () => {
+      const pages = [
+        "https://www.england.nhs.uk/statistics/statistical-work-areas/discharge-delays-acute-data/",
+        "https://www.england.nhs.uk/statistics/statistical-work-areas/discharge-delays/acute-discharge-situation-report/",
+      ];
+      const timeseriesUrls = [];
+      const monthlyUrls = [];
+      for (const pageUrl of pages) {
+        try {
+          const res = await fetch(pageUrl, fetchOpts({ accept: "text/html,*/*" }));
+          if (!res.ok) { console.log(`discharge-delays: page ${pageUrl} → HTTP ${res.status}`); continue; }
+          const html = await res.text();
+          for (const m of html.matchAll(/href="([^"]*Daily-discharge-sitrep[^"]*\.csv[^"]*)"/gi)) {
+            const url = m[1].startsWith("http") ? m[1] : `https://www.england.nhs.uk${m[1]}`;
+            if (/timeseries/i.test(url)) timeseriesUrls.push(url);
+            else monthlyUrls.push(url);
+          }
+        } catch (e) { console.log(`discharge-delays: page fetch error ${e.message}`); }
+      }
+      console.log(`discharge-delays: timeseries=${timeseriesUrls.length} monthly=${monthlyUrls.length}`);
+      if (!timeseriesUrls.length && !monthlyUrls.length)
+        throw new Error("discharge-delays: no CSV URLs found on either page");
+      const parseCsv = async (url) => {
+        const res = await fetch(url, fetchOpts({ accept: "text/csv,*/*" }));
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const text = await res.text();
+        const lines = text.trim().split(/\r?\n/);
+        if (lines.length < 2) return [];
+        const headers = parseCsvLine(lines[0]).map((h) => h.toLowerCase().trim().replace(/[\s\-/]+/g, "_"));
+        console.log(`  discharge-delays CSV: ${lines.length} rows, cols: ${headers.slice(0, 20).join("|")}`);
+        const dateCol = headers.findIndex((h) => h === "date" || h === "month" || h === "period" || h.includes("reporting_period") || h.includes("reporting_date") || h.startsWith("month_"));
+        const nctrCol = headers.findIndex((h) => h.includes("nctr") || (h.includes("no") && h.includes("criteria")) || (h.includes("not") && h.includes("criteria")) || (h.includes("criteria") && h.includes("reside")));
+        const orgCol = headers.findIndex((h) => h === "code" || h === "org_code" || h === "provider_code" || h === "organisation_code" || h === "name" || h === "org_name" || h === "provider_name" || h === "organisation_name" || h.includes("trust_code") || h.includes("trust_name"));
+        if (dateCol < 0 || nctrCol < 0) {
+          console.log(`  discharge-delays: dateCol=${dateCol} nctrCol=${nctrCol}; first 3 rows:`);
+          for (const l of lines.slice(0, 4)) console.log(`    ${l.slice(0, 200)}`);
+          return [];
+        }
+        const MON = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
+        const toDate = (raw) => {
+          const s = String(raw ?? "").trim();
+          if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s.slice(0, 7) + "-01";
+          let m;
+          if ((m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/))) return `${m[3]}-${m[2].padStart(2, "0")}-01`;
+          if ((m = s.match(/^([A-Za-z]{3,})[_\- ](\d{4})$/)) && MON[m[1].toLowerCase().slice(0, 3)]) return `${m[2]}-${String(MON[m[1].toLowerCase().slice(0, 3)]).padStart(2, "0")}-01`;
+          if ((m = s.match(/^([A-Za-z]{3,})[_\- ](\d{2})$/)) && MON[m[1].toLowerCase().slice(0, 3)]) { const yr = +m[2] <= 30 ? 2000 + +m[2] : 1900 + +m[2]; return `${yr}-${String(MON[m[1].toLowerCase().slice(0, 3)]).padStart(2, "0")}-01`; }
+          if (/^\d{5}$/.test(s)) { const d = new Date((+s - 25569) * 86400000); return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-01`; }
+          return null;
+        };
+        const byDate = new Map();
+        for (const line of lines.slice(1)) {
+          const cells = parseCsvLine(line);
+          if (!cells.length || !cells[dateCol]) continue;
+          const date = toDate(cells[dateCol]);
+          if (!date) continue;
+          const rawV = cells[nctrCol];
+          const v = typeof rawV === "number" ? rawV : parseFloat(String(rawV ?? "").replace(/,/g, ""));
+          if (!Number.isFinite(v) || v < 0) continue;
+          const org = orgCol >= 0 ? String(cells[orgCol] ?? "").trim().toLowerCase() : "";
+          const isNational = /^england$|^national$|^e92|^xha|^all$/.test(org);
+          if (isNational) byDate.set(date, v);
+          else byDate.set(date, (byDate.get(date) ?? 0) + v);
+        }
+        return [...byDate.entries()].map(([date, value]) => ({ date, value: Math.round(value) })).filter((p) => p.value > 0);
+      };
+      const allPoints = new Map();
+      if (timeseriesUrls.length) {
+        const tsUrl = timeseriesUrls[timeseriesUrls.length - 1];
+        console.log(`discharge-delays: parsing timeseries ${tsUrl}`);
+        try { for (const p of await parseCsv(tsUrl)) allPoints.set(p.date, p.value); } catch (e) { console.log(`  timeseries parse error: ${e.message}`); }
+      }
+      const sortedMonthly = [...new Set(monthlyUrls)].reverse().slice(0, 30);
+      for (const url of sortedMonthly) {
+        try {
+          for (const p of await parseCsv(url)) if (!allPoints.has(p.date)) allPoints.set(p.date, p.value);
+        } catch (e) { console.log(`  monthly parse err ${url.split("/").pop()}: ${e.message}`); }
+      }
+      const points = [...allPoints.entries()].map(([date, value]) => ({ date, value })).filter((p) => p.value >= 500).sort((a, b) => (a.date < b.date ? -1 : 1));
+      if (points.length < 6) throw new Error(`discharge-delays: only ${points.length} usable points after combining sources`);
+      console.log(`discharge-delays: ${points.length} total points ${points[0].date}..${points[points.length - 1].date}`);
+      return points;
+    },
+  },
 ];
 
 const out = {};
