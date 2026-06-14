@@ -277,17 +277,26 @@ const UNEMP = "employmentandlabourmarket/peoplenotinwork/unemployment";
 // changes monthly, so scrape the landing page for the current link; a stale
 // hardcoded fallback (the file is cumulative) keeps CI working if the scrape fails. ---
 async function rttOverviewUrl() {
-  const FALLBACK = "https://www.england.nhs.uk/statistics/wp-content/uploads/sites/2/2024/09/RTT-Overview-Timeseries-Including-Estimates-for-Missing-Trusts-Jul24-XLS-109K-88372.xlsx";
-  try {
-    const res = await fetch("https://www.england.nhs.uk/statistics/statistical-work-areas/rtt-waiting-times/", fetchOpts({ accept: "text/html,*/*" }));
-    if (res.ok) {
+  const pages = [
+    "https://www.england.nhs.uk/statistics/statistical-work-areas/rtt-waiting-times/",
+    "https://www.england.nhs.uk/statistics/statistical-work-areas/rtt-waiting-times/rtt-data-2025-26/",
+    "https://www.england.nhs.uk/statistics/statistical-work-areas/rtt-waiting-times/rtt-data-2024-25/",
+  ];
+  const samples = [];
+  for (const p of pages) {
+    try {
+      const res = await fetch(p, fetchOpts({ accept: "text/html,*/*" }));
+      if (!res.ok) { samples.push(`${p} -> HTTP ${res.status}`); continue; }
       const html = await res.text();
-      const m = html.match(/href="(https?:\/\/[^"]*RTT-Overview-Timeseries[^"]*\.xlsx[^"]*)"/i) || html.match(/href="([^"]*RTT-Overview-Timeseries[^"]*\.xlsx[^"]*)"/i);
+      const m = html.match(/href="([^"]*Overview[- ]Timeseries[^"]*\.xlsx?[^"]*)"/i)
+        || html.match(/href="([^"]*Overview[- ]Timeseries[^"]*\.xlsx?[^"]*)"/i);
       if (m) return m[1].startsWith("http") ? m[1] : `https://www.england.nhs.uk${m[1]}`;
-    }
-  } catch { /* fall through */ }
-  console.log("  RTT: landing-page scrape failed; using hardcoded fallback URL");
-  return FALLBACK;
+      const all = [...html.matchAll(/href="([^"]*\.xlsx?[^"]*)"/gi)].map((x) => x[1]).slice(0, 8);
+      samples.push(`${p} (${html.length}b): ${all.join(" , ") || "no .xls hrefs"}`);
+    } catch (e) { samples.push(`${p} ERR ${e.message}`); }
+  }
+  console.log("  RTT discovery failed; samples:\n   " + samples.join("\n   "));
+  throw new Error("RTT: overview timeseries URL not found");
 }
 async function parseRttOverview() {
   const url = await rttOverviewUrl();
@@ -913,17 +922,19 @@ const SOURCES = [
         `${base}/ae-attendances-and-emergency-admissions-${fy - 1}-${String(fy).slice(2)}/`,
       ];
       let xlsUrl = null;
+      const samples = [];
       for (const pageUrl of pages) {
         try {
           const res = await fetch(pageUrl, fetchOpts({ accept: "text/html,*/*" }));
-          if (!res.ok) continue;
+          if (!res.ok) { samples.push(`${pageUrl} -> HTTP ${res.status}`); continue; }
           const html = await res.text();
-          const m = html.match(/href="(https?:\/\/[^"]*Monthly-AE-Time-Series[^"]*\.xlsx?[^"]*)"/i)
-            || html.match(/href="(\/[^"]*Monthly-AE-Time-Series[^"]*\.xlsx?[^"]*)"/i);
+          const m = html.match(/href="([^"]*Monthly[- ]AE[- ]Time[- ]Series[^"]*\.xlsx?[^"]*)"/i);
           if (m) { xlsUrl = m[1].startsWith("http") ? m[1] : `https://www.england.nhs.uk${m[1]}`; break; }
-        } catch { /* next */ }
+          const all = [...html.matchAll(/href="([^"]*\.xlsx?[^"]*)"/gi)].map((x) => x[1]).slice(0, 8);
+          samples.push(`${pageUrl} (${html.length}b): ${all.join(" , ") || "no .xls hrefs"}`);
+        } catch (e) { samples.push(`${pageUrl} ERR ${e.message}`); }
       }
-      if (!xlsUrl) throw new Error("ae-performance: no timeseries XLS URL found");
+      if (!xlsUrl) { console.log("  ae-performance discovery failed; samples:\n   " + samples.join("\n   ")); throw new Error("ae-performance: no timeseries XLS URL found"); }
       console.log(`  ae-performance: ${xlsUrl}`);
       const book = await xlsxBook(xlsUrl);
       let sheetName = book.SheetNames.find((n) => ["england", "national", "all england", "aggregate"].includes(n.trim().toLowerCase()))
