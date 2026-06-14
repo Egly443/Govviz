@@ -971,7 +971,7 @@ const SOURCES = [
       const header = rows[hi];
       const qCol = header.findIndex((c) => /^quarter$/i.test(String(c ?? "").trim()));
       const prCol = header.findIndex((c) => /priority/i.test(String(c ?? "")));
-      const srCol = header.findIndex((c) => /straightforward applications received/i.test(String(c ?? "")));
+      const srCol = header.findIndex((c) => /straightforward applications received/i.test(String(c ?? "")) && !/non[\s-]?straightforward/i.test(String(c ?? "")));
       let withinCol = header.findIndex((c) => /within service standard/i.test(String(c ?? "")) && !/%|percent/i.test(String(c ?? "")));
       if (withinCol < 0 && srCol >= 0) withinCol = srCol + 1;
       if (qCol < 0 || srCol < 0 || withinCol < 0) throw new Error(`ho-visa-sla: cols q=${qCol} sr=${srCol} within=${withinCol} in [${header.slice(0, 14).join("|")}]`);
