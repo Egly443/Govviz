@@ -986,7 +986,12 @@ const SOURCES = [
         if (v < 50 || v > 100) continue;
         seen.add(date); points.push({ date, value: +v.toFixed(2) });
       }
-      if (points.length < 12) throw new Error(`ae-performance: only ${points.length} points`);
+      if (points.length < 12) {
+        console.log(`ae-performance: only ${points.length} pts; sheet="${sheetName}" headerIdx=${headerIdx} dateCol=${dateCol} pctCol=${pctCol}`);
+        console.log(`   header=${JSON.stringify(rows[headerIdx]).slice(0, 320)}`);
+        for (const r of rows.slice(headerIdx + 1, headerIdx + 4)) console.log(`   data=${JSON.stringify(r).slice(0, 320)}`);
+        throw new Error(`ae-performance: only ${points.length} points`);
+      }
       return points.sort((a, b) => (a.date < b.date ? -1 : 1));
     },
   },
