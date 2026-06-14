@@ -163,10 +163,11 @@ These use existing helpers: `govukContent`, `govukAttachments`, `parseCsvLine`.
             return Object.fromEntries(headers.map((h, i) => [h, cells[i] ?? ""]));
           });
 
-          // Filter to MoD rows
+          // Filter to MoD rows. Department-specific CSVs use "MOD"; consolidated
+          // may use "MoD" or "Ministry of Defence". Broad match is intentional.
           const modRows = rows.filter((r) => {
-            const d = (r["department"] ?? "").trim().toUpperCase();
-            return d === "MOD" || d === "MINISTRY OF DEFENCE" || d.includes("MOD");
+            const d = (r["department"] ?? "").trim().toUpperCase().replace(/\s+/g, "");
+            return d === "MOD" || d === "MINISTRYOFDEFENCE" || d.startsWith("MOD");
           });
           console.log(`mod-procurement: ${date} — ${modRows.length} MoD rows from ${rows.length} total`);
 
@@ -255,9 +256,11 @@ These use existing helpers: `govukContent`, `govukAttachments`, `parseCsvLine`.
             return Object.fromEntries(headers.map((h, i) => [h, cells[i] ?? ""]));
           });
 
+          // Department-specific CSVs use "DfT"; consolidated may also use "DFT"
+          // or "Department for Transport". Case-insensitive broad match.
           const dftRows = rows.filter((r) => {
-            const d = (r["department"] ?? "").trim().toUpperCase();
-            return d === "DFT" || d === "DFT " || d === "DEPARTMENT FOR TRANSPORT" || d.startsWith("DFT");
+            const d = (r["department"] ?? "").trim().toUpperCase().replace(/\s+/g, "");
+            return d === "DFT" || d === "DEPARTMENTFORTRANSPORT" || d.startsWith("DFT");
           });
           console.log(`dft-capital-overrun: ${date} — ${dftRows.length} DfT rows from ${rows.length} total`);
 
