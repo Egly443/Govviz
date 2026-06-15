@@ -1,6 +1,7 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { hierarchy, treemap, treemapSquarify } from "d3-hierarchy";
 import { buildOverview, ragColor, type IndicatorCell } from "./overview";
+import { SHOW_ILLUSTRATIVE } from "./data";
 
 const LABEL_H = 22; // reserved band for each department's label
 const GAP = 2; // gap between tiles
@@ -122,18 +123,26 @@ export function GovTreemap({
             const showText = w > 46 && h > 30;
             const showValue = h > 56 && w > 64;
             const fs = Math.max(10, Math.min(15, w / 9));
+            // In production, an unsourced indicator is greyed and shows no
+            // (fabricated) value — its RAG colour would be meaningless.
+            const sourced = cell.real || SHOW_ILLUSTRATIVE;
             return (
               <button
                 key={cell.series.id}
                 onClick={() => onSelect(cell)}
-                title={`${cell.series.title} — ${cell.series.format(cell.current)}`}
+                title={
+                  sourced
+                    ? `${cell.series.title} — ${cell.series.format(cell.current)}`
+                    : `${cell.series.title} — no official source wired yet`
+                }
                 className="absolute overflow-hidden rounded-[3px] text-left transition hover:z-20 hover:brightness-110 focus:z-20 focus:outline-none focus:ring-2 focus:ring-white/70"
                 style={{
                   left: l.x0,
                   top: l.y0,
                   width: w,
                   height: h,
-                  background: ragColor(cell.score),
+                  background: sourced ? ragColor(cell.score) : "var(--surface)",
+                  opacity: sourced ? 1 : 0.5,
                 }}
               >
                 {showText && (
@@ -149,7 +158,7 @@ export function GovTreemap({
                         className="font-semibold tabular-nums text-white"
                         style={{ fontSize: fs + 1 }}
                       >
-                        {cell.series.format(cell.current)}
+                        {sourced ? cell.series.format(cell.current) : "—"}
                       </span>
                     )}
                   </span>

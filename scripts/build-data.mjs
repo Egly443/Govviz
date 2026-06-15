@@ -464,6 +464,9 @@ const SOURCES = [
   { id: "dhsc-infant-mortality", min: 1, max: 40, get: () => wb("SP.DYN.IMRT.IN") },
   { id: "dfe-edu-spend-gdp", min: 2, max: 9, get: () => wb("SE.XPD.TOTL.GD.ZS") },
   { id: "dfe-pupil-teacher", min: 8, max: 40, get: () => wb("SE.PRM.ENRL.TC.ZS") },
+  // Government expenditure per primary pupil, % of GDP per capita (UNESCO):
+  // an internationally comparable resourcing/unit-cost intensity metric.
+  ...wbCompare("dfe-spend-per-pupil", "SE.XPD.PRIM.PC.ZS", { min: 5, max: 40 }),
   ...wbCompare("ho-homicide-rate", "VC.IHR.PSRC.P5", { min: 0, max: 5 }),
   { id: "mod-defence-spend-gdp", min: 0, max: 10, get: () => wb("MS.MIL.XPND.GD.ZS") },
   { id: "dwp-pop-65", min: 5, max: 30, get: () => wb("SP.POP.65UP.TO.ZS") },

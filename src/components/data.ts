@@ -66,6 +66,27 @@ export function isRealSeries(id: string): boolean {
   const d = SERIES_DATA[id];
   return !!d && (!!d.points?.length || !!d.lines?.length);
 }
+/**
+ * Real-data check for a whole series, aware of derived (cost÷outcome) series:
+ * a ratio is real iff every input it is derived from is real.
+ */
+export function seriesIsReal(series: TrendSeries): boolean {
+  return series.derivedFrom
+    ? series.derivedFrom.every(isRealSeries)
+    : isRealSeries(series.id);
+}
+/**
+ * Whether fabricated/illustrative fallbacks may be shown. In production we only
+ * ever display real, officially-sourced data — an unsourced series renders an
+ * explicit "no source wired yet" placeholder instead of an invented trend, so
+ * the dashboard can never pass off illustrative curves as official statistics.
+ * In dev — and in any build where CI did not bake data at all (empty
+ * SERIES_DATA, e.g. a local production build) — the illustrative fallbacks
+ * remain (clearly badged) so the app stays workable. The honesty gate only
+ * bites once real data is present, i.e. on the actual deployment.
+ */
+export const SHOW_ILLUSTRATIVE =
+  !import.meta.env.PROD || Object.keys(SERIES_DATA).length === 0;
 /** Fetch date (YYYY-MM-DD) of the baked data, if any. */
 export function realAsOf(id: string): string | undefined {
   return SERIES_DATA[id]?.asOf;

@@ -14,10 +14,11 @@ import {
 import {
   deltaVs,
   formatMonth,
-  isRealSeries,
   latest,
   minMax,
   realAsOf,
+  seriesIsReal,
+  SHOW_ILLUSTRATIVE,
   slicePoints,
   type SeriesLine,
   type SeriesUnit,
@@ -85,15 +86,19 @@ export function TrendPanel({
 
   // A derived (cost÷outcome) series is real iff every input series is real;
   // its freshness is the oldest of its inputs.
-  const real = series.derivedFrom
-    ? series.derivedFrom.every(isRealSeries)
-    : isRealSeries(series.id);
+  const real = seriesIsReal(series);
   const asOf = series.derivedFrom
     ? series.derivedFrom
         .map(realAsOf)
         .filter((d): d is string => !!d)
         .sort()[0]
     : realAsOf(series.id);
+
+  // Production honesty gate: never render a fabricated trend line. An unsourced
+  // series shows an explicit placeholder instead of its illustrative fallback.
+  if (!real && !SHOW_ILLUSTRATIVE) {
+    return <UnsourcedPanel series={series} height={height} hero={hero} />;
+  }
 
   const current = latest(series);
   const yoy = deltaVs(series, 12);
@@ -369,6 +374,67 @@ export function TrendPanel({
             </span>
           </span>
         )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Shown in production for any indicator with no official source wired yet —
+ * deliberately blank rather than displaying an invented trajectory. Keeps the
+ * title, subtitle and the source we're chasing so the gap is transparent.
+ */
+function UnsourcedPanel({
+  series,
+  height,
+  hero,
+}: {
+  series: TrendSeries;
+  height: number;
+  hero?: boolean;
+}) {
+  return (
+    <div className="group relative overflow-hidden rounded-xl border border-dashed border-border bg-card p-5 sm:p-6">
+      <div className="flex flex-wrap items-center gap-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+        <span
+          className="rounded-full border border-border bg-surface px-1.5 py-px text-[10px]"
+          title="No official source wired yet — intentionally left blank rather than showing fabricated data"
+        >
+          No source yet
+        </span>
+      </div>
+      <h3
+        className={`mt-1 font-semibold tracking-tight ${
+          hero ? "text-xl sm:text-2xl" : "text-base sm:text-lg"
+        }`}
+      >
+        {series.title}
+      </h3>
+      {series.subtitle && (
+        <p className="mt-0.5 text-xs text-muted-foreground">{series.subtitle}</p>
+      )}
+      <div
+        className="mt-5 flex w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border/70 bg-surface/40 px-4 text-center"
+        style={{ height }}
+      >
+        <p className="text-sm font-medium text-foreground/80">
+          No official data source wired yet
+        </p>
+        <p className="max-w-sm text-xs text-muted-foreground">
+          This indicator is intentionally left blank rather than showing an
+          illustrative trend. We are working to wire a reputable source.
+        </p>
+      </div>
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 border-t border-border/60 pt-3 text-[11px] text-muted-foreground">
+        <a
+          href={series.sourceUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline decoration-dotted underline-offset-2 hover:text-foreground"
+          title={`Source being chased: ${series.source}`}
+        >
+          Source being chased: {series.source} ↗
+        </a>
       </div>
     </div>
   );

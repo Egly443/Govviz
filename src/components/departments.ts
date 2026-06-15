@@ -1596,6 +1596,7 @@ const dhscOop = wbS({ id: "dhsc-oop", title: "Out-of-pocket health costs", subti
 
 // DfE / Home Office / MoD
 const dfeTertiary = wbS({ id: "dfe-tertiary-enrol", title: "University participation", subtitle: "Tertiary enrolment, % gross", good: "up", unit: "percent", format: fmt0, source: "World Bank (UNESCO)", code: "SE.TER.ENRR", anchors: [[1990, 30], [2000, 58], [2010, 59], [2019, 66], [2020, 70]], start: 1990, end: 2020, seed: 344, amp: 0.4 });
+const dfeSpendPerPupil = wbS({ id: "dfe-spend-per-pupil", title: "Spending per primary pupil", subtitle: "Govt expenditure per pupil, % of GDP per head — UK vs Germany & France", good: "up", unit: "percent", format: fmt0, source: "World Bank (UNESCO)", code: "SE.XPD.PRIM.PC.ZS", anchors: [[2000, 18], [2010, 22], [2015, 23], [2019, 22], [2020, 24]], start: 2000, end: 2020, seed: 352, amp: 0.2, compare: true });
 const hoMigrantStock = wbS({ id: "ho-migrant-stock", title: "Foreign-born population", subtitle: "International migrant stock, % of population", good: "up", unit: "percent", format: fmtPct, source: "World Bank (UN)", code: "SM.POP.TOTL.ZS", anchors: [[1990, 6.4], [2000, 7.9], [2010, 11.3], [2015, 13.2], [2020, 13.8]], start: 1990, end: 2020, seed: 345, amp: 0.05 });
 const modPersonnel = wbS({ id: "mod-personnel-total", title: "Armed forces personnel", subtitle: "Total military personnel", good: "up", format: fmtThousands, shortFormat: fmtK, yFormat: fmtK, source: "World Bank (IISS)", code: "MS.MIL.TOTL.P1", anchors: [[1990, 308000], [2000, 212000], [2010, 197000], [2019, 156000], [2020, 153000]], start: 1990, end: 2020, seed: 346, amp: 400 });
 
@@ -1637,7 +1638,7 @@ export const departments: Department[] = [
       "The disadvantaged attainment gap has widened back beyond its pre-2019 level. Early-career attrition is structurally higher than a decade ago, training recruitment is missing target by a third, and high-needs deficits are compounding.",
     themes: ["Attainment", "Workforce", "Funding", "Pipeline"],
     hero: dfeAttainmentGap,
-    core: [dfeEctAttrition, dfeDsgDeficit, dfeTeacherRecruitment],
+    core: [dfeEctAttrition, dfeDsgDeficit, dfeTeacherRecruitment, dfeSpendPerPupil],
     supporting: [dfeEduSpendGdp, dfePupilTeacher, dfeTertiary],
   },
   {

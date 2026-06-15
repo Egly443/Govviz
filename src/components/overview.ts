@@ -1,4 +1,4 @@
-import { latest, minMax, type TrendSeries } from "./data";
+import { latest, minMax, seriesIsReal, type TrendSeries } from "./data";
 import { departments, type Department } from "./departments";
 
 export type IndicatorRole = "hero" | "core" | "supporting";
@@ -11,6 +11,7 @@ export interface IndicatorCell {
   value: number; // treemap leaf value (share of departmental spend)
   score: number; // 0 (poor) .. 1 (good)
   current: number; // latest value
+  real: boolean; // backed by an official source (derived-series aware)
 }
 
 export interface DeptBlock {
@@ -105,6 +106,7 @@ export function buildOverview(): DeptBlock[] {
       value: (dept.spendBn * r.weight) / totalWeight,
       score: ragScore(r.series),
       current: latest(r.series).value,
+      real: seriesIsReal(r.series),
     }));
 
     return { dept, cells };
