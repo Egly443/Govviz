@@ -255,7 +255,9 @@ export const dischargeDelays: TrendSeries = {
   sourceUrl:
     "https://www.england.nhs.uk/statistics/statistical-work-areas/discharge-delays-acute-data/",
   cadence: "monthly",
-  points: trajectory(
+  points: realPoints(
+    "discharge-delays",
+    trajectory(
     [
       ["2011-01-01", 4200],
       ["2014-06-01", 4900],
@@ -273,7 +275,7 @@ export const dischargeDelays: TrendSeries = {
     29,
     320,
     420,
-  ),
+  )),
   annotations: [
     { date: "2017-03-01", label: "Social-care funding crisis" },
     { date: "2020-03-01", label: "Covid-19" },
@@ -295,22 +297,25 @@ export const agencySpend: TrendSeries = {
   sourceUrl:
     "https://www.nao.org.uk/reports/nhs-financial-management-and-sustainability/",
   cadence: "monthly",
-  points: trajectory(
-    [
-      ["2013-04-01", 2.10],
-      ["2015-09-01", 3.65],
-      ["2018-03-01", 2.42],
-      ["2020-03-01", 2.55],
-      ["2022-09-01", 3.40],
-      ["2023-09-01", 4.62],
-      ["2024-09-01", 3.55],
-      ["2026-04-01", 2.95],
-    ],
-    "2013-04-01",
-    "2026-04-01",
-    31,
-    0.06,
-    0.05,
+  points: realPoints(
+    "agency-spend",
+    trajectory(
+      [
+        ["2013-04-01", 2.10],
+        ["2015-09-01", 3.65],
+        ["2018-03-01", 2.42],
+        ["2020-03-01", 2.55],
+        ["2022-09-01", 3.40],
+        ["2023-09-01", 4.62],
+        ["2024-09-01", 3.55],
+        ["2026-04-01", 2.95],
+      ],
+      "2013-04-01",
+      "2026-04-01",
+      31,
+      0.06,
+      0.05,
+    ),
   ),
   annotations: [
     { date: "2015-11-01", label: "Agency caps introduced" },
@@ -426,22 +431,25 @@ export const turnover: TrendSeries = {
   sourceUrl:
     "https://digital.nhs.uk/data-and-information/publications/statistical/nhs-workforce-statistics",
   cadence: "monthly",
-  points: trajectory(
-    [
-      ["2011-01-01", 9.1],
-      ["2014-01-01", 9.6],
-      ["2017-06-01", 10.7],
-      ["2019-06-01", 11.2],
-      ["2020-09-01", 9.8],
-      ["2022-09-01", 12.5],
-      ["2024-01-01", 11.6],
-      ["2026-04-01", 11.3],
-    ],
-    "2011-01-01",
-    "2026-04-01",
-    7,
-    0.15,
-    0.08,
+  points: realPoints(
+    "turnover",
+    trajectory(
+      [
+        ["2011-01-01", 9.1],
+        ["2014-01-01", 9.6],
+        ["2017-06-01", 10.7],
+        ["2019-06-01", 11.2],
+        ["2020-09-01", 9.8],
+        ["2022-09-01", 12.5],
+        ["2024-01-01", 11.6],
+        ["2026-04-01", 11.3],
+      ],
+      "2011-01-01",
+      "2026-04-01",
+      7,
+      0.15,
+      0.08,
+    ),
   ),
   annotations: [
     { date: "2016-06-01", label: "Brexit vote" },
