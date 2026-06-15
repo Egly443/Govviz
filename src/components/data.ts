@@ -64,6 +64,25 @@ export function realAsOf(id: string): string | undefined {
   return SERIES_DATA[id]?.asOf;
 }
 
+// International peer set for World Bank comparator charts. Keep in sync with
+// WB_PEERS in scripts/build-data.mjs and src/components/departments.ts.
+// Comparator lines carry an empty fallback so the chart shows the UK line
+// alone until CI bakes per-country data (TrendPanel drops empty lines).
+const WB_PEERS: { code: string; label: string }[] = [
+  { code: "deu", label: "Germany" },
+  { code: "fra", label: "France" },
+];
+export function wbLines(id: string, ukFallback: Point[]): SeriesLine[] {
+  return [
+    { id: "gbr", label: "UK", points: realLine(id, "gbr", ukFallback) },
+    ...WB_PEERS.map((p) => ({
+      id: p.code,
+      label: p.label,
+      points: realLine(id, p.code, [] as Point[]),
+    })),
+  ];
+}
+
 // Deterministic pseudo-noise
 export function noise(seed: number) {
   let s = seed * 9301 + 49297;
@@ -562,7 +581,7 @@ const bedsFallback = annualSeries(
 export const hospitalBeds: TrendSeries = {
   id: "dhsc-beds-per-1000",
   title: "Hospital beds per 1,000 people",
-  subtitle: "Total care beds per 1,000 population",
+  subtitle: "Total care beds per 1,000 population — UK vs Germany & France",
   unit: "count",
   format: (v) => v.toFixed(1),
   shortFormat: (v) => v.toFixed(1),
@@ -571,14 +590,22 @@ export const hospitalBeds: TrendSeries = {
   source: "World Bank (OECD/WHO/Eurostat)",
   sourceUrl: "https://data.worldbank.org/indicator/SH.MED.BEDS.ZS?locations=GB",
   cadence: "annual",
-  points: realPoints("dhsc-beds-per-1000", bedsFallback),
+  points: realLine("dhsc-beds-per-1000", "gbr", bedsFallback),
+  lines: wbLines("dhsc-beds-per-1000", bedsFallback),
   annotations: [],
 };
 
+const healthSpendGdpFallback = annualSeries(
+  [[2000, 6.0], [2008, 8.4], [2012, 8.3], [2019, 10.0], [2021, 11.9], [2022, 11.3]],
+  2000,
+  2022,
+  310,
+  0.05,
+);
 export const healthSpendGdp: TrendSeries = {
   id: "dhsc-health-spend-gdp",
   title: "Health spending (% of GDP)",
-  subtitle: "Total current health expenditure, % of GDP",
+  subtitle: "Total current health expenditure, % of GDP — UK vs Germany & France",
   unit: "percent",
   format: fmtPct,
   shortFormat: fmtPct,
@@ -586,16 +613,8 @@ export const healthSpendGdp: TrendSeries = {
   source: "World Bank (WHO/OECD)",
   sourceUrl: "https://data.worldbank.org/indicator/SH.XPD.CHEX.GD.ZS?locations=GB",
   cadence: "annual",
-  points: realPoints(
-    "dhsc-health-spend-gdp",
-    annualSeries(
-      [[2000, 6.0], [2008, 8.4], [2012, 8.3], [2019, 10.0], [2021, 11.9], [2022, 11.3]],
-      2000,
-      2022,
-      310,
-      0.05,
-    ),
-  ),
+  points: realLine("dhsc-health-spend-gdp", "gbr", healthSpendGdpFallback),
+  lines: wbLines("dhsc-health-spend-gdp", healthSpendGdpFallback),
   annotations: [{ date: "2020-01-01", label: "Covid-19" }],
 };
 

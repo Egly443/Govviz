@@ -201,6 +201,29 @@ async function wb(indicator, country = "GBR") {
   throw lastErr || new Error(`WB ${indicator}: failed`);
 }
 
+// International peer set for World Bank comparator charts. Same indicator,
+// same methodology, different country — the hardest framing for anyone to
+// massage. Keep in sync with WB_PEERS in src/components/departments.ts.
+const WB_PEERS = [
+  ["deu", "Germany"],
+  ["fra", "France"],
+];
+// Expand one WB indicator into a UK line ("gbr") plus a comparator line per
+// peer, so the baked output is a multi-line { gbr, deu, fra } series.
+function wbCompare(id, indicator, { min, max, scale } = {}) {
+  return [
+    { id, line: "gbr", min, max, scale, get: () => wb(indicator, "GBR") },
+    ...WB_PEERS.map(([code]) => ({
+      id,
+      line: code,
+      min,
+      max,
+      scale,
+      get: () => wb(indicator, code.toUpperCase()),
+    })),
+  ];
+}
+
 // --- gov.uk Content & Search APIs + spreadsheet (ODS/XLSX) parsing ---
 // Many official series are published only as dated Excel/ODS files whose asset
 // URLs change each release. The gov.uk Content API exposes a page's *current*
@@ -433,18 +456,18 @@ const SOURCES = [
   { id: "dhsc-clinical-per-1000", line: "doctors", min: 0.5, max: 6, get: () => wb("SH.MED.PHYS.ZS") },
   { id: "dhsc-clinical-per-1000", line: "nurses", min: 3, max: 15, get: () => wb("SH.MED.NUMW.P3") },
   // Hospital beds per 1,000, and life expectancy at birth.
-  { id: "dhsc-beds-per-1000", min: 1, max: 12, get: () => wb("SH.MED.BEDS.ZS") },
+  ...wbCompare("dhsc-beds-per-1000", "SH.MED.BEDS.ZS", { min: 1, max: 12 }),
   { id: "life-expectancy", min: 60, max: 90, get: () => wb("SP.DYN.LE00.IN") },
 
   // --- World Bank cross-department batch (international, hard-to-fudge) ---
-  { id: "dhsc-health-spend-gdp", min: 3, max: 20, get: () => wb("SH.XPD.CHEX.GD.ZS") },
+  ...wbCompare("dhsc-health-spend-gdp", "SH.XPD.CHEX.GD.ZS", { min: 3, max: 20 }),
   { id: "dhsc-infant-mortality", min: 1, max: 40, get: () => wb("SP.DYN.IMRT.IN") },
   { id: "dfe-edu-spend-gdp", min: 2, max: 9, get: () => wb("SE.XPD.TOTL.GD.ZS") },
   { id: "dfe-pupil-teacher", min: 8, max: 40, get: () => wb("SE.PRM.ENRL.TC.ZS") },
-  { id: "ho-homicide-rate", min: 0, max: 5, get: () => wb("VC.IHR.PSRC.P5") },
+  ...wbCompare("ho-homicide-rate", "VC.IHR.PSRC.P5", { min: 0, max: 5 }),
   { id: "mod-defence-spend-gdp", min: 0, max: 10, get: () => wb("MS.MIL.XPND.GD.ZS") },
   { id: "dwp-pop-65", min: 5, max: 30, get: () => wb("SP.POP.65UP.TO.ZS") },
-  { id: "dft-road-death-rate", min: 0, max: 20, get: () => wb("SH.STA.TRAF.P5") },
+  ...wbCompare("dft-road-death-rate", "SH.STA.TRAF.P5", { min: 0, max: 20 }),
   // Real GDP per head, constant LCU (replaces the unverified ONS guess).
   { id: "hmt-gdp-per-capita", min: 15000, max: 70000, get: () => wb("NY.GDP.PCAP.KD") },
 
@@ -457,9 +480,9 @@ const SOURCES = [
   { id: "hmt-participation", min: 40, max: 85, get: () => wb("SL.TLF.CACT.ZS") },
   { id: "hmt-trade-gdp", min: 20, max: 95, get: () => wb("NE.TRD.GNFS.ZS") },
   { id: "hmt-savings", min: 0, max: 40, get: () => wb("NY.GNS.ICTR.ZS") },
-  { id: "hmt-gni-per-capita", min: 5000, max: 90000, get: () => wb("NY.GNP.PCAP.PP.CD") },
+  ...wbCompare("hmt-gni-per-capita", "NY.GNP.PCAP.PP.CD", { min: 5000, max: 90000 }),
   // DHSC
-  { id: "dhsc-health-spend-pc", min: 500, max: 12000, get: () => wb("SH.XPD.CHEX.PC.CD") },
+  ...wbCompare("dhsc-health-spend-pc", "SH.XPD.CHEX.PC.CD", { min: 500, max: 12000 }),
   { id: "dhsc-suicide", min: 0, max: 30, get: () => wb("SH.STA.SUIC.P5") },
   { id: "dhsc-measles-imm", min: 50, max: 100, get: () => wb("SH.IMM.MEAS") },
   { id: "dhsc-oop", min: 0, max: 60, get: () => wb("SH.XPD.OOPC.CH.ZS") },
@@ -470,11 +493,11 @@ const SOURCES = [
   // DWP
   { id: "dwp-oldage-dependency", min: 10, max: 50, get: () => wb("SP.POP.DPND.OL") },
   { id: "dwp-female-participation", min: 40, max: 85, get: () => wb("SL.TLF.CACT.FE.ZS") },
-  { id: "dwp-gini", min: 25, max: 45, get: () => wb("SI.POV.GINI") },
+  ...wbCompare("dwp-gini", "SI.POV.GINI", { min: 25, max: 45 }),
   { id: "dwp-youth-unemp", min: 2, max: 40, get: () => wb("SL.UEM.1524.ZS") },
   // DfT — AR5 GHG-basis CO2e per capita (intentionally NOT the legacy
   // fossil-only EN.ATM.CO2E.PC code referenced by the illustrative fallback).
-  { id: "dft-co2-pc", min: 1, max: 20, get: () => wb("EN.GHG.CO2.PC.CE.AR5") },
+  ...wbCompare("dft-co2-pc", "EN.GHG.CO2.PC.CE.AR5", { min: 1, max: 20 }),
 
   // --- Treasury derived / standalone ---
   // Tax revenue % of GDP (World Bank/IMF), matches hmt-tax-burden realPoints wrapper.

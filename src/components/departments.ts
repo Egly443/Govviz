@@ -98,6 +98,25 @@ function annual(
   return out;
 }
 
+// International peer set for World Bank comparator charts. Keep in sync with
+// WB_PEERS in scripts/build-data.mjs. Comparator lines carry an empty fallback
+// so that, until CI bakes the per-country data, the chart shows the UK line
+// alone (TrendPanel drops empty lines) rather than fabricated peer values.
+const WB_PEERS: { code: string; label: string }[] = [
+  { code: "deu", label: "Germany" },
+  { code: "fra", label: "France" },
+];
+function wbLines(id: string, ukFallback: Point[]): TrendSeries["lines"] {
+  return [
+    { id: "gbr", label: "UK", points: realLine(id, "gbr", ukFallback) },
+    ...WB_PEERS.map((p) => ({
+      id: p.code,
+      label: p.label,
+      points: realLine(id, p.code, [] as Point[]),
+    })),
+  ];
+}
+
 // ============================================================
 // DfE — Department for Education
 // ============================================================
@@ -1428,7 +1447,6 @@ const dfePupilTeacher: TrendSeries = {
 const hoHomicideRate: TrendSeries = {
   id: "ho-homicide-rate",
   title: "Homicide rate",
-  subtitle: "Intentional homicides per 100,000 people",
   unit: "count",
   format: fmt1,
   shortFormat: fmt1,
@@ -1436,8 +1454,10 @@ const hoHomicideRate: TrendSeries = {
   goodDirection: "down",
   source: "World Bank (UNODC)",
   sourceUrl: "https://data.worldbank.org/indicator/VC.IHR.PSRC.P5?locations=GB",
+  subtitle: "Intentional homicides per 100,000 people — UK vs Germany & France",
   cadence: "annual",
-  points: realPoints("ho-homicide-rate", annual([[2000, 1.6], [2008, 1.3], [2014, 0.9], [2018, 1.2], [2021, 1.0]], 2000, 2021, 322, 0.03)),
+  points: realLine("ho-homicide-rate", "gbr", annual([[2000, 1.6], [2008, 1.3], [2014, 0.9], [2018, 1.2], [2021, 1.0]], 2000, 2021, 322, 0.03)),
+  lines: wbLines("ho-homicide-rate", annual([[2000, 1.6], [2008, 1.3], [2014, 0.9], [2018, 1.2], [2021, 1.0]], 2000, 2021, 322, 0.03)),
   annotations: [],
 };
 
@@ -1475,7 +1495,7 @@ const dwpPop65: TrendSeries = {
 const dftRoadDeathRate: TrendSeries = {
   id: "dft-road-death-rate",
   title: "Road deaths per 100,000",
-  subtitle: "Mortality from road traffic injury, per 100,000",
+  subtitle: "Mortality from road traffic injury, per 100,000 — UK vs Germany & France",
   unit: "count",
   format: fmt1,
   shortFormat: fmt1,
@@ -1484,7 +1504,8 @@ const dftRoadDeathRate: TrendSeries = {
   source: "World Bank (WHO)",
   sourceUrl: "https://data.worldbank.org/indicator/SH.STA.TRAF.P5?locations=GB",
   cadence: "annual",
-  points: realPoints("dft-road-death-rate", annual([[2000, 6.1], [2010, 3.7], [2015, 2.9], [2019, 2.9], [2021, 2.6]], 2000, 2021, 325, 0.04)),
+  points: realLine("dft-road-death-rate", "gbr", annual([[2000, 6.1], [2010, 3.7], [2015, 2.9], [2019, 2.9], [2021, 2.6]], 2000, 2021, 325, 0.04)),
+  lines: wbLines("dft-road-death-rate", annual([[2000, 6.1], [2010, 3.7], [2015, 2.9], [2019, 2.9], [2021, 2.6]], 2000, 2021, 325, 0.04)),
   annotations: [],
 };
 
@@ -1510,7 +1531,11 @@ function wbS(o: {
   seed: number;
   amp: number;
   annotations?: TrendSeries["annotations"];
+  // When true, draw UK vs international peers (CI bakes a { gbr, deu, fra }
+  // multi-line series for this id via wbCompare in build-data.mjs).
+  compare?: boolean;
 }): TrendSeries {
+  const ukFallback = annual(o.anchors, o.start, o.end, o.seed, o.amp);
   return {
     id: o.id,
     title: o.title,
@@ -1524,7 +1549,10 @@ function wbS(o: {
     source: o.source,
     sourceUrl: `https://data.worldbank.org/indicator/${o.code}?locations=GB`,
     cadence: "annual",
-    points: realPoints(o.id, annual(o.anchors, o.start, o.end, o.seed, o.amp)),
+    points: o.compare
+      ? realLine(o.id, "gbr", ukFallback)
+      : realPoints(o.id, ukFallback),
+    lines: o.compare ? wbLines(o.id, ukFallback) : undefined,
     annotations: o.annotations ?? [],
   };
 }
@@ -1537,10 +1565,10 @@ const hmtEmployment = wbS({ id: "hmt-employment-rate", title: "Employment rate",
 const hmtParticipation = wbS({ id: "hmt-participation", title: "Labour force participation", subtitle: "% of population 15+", good: "up", unit: "percent", format: fmtPct, source: "World Bank (ILO)", code: "SL.TLF.CACT.ZS", anchors: [[1990, 62], [2000, 62], [2010, 62], [2019, 63], [2022, 62]], start: 1990, end: 2022, seed: 335, amp: 0.3 });
 const hmtTrade = wbS({ id: "hmt-trade-gdp", title: "Trade openness", subtitle: "Trade (exports + imports), % of GDP", good: "up", unit: "percent", format: fmtPct, source: "World Bank", code: "NE.TRD.GNFS.ZS", anchors: [[1990, 46], [2000, 55], [2010, 58], [2019, 63], [2022, 70]], start: 1990, end: 2022, seed: 336, amp: 0.5 });
 const hmtSavings = wbS({ id: "hmt-savings", title: "Gross savings", subtitle: "% of GDP", good: "up", unit: "percent", format: fmtPct, source: "World Bank", code: "NY.GNS.ICTR.ZS", anchors: [[1990, 17], [2000, 15], [2010, 13], [2019, 14], [2022, 15]], start: 1990, end: 2022, seed: 337, amp: 0.3 });
-const hmtGniPerCapita = wbS({ id: "hmt-gni-per-capita", title: "GNI per head (PPP)", subtitle: "Gross national income per person, PPP $", good: "up", unit: "currency", format: fmtUsd, shortFormat: fmtUsdK, yFormat: fmtUsdK, source: "World Bank", code: "NY.GNP.PCAP.PP.CD", anchors: [[1990, 16000], [2000, 27000], [2010, 38000], [2019, 48000], [2022, 49000]], start: 1990, end: 2022, seed: 338, amp: 100 });
+const hmtGniPerCapita = wbS({ id: "hmt-gni-per-capita", title: "GNI per head (PPP)", subtitle: "Gross national income per person, PPP $ — UK vs Germany & France", good: "up", unit: "currency", format: fmtUsd, shortFormat: fmtUsdK, yFormat: fmtUsdK, source: "World Bank", code: "NY.GNP.PCAP.PP.CD", anchors: [[1990, 16000], [2000, 27000], [2010, 38000], [2019, 48000], [2022, 49000]], start: 1990, end: 2022, seed: 338, amp: 100, compare: true });
 
 // DHSC
-const dhscHealthSpendPc = wbS({ id: "dhsc-health-spend-pc", title: "Health spending per person", subtitle: "Current health expenditure, $ per person", good: "up", unit: "currency", format: fmtUsd, shortFormat: fmtUsdK, yFormat: fmtUsdK, source: "World Bank (WHO)", code: "SH.XPD.CHEX.PC.CD", anchors: [[2000, 1700], [2010, 3500], [2019, 4500], [2021, 5400]], start: 2000, end: 2021, seed: 340, amp: 20 });
+const dhscHealthSpendPc = wbS({ id: "dhsc-health-spend-pc", title: "Health spending per person", subtitle: "Current health expenditure, $ per person — UK vs Germany & France", good: "up", unit: "currency", format: fmtUsd, shortFormat: fmtUsdK, yFormat: fmtUsdK, source: "World Bank (WHO)", code: "SH.XPD.CHEX.PC.CD", anchors: [[2000, 1700], [2010, 3500], [2019, 4500], [2021, 5400]], start: 2000, end: 2021, seed: 340, amp: 20, compare: true });
 const dhscSuicide = wbS({ id: "dhsc-suicide", title: "Suicide rate", subtitle: "Per 100,000 people", good: "down", format: fmt1, source: "World Bank (WHO)", code: "SH.STA.SUIC.P5", anchors: [[2000, 9.5], [2010, 7.0], [2016, 7.6], [2019, 7.5]], start: 2000, end: 2019, seed: 341, amp: 0.08 });
 const dhscMeasles = wbS({ id: "dhsc-measles-imm", title: "Measles immunisation", subtitle: "% of children immunised", good: "up", unit: "percent", format: fmt0, source: "World Bank (WHO/UNICEF)", code: "SH.IMM.MEAS", anchors: [[1990, 87], [2000, 88], [2010, 93], [2019, 91], [2021, 90]], start: 1990, end: 2021, seed: 342, amp: 0.2 });
 const dhscOop = wbS({ id: "dhsc-oop", title: "Out-of-pocket health costs", subtitle: "% of total health spending", good: "down", unit: "percent", format: fmtPct, source: "World Bank (WHO)", code: "SH.XPD.OOPC.CH.ZS", anchors: [[2000, 18], [2010, 16], [2019, 17], [2021, 14]], start: 2000, end: 2021, seed: 343, amp: 0.2 });
@@ -1553,9 +1581,9 @@ const modPersonnel = wbS({ id: "mod-personnel-total", title: "Armed forces perso
 // DWP / DfT
 const dwpOldAge = wbS({ id: "dwp-oldage-dependency", title: "Old-age dependency ratio", subtitle: "People 65+ per 100 of working age", good: "down", format: fmt0, source: "World Bank (UN)", code: "SP.POP.DPND.OL", anchors: [[1990, 24], [2000, 24], [2010, 25], [2020, 29], [2022, 30]], start: 1990, end: 2022, seed: 347, amp: 0.1 });
 const dwpFemaleLF = wbS({ id: "dwp-female-participation", title: "Female labour participation", subtitle: "% of female population 15+", good: "up", unit: "percent", format: fmtPct, source: "World Bank (ILO)", code: "SL.TLF.CACT.FE.ZS", anchors: [[1990, 53], [2000, 55], [2010, 56], [2019, 58], [2022, 58]], start: 1990, end: 2022, seed: 348, amp: 0.2 });
-const dwpGini = wbS({ id: "dwp-gini", title: "Income inequality (Gini)", subtitle: "Gini index (0 = equal, 100 = unequal)", good: "down", format: fmt1, source: "World Bank", code: "SI.POV.GINI", anchors: [[1990, 34], [2000, 38], [2010, 34], [2017, 35]], start: 1990, end: 2018, seed: 349, amp: 0.2 });
+const dwpGini = wbS({ id: "dwp-gini", title: "Income inequality (Gini)", subtitle: "Gini index (0 = equal, 100 = unequal) — UK vs Germany & France", good: "down", format: fmt1, source: "World Bank", code: "SI.POV.GINI", anchors: [[1990, 34], [2000, 38], [2010, 34], [2017, 35]], start: 1990, end: 2018, seed: 349, amp: 0.2, compare: true });
 const dwpYouthUnemp = wbS({ id: "dwp-youth-unemp", title: "Youth unemployment", subtitle: "Unemployment, ages 15–24 (%)", good: "down", unit: "percent", format: fmtPct, source: "World Bank (ILO)", code: "SL.UEM.1524.ZS", anchors: [[1991, 14], [2000, 12], [2011, 21], [2019, 11], [2022, 10]], start: 1991, end: 2022, seed: 350, amp: 0.3 });
-const dftCo2 = wbS({ id: "dft-co2-pc", title: "CO₂ emissions per person", subtitle: "Tonnes per person, per year", good: "down", format: fmt1, source: "World Bank", code: "EN.ATM.CO2E.PC", anchors: [[1990, 9.7], [2000, 9.0], [2010, 7.5], [2019, 5.2], [2020, 4.9]], start: 1990, end: 2020, seed: 351, amp: 0.05 });
+const dftCo2 = wbS({ id: "dft-co2-pc", title: "CO₂ emissions per person", subtitle: "Tonnes per person, per year — UK vs Germany & France", good: "down", format: fmt1, source: "World Bank", code: "EN.ATM.CO2E.PC", anchors: [[1990, 9.7], [2000, 9.0], [2010, 7.5], [2019, 5.2], [2020, 4.9]], start: 1990, end: 2020, seed: 351, amp: 0.05, compare: true });
 
 // ============================================================
 // Registry

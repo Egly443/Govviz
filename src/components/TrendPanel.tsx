@@ -52,14 +52,19 @@ export function TrendPanel({
   const ranges: Range[] = series.cadence === "annual" ? [10, 20, "max"] : [5, 10, 20, "max"];
   const [range, setRange] = useState<Range>(defaultRange);
 
-  // Normalise to a list of lines (single-line charts become one line).
-  const lines: Required<SeriesLine>[] = useMemo(
-    () =>
-      (series.lines ?? [{ id: series.id, label: series.title, points: series.points }]).map(
-        (l, i) => ({ ...l, color: l.color ?? LINE_COLORS[i % LINE_COLORS.length] }),
-      ),
-    [series],
-  );
+  // Normalise to a list of lines (single-line charts become one line). Lines
+  // with no points (e.g. international comparators not yet baked by CI) are
+  // dropped so the chart degrades gracefully to whatever real lines exist.
+  const lines: Required<SeriesLine>[] = useMemo(() => {
+    const raw = series.lines ?? [
+      { id: series.id, label: series.title, points: series.points },
+    ];
+    const nonEmpty = raw.filter((l) => l.points.length > 0);
+    return (nonEmpty.length ? nonEmpty : raw).map((l, i) => ({
+      ...l,
+      color: l.color ?? LINE_COLORS[i % LINE_COLORS.length],
+    }));
+  }, [series]);
   const multi = lines.length > 1;
 
   // Merge each line's sliced points into a single row-per-date dataset.
