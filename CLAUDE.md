@@ -88,123 +88,58 @@ clearly-labelled illustrative generators.
   wrong data. `scale` multiplies raw values; fetchers retry transient errors.
 
 ### Fetch helpers (in build-data.mjs)
-- `ons(topic, cdid, dataset, freq)` → hits `www.ons.gov.uk/{topic}/timeseries/
-  {cdid}/{dataset}/data` (clean JSON). `topic`/`cdid`/`dataset` may be **arrays** —
-  every combination is tried (auto-resolves the right dataset).
-- `wb(indicator)` → World Bank API `api.worldbank.org/v2/country/GBR/indicator/
-  {code}?format=json` (OECD/WHO/UN sourced, internationally comparable).
+- `ons(topic, cdid, dataset, freq)` → ONS timeseries JSON (topic/cdid/dataset may be arrays — every combo tried).
+- `wb(indicator)` → World Bank API (OECD/WHO/UN-sourced, internationally comparable).
+- `eesCsv(datasetId)` → DfE Explore Education Statistics CSV → `{headers, rows}`.
+- `unhcr(endpoint, params)` → UNHCR population API.
+- `govukContent(path)` → gov.uk Content API JSON. Use `.details.attachments` (a page's current files) and `.links.documents` (a collection's editions). Works for `government/statistics/*`, `government/collections/*`, and `government/statistical-data-sets/*`.
+- `govukAttachments(path)` → that page's attachment list (title/url/content_type).
+- `govukCollectionLatest(slug, accept)` → newest edition (by `public_updated_at`) in a gov.uk **collection** whose doc passes `accept` → base_path. Robust way to follow a yearly-republished release.
+- `xlsxBook(url)` / `sheetRows(book, name)` → SheetJS reader for **.ods/.xls/.xlsx**. CI installs `xlsx` via `npm install --no-save xlsx` (keeps package-lock in sync); imported lazily. `sheetRows` returns array-of-arrays — numeric cells are numbers, suppression markers (`w`/`x`/`z`) are strings.
+- `parseCsvLine(line)` → quote-aware CSV splitter. Plus raw `fetch(url, fetchOpts({...}))` for HTML scrapes & CKAN APIs (`fetchOpts` sets UA + 30s timeout; pass `"user-agent"` to override).
 
 ### Discovering codes — **WebSearch works** (curl/WebFetch don't!)
-The sandbox blocks `curl`/`WebFetch`, **but the `WebSearch` tool reaches the
-internet.** Use it to find ONS CDIDs/datasets and World Bank codes, then wire the
-fetcher (CI does the actual fetch). e.g. searching "ONS real household disposable
-income per head CDID" found `CRXX`/`ukea`.
+The sandbox blocks `curl`/`WebFetch`, **but `WebSearch` reaches the internet.** Use it to
+find ONS CDIDs/WB codes/EES dataset IDs/gov.uk collection slugs, then wire the fetcher
+(CI does the actual fetch). The actual file structure is discovered by a diagnostic CI run.
 
-### Coverage — current state (49 SOURCES entries, 49 ok / 0 SKIP as of 2026-06-12)
+### Proven source patterns
+- **gov.uk collection → latest ODS:** `govukCollectionLatest(slug, accept)` → `govukAttachments` → `xlsxBook` (dwp-fraud-error, moj-crown-backlog, moj-cost-per-prisoner, moj-completion-days).
+- **gov.uk statistical-data-set:** `govukContent("government/statistical-data-sets/{slug}").details.attachments` (ho-visa-sla → VSI_02).
+- **gov.uk consolidated CSV collection:** loop `links.documents`, parse each CSV (mod-procurement + dft-capital-overrun = IPA GMPP delivery-confidence RAG).
+- **england.nhs.uk scrape:** fetch the topic/year HTML page, regex `href="...\.xlsx?|\.csv"` for the random-suffix file, then xlsxBook/CSV (ae-performance, discharge-delays). Links are server-rendered, NOT zipped.
+- **EES CSV:** `eesCsv(datasetId)` (dfe-teacher-recruitment, dfe-ect-attrition, dfe-attainment-gap = KS4 disadvantage gap index).
+- **Transposed/grouped ODS:** gov.uk "accessible" workbooks often put periods in columns (DASA 3a/5e) or per-period `{date} Rate` triplets (HMPPS); detect the header row and iterate columns.
+- **Branch CI harness:** `.github/workflows/data-check.yml` runs the fetcher on non-main pushes **without deploying** — validate parsers against live sources here (the sandbox has no internet), then promote to main. Production deploy (`deploy.yml`) runs only on `main`.
 
-**~47 unique series IDs are live** (real data fetched in CI). Read the latest CI
-**"Fetch live data"** log (via `mcp__github__get_job_logs`) for the authoritative
-`ok`/`SKIP` tally — the manifest is cumulative so one run shows everything.
+### Coverage — current state (64 ok / 3 skipped as of 2026-06-15)
+Read the latest CI **"Fetch live data"** log (`mcp__github__get_job_logs`) for the authoritative
+`ok`/`SKIP` tally — the manifest is cumulative so one run shows everything. ~64 series IDs now
+bake real data across all departments (HMT/DHSC via ONS+World Bank; DfE via EES; DWP via World
+Bank; plus the gov.uk-ODS / statistical-data-set / england.nhs.uk operational series listed below).
 
-| Dept | Live series IDs |
-|------|----------------|
-| HMT  | hmt-psnd, hmt-psnd-cash, hmt-deficit, hmt-unemployment, hmt-gdp-per-capita, hmt-gdp-growth, hmt-real-income, hmt-productivity, hmt-cost-of-living (cpi + wages lines), hmt-investment-gdp, hmt-current-account, hmt-employment-rate, hmt-participation, hmt-trade-gdp, hmt-savings, hmt-gni-per-capita, hmt-tax-burden, hmt-debt-interest, hmt-tax-split (direct + indirect lines) |
-| DHSC | dhsc-clinical-per-1000 (doctors + nurses lines), dhsc-beds-per-1000, dhsc-health-spend-gdp, dhsc-health-spend-pc, dhsc-infant-mortality, life-expectancy, dhsc-suicide, dhsc-measles-imm, dhsc-oop, vacancy (nursing vacancy rate) |
-| DfE  | dfe-edu-spend-gdp, dfe-pupil-teacher, dfe-tertiary-enrol, dfe-teacher-recruitment (EES), dfe-ect-attrition (EES) |
-| HO   | ho-homicide-rate, ho-migrant-stock, ho-asylum-backlog |
-| MoD  | mod-defence-spend-gdp, mod-personnel-total |
-| DWP  | dwp-pop-65, dwp-oldage-dependency, dwp-female-participation, dwp-gini, dwp-youth-unemp |
-| DfT  | dft-road-death-rate, dft-co2-pc |
+Converted illustrative→real in the 2026-06 campaign: dwp-fraud-error, dfe-teacher-recruitment,
+dfe-attainment-gap, moj-crown-backlog, moj-cost-per-prisoner, moj-officer-resignations,
+moj-completion-days, mod-personnel-shortfall, mod-voluntary-outflow, mod-procurement,
+dft-capital-overrun, ho-visa-sla, dft-rail-cancellations, ae-performance, agency-spend,
+discharge-delays.
 
-### Still illustrative — ~28 series — **FOR OPUS TO SOLVE**
-
-These are the series that remain illustrative. Each has a specific blocker; a
-sufficiently capable model should be able to find a workaround (scraping, snapshot
-commits, alternative indicators, or zip/Excel CI parsers).
-
-#### DHSC operational (6 series in `src/components/data.ts`)
-| Series | Description | Blocker |
-|--------|-------------|---------|
-| `waitingList` | NHS RTT total waiting list size | NHS England publishes dated **zipped Excel** (`https://www.england.nhs.uk/statistics/statistical-work-areas/rtt-waiting-times/`); no REST JSON endpoint |
-| `rtt18Week` | % patients waiting ≤18 weeks | Same zip; sheet "Provider" col "Total within 18 weeks" |
-| `dischargeDelays` | Delayed discharges (bed-days lost) | NHS England daily SitRep, archived Excel |
-| `agencySpend` | Agency/locum spend (£bn) | NHS England board papers / NAO; no structured API |
-| `aePerformance` | A&E 4-hour performance % | NHS England A&E monthly Excel; no REST JSON |
-| `turnover` | NHS staff turnover % | NHS Digital workforce stats Excel; no REST JSON |
-
-**Possible approach:** CI wget of the known Excel URL + `xlsx` npm package to
-parse. The RTT zip URL pattern is stable (`rtt-*-full-extract.zip`). The
-`xlsx` package is already a common npm dep and can read `.xlsb`/`.xlsx`.
-
-#### MoJ (4 series in `src/components/departments.ts`)
+### Remaining illustrative
+**Fetchers wired but currently SKIP (CI-verified blockers):**
 | Series | Blocker |
-|--------|---------|
-| `moj-crown-backlog` | `data.justice.gov.uk` is a Tableau dashboard; no API. NAO/MoJ annual reports are PDFs. |
-| `moj-officer-resignations` | HMPPS workforce quarterly bulletin is Excel-only. |
-| `moj-cost-per-prisoner` | HMPPS annual report & accounts, Excel annex. |
-| `moj-completion-days` | LAA/HMCTS published as Excel/CSV in ad-hoc statistical releases. |
+|---|---|
+| `waiting-list` | NHS England discontinued the national RTT timeseries; only split per-org monthly XLSX (`Incomplete-Provider` ~9 MB, etc.). Needs summing providers × RTT week-bands. `data.england.nhs.uk` CKAN → 404. |
+| `rtt-18-week` | Same per-provider RTT workbook; % within 18 weeks must be aggregated from it. |
+| `turnover` | digital.nhs.uk Cloudflare-blocks automated access (403 even with a browser UA); data.gov.uk `nhs-workforce-turnover` resources point back to digital.nhs.uk. Needs a non-gated source. |
 
-**Possible approach:** `data.justice.gov.uk` has a `/views/{view}/data.csv?...`
-Tableau endpoint — worth probing. Alternatively commit sourced snapshots from
-the MoJ/HMPPS annual report Excel files (manual, citable).
+**Hard-blocked (no fetcher; charts intentionally illustrative):** DWP Stat-Xplore series
+(`dwp-pip-clearance`, `dwp-work-coach-ratio`, `dwp-uc-mr`) need a free API key as CI secret
+`DWP_STATXPLORE_KEY` (`POST https://stat-xplore.dwp.gov.uk/webapi/rest/v1/table`, `Authorization: Bearer {key}`);
+`mod-readiness` (classified); `ho-caseworker-turnover`, `ho-hotel-spend`, `dfe-dsg-deficit`,
+`dft-dvla-backlog`, `dft-srn-degradation` (PDF / parliamentary-answer / LA-return only).
 
-#### MoD operational (4 series)
-| Series | Blocker |
-|--------|---------|
-| `mod-personnel-shortfall` | DASA (Defence Analytical Services & Advice) publishes UK Armed Forces quarterly manpower as Excel; no API. |
-| `mod-voluntary-outflow` | Same DASA quarterly bulletin. |
-| `mod-procurement` | IPA GMPP annual report is PDF/Excel; no structured API. |
-| `mod-readiness` | Classified / not published at all. Consider replacing with DASA-published readiness-proxy (e.g. trained strength %). |
+Per-series research notes (sources, drafted fetchers, dead-ends) live in `docs/backlog-research/`.
 
-**Possible approach:** DASA `www.gov.uk/government/collections/uk-armed-forces-quarterly-service-personnel-statistics` — check if any CSV version is available alongside the Excel.
-
-#### DWP operational (4 series)
-| Series | Blocker |
-|--------|---------|
-| `dwp-pip-clearance` | DWP Stat-Xplore (`stat-xplore.dwp.gov.uk`) requires a **free API key** (register at the site). Endpoint is `POST /table` with a JSON query body. |
-| `dwp-work-coach-ratio` | Same Stat-Xplore; claimant-count ÷ work-coach headcount. |
-| `dwp-fraud-error` | DWP publishes annual fraud/error estimates as Excel on gov.uk — URL pattern is stable. |
-| `dwp-uc-mr` | DWP Stat-Xplore UC mandatory reconsideration data. |
-
-**Possible approach for `dwp-fraud-error`:** The annual Excel is at a stable
-`https://assets.publishing.service.gov.uk/...` URL — CI can wget + parse with
-`xlsx`. For Stat-Xplore series: user could register for a free API key and add it
-as a CI secret `DWP_STATXPLORE_KEY`; the fetcher sends `Authorization: Bearer
-{key}` to `https://stat-xplore.dwp.gov.uk/webapi/rest/v1/table`.
-
-#### Home Office operational (3 series)
-| Series | Blocker |
-|--------|---------|
-| `ho-caseworker-turnover` | Not published as a structured dataset; appears only in HO annual reports. |
-| `ho-hotel-spend` | Published in parliamentary answers / NAO reports; no structured API. |
-| `ho-visa-sla` | UKVI published quarterly transparency data as Excel on gov.uk — URL may be stable. |
-
-**Possible approach for `ho-visa-sla`:** Check
-`https://www.gov.uk/government/collections/migration-transparency-data` for a
-directly linkable CSV/Excel; CI can scrape if URL is stable.
-
-#### DfE non-operational (2 series)
-| Series | Blocker |
-|--------|---------|
-| `dfe-attainment-gap` | EPI publish an annual report PDF/Excel; no API. NPDB (National Pupil Database) data is behind a data-share agreement. |
-| `dfe-dsg-deficit` | DSG deficit is reported at local-authority level in DfE's section 251 outturn returns (Excel); no aggregate API. |
-
-**Possible approach:** EES (`explore-education-statistics.service.gov.uk`) may
-have an attainment-gap dataset — search EES catalogue for "attainment gap" or
-"disadvantage gap". The `eesCsv(datasetId)` helper in `build-data.mjs` can fetch
-it if found.
-
-#### DfT operational (4 series)
-| Series | Blocker |
-|--------|---------|
-| `dft-rail-cancellations` | ORR (Office of Rail and Road) publishes train performance data as Excel/CSV; `dataportal.orr.gov.uk` has some CSV endpoints — worth probing. |
-| `dft-dvla-backlog` | DVLA does not publish transaction backlog as open data; appears in parliamentary answers only. |
-| `dft-capital-overrun` | IPA GMPP annual report (PDF/Excel); no API. |
-| `dft-srn-degradation` | National Highways asset condition data is in annual reports; no API. |
-
-**Possible approach for `dft-rail-cancellations`:** ORR data portal
-(`https://dataportal.orr.gov.uk/statistics/performance/train-punctuality/`) may
-have a CSV download link. CI can wget the CSV and parse the cancellation % column.
 
 ### Workflow notes
 - User granted **direct pushes to `main`** for data iteration:
