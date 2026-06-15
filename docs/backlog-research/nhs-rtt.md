@@ -340,3 +340,13 @@ gets *some* real data even if the landing-page scrape fails, albeit potentially 
    - `waitingList.points`: change `trajectory(...)` → `realPoints("waiting-list", trajectory(...))`
    - `rtt18Week.points`: change `trajectory(...)` → `realPoints("rtt-18-week", trajectory(...))`
 4. Push to `main` → CI fetches, bakes, deploys.
+
+## UPDATE (CI-verified 2026-06-15) — no national file; needs heavy aggregation
+CI probe of the RTT 2025-26 page shows ONLY split monthly XLSX per organisation:
+`Incomplete-Provider-MarYY` (9 MB), `Incomplete-Commissioner`, Admitted/NonAdmitted/
+New-Periods (Commissioner & Provider). There is **no national-totals or overview
+timeseries file** anymore, and `data.england.nhs.uk` CKAN `package_search` → HTTP 404.
+To land `waiting-list` + `rtt-18-week` you must download the per-provider Incomplete
+file each month and SUM across all providers × RTT week-bands (0-1…18+), then derive
+total incomplete pathways and % within 18 weeks. Heavy (multi-MB × many months) and
+multi-round; deferred.

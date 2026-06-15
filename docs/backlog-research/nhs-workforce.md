@@ -410,3 +410,11 @@ points: realPoints(
 - Gov.uk press release (agency crackdown): https://www.gov.uk/government/news/nearly-1-billion-for-nhs-frontline-after-agency-spend-crackdown
 - NHS England Q4 financial report 2024-25: https://www.england.nhs.uk/long-read/financial-performance-report-2024-25-quarter-4/
 - NHS England 2025-26 month 12: https://www.england.nhs.uk/long-read/month-12-financial-position-2025-26-4-june-2026/
+
+## UPDATE (CI-verified 2026-06-15) — turnover source is Cloudflare-gated
+digital.nhs.uk returns HTTP 403 to automated requests even with a browser User-Agent
+(Cloudflare challenge). data.gov.uk CKAN lists `nhs-workforce-turnover [HTML/XLS]`,
+`nhs_workforce_statistics [HTML/CSV]`, `nhs-workforce-turnover-by-organisation` — but
+their resource URLs point back to digital.nhs.uk (same 403). No open mirror found.
+`turnover` is effectively blocked until a non-gated source exists (e.g. an england.nhs.uk
+workforce file, or a future NHSE open-data endpoint). `agency-spend` (this file) is live.
