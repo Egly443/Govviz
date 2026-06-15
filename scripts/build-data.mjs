@@ -1204,16 +1204,21 @@ const SOURCES = [
     min: 2,
     max: 30, // percent
     get: async () => {
-      const atts = await govukAttachments("government/statistical-data-sets/police-recorded-crime-and-outcomes-open-data-tables");
+      const j = await govukContent("government/statistical-data-sets/police-recorded-crime-and-outcomes-open-data-tables");
+      const atts = j?.details?.attachments || [];
+      // The big open-data CSVs are linked in the page body, not exposed as
+      // structured attachments (which only carry the geographic reference table).
+      const body = j?.details?.body || "";
+      const bodyCsvs = [...body.matchAll(/href="([^"]+\.csv[^"]*)"/gi)].map((m) => ({ title: m[1], url: m[1] }));
+      const all = [...atts, ...bodyCsvs];
       const isCsv = (a) => /\.csv/i.test(a.url || "");
       const ttl = (a) => `${a.title || ""} ${a.url || ""}`.toLowerCase();
       const isRef = (a) => /reference|geograph|\bgeo\b|offence(-| )?(reference|table)|lookup/.test(ttl(a));
-      console.log(`ho-charge-rate csv atts: ${atts.filter(isCsv).map((a) => `${a.title} :: ${(a.url || "").split("/").pop()}`).join(" | ")}`);
+      console.log(`ho-charge-rate csv candidates: ${all.filter(isCsv).map((a) => (a.url || "").split("/").pop()).join(" | ")}`);
       const csv =
-        atts.find((a) => isCsv(a) && /outcome/.test(ttl(a)) && !isRef(a)) ||
-        atts.find((a) => isCsv(a) && /outcome/.test(ttl(a))) ||
-        atts.find((a) => isCsv(a) && !isRef(a));
-      if (!csv) throw new Error("ho-charge-rate: no outcomes data CSV among attachments");
+        all.find((a) => isCsv(a) && /outcome/.test(ttl(a)) && !isRef(a)) ||
+        all.find((a) => isCsv(a) && /outcome/.test(ttl(a)));
+      if (!csv) throw new Error("ho-charge-rate: no outcomes data CSV found in attachments or body");
       console.log(`  ho-charge-rate: ${csv.url}`);
       const res = await fetch(csv.url, fetchOpts({ accept: "text/csv,*/*" }));
       if (!res.ok) throw new Error(`ho-charge-rate CSV → HTTP ${res.status}`);
