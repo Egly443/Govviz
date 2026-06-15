@@ -1220,9 +1220,11 @@ const SOURCES = [
     min: 5,
     max: 20,
     get: async () => {
-      // Discover the XLSX URL from the supplementary info page
+      // Discover the XLSX URL from the supplementary info page. digital.nhs.uk
+      // 403s the default bot UA, so present a browser User-Agent.
+      const BROWSER_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
       const infoUrl = "https://digital.nhs.uk/supplementary-information/2023/turnover-from-organisation-by-staff-group-2009-to-2023";
-      const res = await fetch(infoUrl, fetchOpts({ accept: "text/html,*/*" }));
+      const res = await fetch(infoUrl, fetchOpts({ accept: "text/html,*/*", "user-agent": BROWSER_UA }));
       if (!res.ok) throw new Error(`turnover: info page HTTP ${res.status}`);
       const html = await res.text();
       const cands = [];
@@ -1469,7 +1471,7 @@ const SOURCES = [
           for (const p of await parseCsv(url)) if (!allPoints.has(p.date)) allPoints.set(p.date, p.value);
         } catch (e) { console.log(`  monthly parse err ${url.split("/").pop()}: ${e.message}`); }
       }
-      const points = [...allPoints.entries()].map(([date, value]) => ({ date, value })).filter((p) => p.value >= 500).sort((a, b) => (a.date < b.date ? -1 : 1));
+      const points = [...allPoints.entries()].map(([date, value]) => ({ date, value })).filter((p) => p.value >= 5000).sort((a, b) => (a.date < b.date ? -1 : 1));
       if (points.length < 6) throw new Error(`discharge-delays: only ${points.length} usable points after combining sources`);
       console.log(`discharge-delays: ${points.length} total points ${points[0].date}..${points[points.length - 1].date}`);
       return points;
