@@ -83,8 +83,17 @@ export function TrendPanel({
     );
   }, [lines, range]);
 
-  const real = isRealSeries(series.id);
-  const asOf = realAsOf(series.id);
+  // A derived (cost÷outcome) series is real iff every input series is real;
+  // its freshness is the oldest of its inputs.
+  const real = series.derivedFrom
+    ? series.derivedFrom.every(isRealSeries)
+    : isRealSeries(series.id);
+  const asOf = series.derivedFrom
+    ? series.derivedFrom
+        .map(realAsOf)
+        .filter((d): d is string => !!d)
+        .sort()[0]
+    : realAsOf(series.id);
 
   const current = latest(series);
   const yoy = deltaVs(series, 12);

@@ -41,6 +41,13 @@ export type TrendSeries = {
   points: Point[];
   /** When set (length > 1), the panel draws a multi-line comparison chart. */
   lines?: SeriesLine[];
+  /**
+   * Source series ids this series is computed from (e.g. a value-for-money
+   * cost÷outcome ratio). When present, the "Official data" badge is shown iff
+   * every source id has real baked data — a derived ratio is exactly as real
+   * as its inputs, and never carries its own SERIES_DATA entry.
+   */
+  derivedFrom?: string[];
   annotations: Annotation[];
 };
 
@@ -81,6 +88,62 @@ export function wbLines(id: string, ukFallback: Point[]): SeriesLine[] {
       points: realLine(id, p.code, [] as Point[]),
     })),
   ];
+}
+
+/**
+ * Build a value-for-money ratio (cost ÷ outcome) from two existing series by
+ * dividing their values year-by-year. The result is genuinely real wherever
+ * both inputs are real — no fabricated points are introduced — and is flagged
+ * via `derivedFrom`. Year alignment keeps it robust to differing start dates
+ * and cadences (both are reduced to their common years).
+ */
+export function ratioSeries(o: {
+  id: string;
+  title: string;
+  subtitle?: string;
+  num: TrendSeries;
+  den: TrendSeries;
+  unit?: SeriesUnit;
+  format: (v: number) => string;
+  shortFormat?: (v: number) => string;
+  yFormat?: (v: number) => string;
+  deltaFormat?: (v: number) => string;
+  goodDirection: "up" | "down";
+  target?: { value: number; label: string };
+  source: string;
+  sourceUrl: string;
+  scale?: number;
+  round?: number;
+  annotations?: Annotation[];
+}): TrendSeries {
+  const scale = o.scale ?? 1;
+  const round = o.round ?? 2;
+  const denByYear = new Map<string, number>();
+  for (const p of o.den.points) denByYear.set(p.date.slice(0, 4), p.value);
+  const points: Point[] = [];
+  for (const p of o.num.points) {
+    const d = denByYear.get(p.date.slice(0, 4));
+    if (d == null || d === 0) continue;
+    points.push({ date: p.date, value: +((p.value / d) * scale).toFixed(round) });
+  }
+  return {
+    id: o.id,
+    title: o.title,
+    subtitle: o.subtitle,
+    unit: o.unit ?? "currency",
+    format: o.format,
+    shortFormat: o.shortFormat ?? o.format,
+    yFormat: o.yFormat ?? o.shortFormat ?? o.format,
+    deltaFormat: o.deltaFormat,
+    goodDirection: o.goodDirection,
+    target: o.target,
+    source: o.source,
+    sourceUrl: o.sourceUrl,
+    cadence: o.num.cadence,
+    points,
+    derivedFrom: [o.num.id, o.den.id],
+    annotations: o.annotations ?? [],
+  };
 }
 
 // Deterministic pseudo-noise

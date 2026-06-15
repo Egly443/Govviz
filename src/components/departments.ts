@@ -9,6 +9,7 @@ import {
   infantMortality,
   lifeExpectancy,
   noise,
+  ratioSeries,
   realLine,
   realPoints,
   rtt18Week,
@@ -1569,6 +1570,26 @@ const hmtGniPerCapita = wbS({ id: "hmt-gni-per-capita", title: "GNI per head (PP
 
 // DHSC
 const dhscHealthSpendPc = wbS({ id: "dhsc-health-spend-pc", title: "Health spending per person", subtitle: "Current health expenditure, $ per person — UK vs Germany & France", good: "up", unit: "currency", format: fmtUsd, shortFormat: fmtUsdK, yFormat: fmtUsdK, source: "World Bank (WHO)", code: "SH.XPD.CHEX.PC.CD", anchors: [[2000, 1700], [2010, 3500], [2019, 4500], [2021, 5400]], start: 2000, end: 2021, seed: 340, amp: 20, compare: true });
+// Value-for-money: dollars of annual health spend per year of life expectancy.
+// A crude allocative-efficiency proxy — rising means each pound buys less
+// longevity. Real wherever both inputs are real (WB health spend + ONS life
+// tables), so it never fabricates: derivedFrom drives the provenance badge.
+const dhscSpendPerLifeYear = ratioSeries({
+  id: "dhsc-spend-per-life-year",
+  title: "Health spend per year of life",
+  subtitle: "Annual health spend ($/person) ÷ life expectancy — lower = more longevity per $",
+  num: dhscHealthSpendPc,
+  den: lifeExpectancy,
+  unit: "currency",
+  format: (v) => `$${Math.round(v)}`,
+  shortFormat: (v) => `$${Math.round(v)}`,
+  yFormat: (v) => `$${Math.round(v)}`,
+  deltaFormat: (v) => `${v > 0 ? "+" : ""}$${Math.round(v)}`,
+  goodDirection: "down",
+  source: "World Bank (WHO) ÷ ONS national life tables",
+  sourceUrl: "https://data.worldbank.org/indicator/SH.XPD.CHEX.PC.CD?locations=GB",
+});
+
 const dhscSuicide = wbS({ id: "dhsc-suicide", title: "Suicide rate", subtitle: "Per 100,000 people", good: "down", format: fmt1, source: "World Bank (WHO)", code: "SH.STA.SUIC.P5", anchors: [[2000, 9.5], [2010, 7.0], [2016, 7.6], [2019, 7.5]], start: 2000, end: 2019, seed: 341, amp: 0.08 });
 const dhscMeasles = wbS({ id: "dhsc-measles-imm", title: "Measles immunisation", subtitle: "% of children immunised", good: "up", unit: "percent", format: fmt0, source: "World Bank (WHO/UNICEF)", code: "SH.IMM.MEAS", anchors: [[1990, 87], [2000, 88], [2010, 93], [2019, 91], [2021, 90]], start: 1990, end: 2021, seed: 342, amp: 0.2 });
 const dhscOop = wbS({ id: "dhsc-oop", title: "Out-of-pocket health costs", subtitle: "% of total health spending", good: "down", unit: "percent", format: fmtPct, source: "World Bank (WHO)", code: "SH.XPD.OOPC.CH.ZS", anchors: [[2000, 18], [2010, 16], [2019, 17], [2021, 14]], start: 2000, end: 2021, seed: 343, amp: 0.2 });
@@ -1601,7 +1622,7 @@ export const departments: Department[] = [
       "Waiting list has stopped growing but remains near record highs. The 18-week standard has not been met for a decade and the social-care discharge bottleneck is structural. Agency spend has eased since the 2023 peak; capital delivery is worsening.",
     themes: ["Waiting list", "Urgent care", "Workforce", "Capital"],
     hero: waitingList,
-    core: [rtt18Week, dischargeDelays, agencySpend, capitalOverrun],
+    core: [rtt18Week, dischargeDelays, agencySpend, capitalOverrun, dhscSpendPerLifeYear],
     supporting: [aePerformance, clinicalPer1000, hospitalBeds, healthSpendGdp, dhscHealthSpendPc, infantMortality, dhscSuicide, dhscMeasles, dhscOop, turnover, vacancyRate, lifeExpectancy],
   },
   {
