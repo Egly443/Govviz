@@ -522,6 +522,45 @@ export const aePerformance: TrendSeries = {
   ],
 };
 
+// Category 2 ambulance response (emergencies like heart attack / stroke) — the
+// "waited hours for an ambulance" grievance. 18-minute national standard.
+export const ambulanceC2: TrendSeries = {
+  id: "dhsc-ambulance-c2",
+  title: "Ambulance response (Category 2)",
+  subtitle: "Mean response to emergency calls (heart attack, stroke), minutes",
+  unit: "count",
+  format: (v) => `${v.toFixed(0)} min`,
+  shortFormat: (v) => `${v.toFixed(0)}m`,
+  yFormat: (v) => `${v.toFixed(0)}`,
+  deltaFormat: (v) => `${v > 0 ? "+" : ""}${v.toFixed(0)}m`,
+  goodDirection: "down",
+  target: { value: 18, label: "18-min standard" },
+  source: "NHS England Ambulance Quality Indicators (AmbSYS)",
+  sourceUrl:
+    "https://www.england.nhs.uk/statistics/statistical-work-areas/ambulance-quality-indicators/",
+  cadence: "monthly",
+  points: realPoints(
+    "dhsc-ambulance-c2",
+    trajectory(
+      [
+        ["2018-08-01", 19],
+        ["2020-06-01", 21],
+        ["2021-10-01", 40],
+        ["2022-12-01", 92],
+        ["2023-06-01", 38],
+        ["2024-06-01", 36],
+        ["2026-04-01", 31],
+      ],
+      "2018-08-01",
+      "2026-04-01",
+      37,
+      1.5,
+      1.0,
+    ),
+  ),
+  annotations: [{ date: "2022-12-01", label: "Winter crisis" }],
+};
+
 export const turnover: TrendSeries = {
   id: "turnover",
   title: "Civil service & NHS workforce turnover",

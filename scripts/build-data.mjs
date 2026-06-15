@@ -1112,6 +1112,141 @@ const SOURCES = [
     },
   },
 
+  // NHS England Ambulance Quality Indicators — Category 2 (emergency, e.g. heart
+  // attack/stroke) mean response time. AmbSYS publishes a long CSV; field A31 is
+  // the C2 mean. Scrape the AQI page for the AmbSYS CSV, take the England row.
+  {
+    id: "dhsc-ambulance-c2",
+    min: 5,
+    max: 120, // minutes
+    get: async () => {
+      const now = new Date();
+      const fy = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+      const base = "https://www.england.nhs.uk/statistics/statistical-work-areas/ambulance-quality-indicators";
+      const pages = [
+        `${base}/`,
+        `${base}/ambulance-quality-indicators-data-${fy}-${String(fy + 1).slice(2)}/`,
+        `${base}/ambulance-quality-indicators-data-${fy - 1}-${String(fy).slice(2)}/`,
+      ];
+      let csvUrl = null;
+      const samples = [];
+      for (const pageUrl of pages) {
+        try {
+          const res = await fetch(pageUrl, fetchOpts({ accept: "text/html,*/*" }));
+          if (!res.ok) { samples.push(`${pageUrl} -> HTTP ${res.status}`); continue; }
+          const html = await res.text();
+          const m = html.match(/href="([^"]*AmbSYS[^"]*\.csv[^"]*)"/i);
+          if (m) { csvUrl = m[1].startsWith("http") ? m[1] : `https://www.england.nhs.uk${m[1]}`; break; }
+          const all = [...html.matchAll(/href="([^"]*\.csv[^"]*)"/gi)].map((x) => x[1]).slice(0, 8);
+          samples.push(`${pageUrl} (${html.length}b): ${all.join(" , ") || "no .csv hrefs"}`);
+        } catch (e) { samples.push(`${pageUrl} ERR ${e.message}`); }
+      }
+      if (!csvUrl) { console.log("  dhsc-ambulance-c2 discovery failed:\n   " + samples.join("\n   ")); throw new Error("dhsc-ambulance-c2: no AmbSYS CSV URL found"); }
+      console.log(`  dhsc-ambulance-c2: ${csvUrl}`);
+      const res = await fetch(csvUrl, fetchOpts({ accept: "text/csv,*/*" }));
+      if (!res.ok) throw new Error(`dhsc-ambulance-c2 CSV → HTTP ${res.status}`);
+      const lines = (await res.text()).split(/\r?\n/).filter((l) => l.trim());
+      const header = parseCsvLine(lines[0]).map((h) => h.replace(/^﻿/, "").trim());
+      const yearCol = header.findIndex((h) => /^year$/i.test(h));
+      const monthCol = header.findIndex((h) => /^month$/i.test(h));
+      const orgCodeCol = header.findIndex((h) => /org.*code/i.test(h));
+      const orgNameCol = header.findIndex((h) => /org.*name/i.test(h));
+      let c2Col = header.findIndex((h) => /^A31$/i.test(h));
+      if (c2Col < 0) c2Col = header.findIndex((h) => /category ?2.*mean|mean.*category ?2|c2.*mean/i.test(h));
+      if (yearCol < 0 || monthCol < 0 || c2Col < 0) {
+        console.log(`dhsc-ambulance-c2: header=${header.slice(0, 45).join("|")}`);
+        throw new Error("dhsc-ambulance-c2: Year/Month/A31 columns not found");
+      }
+      const MON = { january: 1, february: 2, march: 3, april: 4, may: 5, june: 6, july: 7, august: 8, september: 9, october: 10, november: 11, december: 12 };
+      const toMin = (raw) => {
+        const s = String(raw ?? "").trim();
+        if (!s || /^[-:.\s]*$/.test(s)) return null;
+        let m = s.match(/^(\d{1,2}):(\d{2}):(\d{2})$/); // HH:MM:SS
+        if (m) return (+m[1] * 3600 + +m[2] * 60 + +m[3]) / 60;
+        m = s.match(/^(\d{1,3}):(\d{2})$/); // MM:SS
+        if (m) return (+m[1] * 60 + +m[2]) / 60;
+        const n = parseFloat(s.replace(/,/g, ""));
+        if (!Number.isFinite(n)) return null;
+        return n > 600 ? n / 60 : n; // raw seconds → minutes
+      };
+      const points = [], seen = new Set();
+      for (const line of lines.slice(1)) {
+        const r = parseCsvLine(line);
+        const code = orgCodeCol >= 0 ? String(r[orgCodeCol] ?? "").trim() : "";
+        const nm = orgNameCol >= 0 ? String(r[orgNameCol] ?? "").trim() : "";
+        if (!/^eng$/i.test(code) && !/^england$/i.test(nm)) continue;
+        const yr = parseInt(r[yearCol], 10);
+        let mn = parseInt(r[monthCol], 10);
+        if (!mn) mn = MON[String(r[monthCol] ?? "").trim().toLowerCase()] || 0;
+        if (!yr || !mn) continue;
+        const v = toMin(r[c2Col]);
+        if (v == null || v < 5 || v > 120) continue;
+        const date = `${yr}-${String(mn).padStart(2, "0")}-01`;
+        if (seen.has(date)) continue;
+        seen.add(date);
+        points.push({ date, value: +v.toFixed(1) });
+      }
+      if (points.length < 12) {
+        console.log(`dhsc-ambulance-c2: only ${points.length} pts; header=${header.slice(0, 30).join("|")}`);
+        throw new Error(`dhsc-ambulance-c2: only ${points.length} points`);
+      }
+      return points.sort((a, b) => (a.date < b.date ? -1 : 1));
+    },
+  },
+
+  // Home Office — % of recorded offences resulting in a charge or summons.
+  // The police-recorded-crime-and-outcomes open data table is a long CSV
+  // (year × force × offence × outcome × count); aggregate nationally per year:
+  // charged/summonsed ÷ all offences. The published rate has collapsed from
+  // ~16% (2015) to ~7% — a flagship "police don't solve crimes" grievance.
+  {
+    id: "ho-charge-rate",
+    min: 2,
+    max: 30, // percent
+    get: async () => {
+      const atts = await govukAttachments("government/statistical-data-sets/police-recorded-crime-and-outcomes-open-data-tables");
+      const csv =
+        atts.find((a) => /outcomes? open data/i.test(a.title || "") && /\.csv/i.test(a.url || "")) ||
+        atts.find((a) => /outcome/i.test(a.title || "") && /\.csv/i.test(a.url || "")) ||
+        atts.find((a) => /\.csv/i.test(a.url || ""));
+      if (!csv) { console.log(`ho-charge-rate atts: ${atts.map((a) => a.title).slice(0, 25).join(" | ")}`); throw new Error("ho-charge-rate: no outcomes CSV attachment"); }
+      console.log(`  ho-charge-rate: ${csv.url}`);
+      const res = await fetch(csv.url, fetchOpts({ accept: "text/csv,*/*" }));
+      if (!res.ok) throw new Error(`ho-charge-rate CSV → HTTP ${res.status}`);
+      const lines = (await res.text()).split(/\r?\n/);
+      const header = parseCsvLine(lines[0]).map((h) => h.replace(/^﻿/, "").trim().toLowerCase());
+      const yCol = header.findIndex((h) => /financial year|year ending|fin.*year|^year$|^period$/.test(h));
+      const ogCol = header.findIndex((h) => /outcome group/.test(h));
+      const otCol = header.findIndex((h) => /outcome (type|description|sub)/.test(h));
+      const cCol = header.findIndex((h) => /number of offences|offence count|^offences$|^count$|^number$/.test(h));
+      if (yCol < 0 || cCol < 0 || (ogCol < 0 && otCol < 0)) {
+        console.log(`ho-charge-rate header: ${header.join("|")}`);
+        throw new Error("ho-charge-rate: year/count/outcome columns not found");
+      }
+      const totals = {}, charged = {};
+      for (let i = 1; i < lines.length; i++) {
+        const r = parseCsvLine(lines[i]);
+        if (r.length <= cCol) continue;
+        const yr = String(r[yCol] ?? "").trim();
+        const ym = yr.match(/(\d{4})/g);
+        if (!ym) continue;
+        const yy = ym[ym.length - 1]; // ending year of e.g. "2024/25" → 2024, "Mar 2025" → 2025
+        const n = parseFloat(String(r[cCol] ?? "").replace(/,/g, ""));
+        if (!Number.isFinite(n)) continue;
+        const cat = `${ogCol >= 0 ? r[ogCol] : ""} ${otCol >= 0 ? r[otCol] : ""}`.toLowerCase();
+        totals[yy] = (totals[yy] || 0) + n;
+        if (/charg|summons/.test(cat)) charged[yy] = (charged[yy] || 0) + n;
+      }
+      const points = Object.keys(totals)
+        .filter((y) => totals[y] > 0)
+        .sort()
+        .map((y) => ({ date: `${y}-01-01`, value: +((100 * (charged[y] || 0)) / totals[y]).toFixed(2) }))
+        .filter((p) => p.value > 0);
+      if (points.length < 5) { console.log(`ho-charge-rate: only ${points.length} yrs; charged keys=${Object.keys(charged).join(",")}`); throw new Error(`ho-charge-rate: only ${points.length} points`); }
+      return points;
+    },
+  },
+
   // DfT / ORR rail cancellations score (% of planned trains cancelled, all
   // operators). ORR data portal Table 3123 ODS (media id may rotate → SKIPs safe).
   {

@@ -1,6 +1,7 @@
 import {
   agencySpend,
   aePerformance,
+  ambulanceC2,
   capitalOverrun,
   clinicalPer1000,
   dischargeDelays,
@@ -392,6 +393,39 @@ const hoVisaSla: TrendSeries = {
   annotations: [
     { date: "2022-03-01", label: "Ukraine schemes surge" },
   ],
+};
+
+// % of recorded crimes resulting in a charge or summons — the "police don't
+// solve crimes" grievance. Collapsed from ~16% (2015) to ~7%.
+const hoChargeRate: TrendSeries = {
+  id: "ho-charge-rate",
+  title: "Crimes resulting in a charge",
+  subtitle: "% of recorded offences with a charge or summons",
+  unit: "percent",
+  format: fmtPct,
+  shortFormat: fmtPct,
+  goodDirection: "up",
+  source: "Home Office, police recorded crime & outcomes open data",
+  sourceUrl:
+    "https://www.gov.uk/government/statistical-data-sets/police-recorded-crime-and-outcomes-open-data-tables",
+  cadence: "annual",
+  points: realPoints(
+    "ho-charge-rate",
+    annual(
+      [
+        [2015, 15.5],
+        [2018, 9.1],
+        [2021, 6.3],
+        [2023, 5.7],
+        [2025, 7.0],
+      ],
+      2015,
+      2025,
+      141,
+      0.1,
+    ),
+  ),
+  annotations: [],
 };
 
 // ============================================================
@@ -1623,7 +1657,7 @@ export const departments: Department[] = [
       "Waiting list has stopped growing but remains near record highs. The 18-week standard has not been met for a decade and the social-care discharge bottleneck is structural. Agency spend has eased since the 2023 peak; capital delivery is worsening.",
     themes: ["Waiting list", "Urgent care", "Workforce", "Capital"],
     hero: waitingList,
-    core: [rtt18Week, dischargeDelays, agencySpend, capitalOverrun, dhscSpendPerLifeYear],
+    core: [rtt18Week, ambulanceC2, dischargeDelays, agencySpend, capitalOverrun, dhscSpendPerLifeYear],
     supporting: [aePerformance, clinicalPer1000, hospitalBeds, healthSpendGdp, dhscHealthSpendPc, infantMortality, dhscSuicide, dhscMeasles, dhscOop, turnover, vacancyRate, lifeExpectancy],
   },
   {
@@ -1654,7 +1688,7 @@ export const departments: Department[] = [
       "The legacy asylum backlog has cleared, but new intake keeps the headline above its 2010s baseline. Hotel run-rate has fallen from the 2023 peak but remains an order of magnitude above pre-2019. Visa SLAs are recovering.",
     themes: ["Throughput", "Workforce", "Value for money", "Service standard"],
     hero: hoAsylumBacklog,
-    core: [hoCaseworkerTurnover, hoHotelSpend, hoVisaSla],
+    core: [hoChargeRate, hoCaseworkerTurnover, hoHotelSpend, hoVisaSla],
     supporting: [hoHomicideRate, hoMigrantStock],
   },
   {
