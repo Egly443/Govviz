@@ -325,11 +325,14 @@ async function parseRttOverview() {
   }
   if (headerIdx < 0) {
     console.log(`RTT no header. sheets=[${book.SheetNames.join("|")}] chosen="${sheetName}"`);
-    for (const sn of book.SheetNames) {
-      const rr = await sheetRows(book, sn);
-      console.log(`  -- "${sn}" (${rr.length} rows):`);
-      for (const r of rr.slice(0, 3)) console.log(`     ${JSON.stringify(r).slice(0, 240)}`);
-    }
+    try {
+      const pg = await fetch("https://www.england.nhs.uk/statistics/statistical-work-areas/rtt-waiting-times/rtt-data-2025-26/", fetchOpts({ accept: "text/html,*/*" }));
+      if (pg.ok) { const h = await pg.text(); const csvs = [...h.matchAll(/href="([^"]*\.(?:csv|xlsx?)[^"]*)"/gi)].map((x) => x[1].split("/").pop()).slice(0, 25); console.log(`RTT 2025-26 files: ${csvs.join(" , ")}`); }
+    } catch (e) { console.log(`RTT page probe err ${e.message}`); }
+    try {
+      const ck = await fetch("https://data.england.nhs.uk/api/3/action/package_search?q=referral+to+treatment&rows=8", fetchOpts({ accept: "application/json" }));
+      if (ck.ok) { const j = await ck.json(); console.log(`CKAN RTT datasets: ${(j.result?.results || []).map((r) => r.name).join(" , ")}`); } else console.log(`CKAN RTT HTTP ${ck.status}`);
+    } catch (e) { console.log(`CKAN RTT probe err ${e.message}`); }
     throw new Error("RTT: no header row");
   }
   if (totalCol < 0 || pctCol < 0) throw new Error(`RTT: totalCol=${totalCol} pctCol=${pctCol} in [${rows[headerIdx].join("|")}]`);
@@ -1225,7 +1228,13 @@ const SOURCES = [
       const BROWSER_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
       const infoUrl = "https://digital.nhs.uk/supplementary-information/2023/turnover-from-organisation-by-staff-group-2009-to-2023";
       const res = await fetch(infoUrl, fetchOpts({ accept: "text/html,*/*", "user-agent": BROWSER_UA }));
-      if (!res.ok) throw new Error(`turnover: info page HTTP ${res.status}`);
+      if (!res.ok) {
+        try {
+          const ck = await fetch("https://data.gov.uk/api/3/action/package_search?q=NHS+workforce+turnover&rows=8", fetchOpts({ accept: "application/json" }));
+          if (ck.ok) { const j = await ck.json(); console.log(`turnover CKAN: ${(j.result?.results || []).map((r) => `${r.name}[${[...new Set((r.resources || []).map((x) => x.format))].join("/")}]`).join(" ; ").slice(0, 500)}`); } else console.log(`turnover CKAN HTTP ${ck.status}`);
+        } catch (e) { console.log(`turnover CKAN err ${e.message}`); }
+        throw new Error(`turnover: info page HTTP ${res.status}`);
+      }
       const html = await res.text();
       const cands = [];
       for (const x of html.matchAll(/href="([^"]*\.xlsx?[^"]*)"/gi)) {
