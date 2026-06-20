@@ -1221,34 +1221,121 @@ const SOURCES = [
       console.log(`  ho-charge-rate ODS: ${ods.url}`);
       const book = await xlsxBook(ods.url);
       console.log(`  ho-charge-rate sheets: ${book.SheetNames.join("|")}`);
-      const isFy = (s) => /20\d\d\s*[\/\-]\s*\d{2}/.test(s) || /^20\d\d$/.test(s) || /(year (ending|to)).*20\d\d/i.test(s);
+      const isFy = (s) =>
+        /\b20\d\d\s*[\/\-]\s*\d{2}\b/.test(s) ||
+        /(year (ending|to)|to (mar|march|dec|jun|sep|december|june|september))[^0-9]*20\d\d/i.test(s) ||
+        /\b(apr|jan|january|april)[^0-9]*20\d\d/i.test(s) ||
+        /^\s*20\d\d\s*$/.test(s);
       const yend = (s) => { const m = String(s).match(/20\d\d/g); return m ? m[m.length - 1] : null; };
+      const num = (cell) => {
+        let v = typeof cell === "number" ? cell : parseFloat(String(cell ?? "").replace(/[%,]/g, ""));
+        if (!Number.isFinite(v)) return null;
+        if (v <= 1 && v > 0) v *= 100; // proportion → percent
+        return v;
+      };
       for (const sn of book.SheetNames) {
         const rows = await sheetRows(book, sn);
         let hi = -1, yearCols = [];
-        for (let i = 0; i < Math.min(rows.length, 18); i++) {
+        for (let i = 0; i < Math.min(rows.length, 20); i++) {
           const yc = (rows[i] || []).map((c, idx) => [idx, String(c ?? "")]).filter(([, s]) => isFy(s));
           if (yc.length >= 4) { hi = i; yearCols = yc; break; }
         }
         if (hi < 0) continue;
-        const candRows = rows.map((r, i) => [i, r]).filter(([, r]) => Array.isArray(r) && /charg|summons/i.test(String(r[0] ?? r[1] ?? "")));
+        const candRows = rows.map((r, i) => [i, r]).filter(([, r]) => Array.isArray(r) && /charg|summons/i.test(r.slice(0, 3).map((x) => String(x ?? "")).join(" ")));
         for (const [ri, row] of candRows) {
-          const points = [];
+          const byYear = {};
           for (const [idx, label] of yearCols) {
-            const ye = yend(label); if (!ye) continue;
-            let v = typeof row[idx] === "number" ? row[idx] : parseFloat(String(row[idx] ?? "").replace(/[%,]/g, ""));
-            if (!Number.isFinite(v)) continue;
-            if (v <= 1) v *= 100;
-            if (v < 2 || v > 30) continue;
-            points.push({ date: `${ye}-01-01`, value: +v.toFixed(2) });
+            const ye = yend(label); if (!ye || ye in byYear) continue;
+            // Year columns may be a Number/Percentage pair — take whichever of
+            // this column or the next reads as a plausible percentage (2–30%).
+            for (const cIdx of [idx, idx + 1]) {
+              const v = num(row[cIdx]);
+              if (v != null && v >= 2 && v <= 30) { byYear[ye] = +v.toFixed(2); break; }
+            }
           }
+          const points = Object.entries(byYear).map(([y, v]) => ({ date: `${y}-01-01`, value: v }));
           if (points.length >= 5) {
             console.log(`  ho-charge-rate: sheet="${sn}" row=${ri} ${points.length} pts`);
             return points.sort((a, b) => (a.date < b.date ? -1 : 1));
           }
         }
       }
+      // Diagnostic dump so the next CI log reveals the exact table layout.
+      for (const sn of book.SheetNames.filter((n) => /table_1/i.test(n)).slice(0, 3)) {
+        const rows = await sheetRows(book, sn);
+        console.log(`  ho-charge-rate dump ${sn}:`);
+        for (const r of rows.slice(0, 9)) console.log(`    ${JSON.stringify(r).slice(0, 280)}`);
+      }
       throw new Error("ho-charge-rate: no charged/summonsed time series found in ODS");
+    },
+  },
+
+  // NHS dentistry — % of adult population seen by an NHS dentist in 24 months
+  // (the "can't find an NHS dentist" grievance). NHSBSA publishes National
+  // overview summary tables (XLSX) on its statistical-collections pages.
+  {
+    id: "dhsc-nhs-dentistry",
+    min: 20,
+    max: 70, // percent of adults seen (24 months)
+    get: async () => {
+      const coll = "https://www.nhsbsa.nhs.uk/statistical-collections/dental-england";
+      const res = await fetch(coll, fetchOpts({ accept: "text/html,*/*" }));
+      if (!res.ok) throw new Error(`dentistry collection page → HTTP ${res.status}`);
+      const html = await res.text();
+      const reports = [...new Set([...html.matchAll(/href="([^"]*dental-statistics-england-\d{6}[^"]*)"/gi)].map((m) => m[1]))];
+      console.log(`  dentistry report pages: ${reports.slice(0, 6).join(" | ") || "none"}`);
+      const sfx = (u) => (u.match(/(\d{6})/) || ["0"])[0];
+      const latest = reports.sort((a, b) => sfx(b).localeCompare(sfx(a)))[0];
+      if (!latest) throw new Error("dentistry: no annual report page link");
+      const reportUrl = latest.startsWith("http") ? latest : `https://www.nhsbsa.nhs.uk${latest}`;
+      const r2 = await fetch(reportUrl, fetchOpts({ accept: "text/html,*/*" }));
+      if (!r2.ok) throw new Error(`dentistry report page → HTTP ${r2.status}`);
+      const h2 = await r2.text();
+      const xlsx = [...h2.matchAll(/href="([^"]+\.xlsx?[^"]*)"/gi)].map((m) => m[1]);
+      console.log(`  dentistry xlsx links: ${xlsx.map((u) => u.split("/").pop()).slice(0, 12).join(" | ") || "none"}`);
+      const pick = xlsx.find((u) => /national|overview|summary|patients?[ _-]?seen/i.test(u)) || xlsx[0];
+      if (!pick) throw new Error("dentistry: no summary XLSX link on report page");
+      const xlsxUrl = pick.startsWith("http") ? pick : `https://www.nhsbsa.nhs.uk${pick}`;
+      console.log(`  dhsc-nhs-dentistry: ${xlsxUrl}`);
+      const book = await xlsxBook(xlsxUrl);
+      console.log(`  dentistry sheets: ${book.SheetNames.join("|")}`);
+      const yend = (s) => { const m = String(s).match(/20\d\d/g); return m ? m[m.length - 1] : null; };
+      const seenSheet = book.SheetNames.find((n) => /patients?[ _]?seen|seen/i.test(n));
+      for (const sn of seenSheet ? [seenSheet, ...book.SheetNames] : book.SheetNames) {
+        const rows = await sheetRows(book, sn);
+        // Wide layout: a header row of financial years, an "adult"/"24 month" row.
+        let hi = -1, yearCols = [];
+        for (let i = 0; i < Math.min(rows.length, 20); i++) {
+          const yc = (rows[i] || []).map((c, idx) => [idx, String(c ?? "")]).filter(([, s]) => /20\d\d\s*[\/\-]\s*\d{2}/.test(s) || /\b20\d\d\b/.test(s));
+          if (yc.length >= 3) { hi = i; yearCols = yc; break; }
+        }
+        if (hi < 0) continue;
+        const candRows = rows.map((r, i) => [i, r]).filter(([, r]) => Array.isArray(r) && /adult|24[ -]?month|all patients|percentage/i.test(r.slice(0, 3).map((x) => String(x ?? "")).join(" ")));
+        for (const [, row] of candRows) {
+          const byYear = {};
+          for (const [idx, label] of yearCols) {
+            const ye = yend(label); if (!ye || ye in byYear) continue;
+            for (const cIdx of [idx, idx + 1]) {
+              let v = typeof row[cIdx] === "number" ? row[cIdx] : parseFloat(String(row[cIdx] ?? "").replace(/[%,]/g, ""));
+              if (!Number.isFinite(v)) continue;
+              if (v <= 1 && v > 0) v *= 100;
+              if (v >= 20 && v <= 70) { byYear[ye] = +v.toFixed(1); break; }
+            }
+          }
+          const points = Object.entries(byYear).map(([y, v]) => ({ date: `${y}-01-01`, value: v }));
+          if (points.length >= 3) {
+            console.log(`  dhsc-nhs-dentistry: sheet="${sn}" ${points.length} pts`);
+            return points.sort((a, b) => (a.date < b.date ? -1 : 1));
+          }
+        }
+      }
+      // Diagnostic dump so the next CI log reveals the layout.
+      for (const sn of book.SheetNames.slice(0, 4)) {
+        const rows = await sheetRows(book, sn);
+        console.log(`  dentistry dump ${sn}:`);
+        for (const r of rows.slice(0, 9)) console.log(`    ${JSON.stringify(r).slice(0, 260)}`);
+      }
+      throw new Error("dhsc-nhs-dentistry: % adults seen series not found");
     },
   },
 
