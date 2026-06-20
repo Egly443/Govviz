@@ -1204,55 +1204,104 @@ const SOURCES = [
     min: 2,
     max: 30, // percent
     get: async () => {
-      const j = await govukContent("government/statistical-data-sets/police-recorded-crime-and-outcomes-open-data-tables");
-      const atts = j?.details?.attachments || [];
-      // The big open-data CSVs are linked in the page body, not exposed as
-      // structured attachments (which only carry the geographic reference table).
-      const body = j?.details?.body || "";
-      const bodyCsvs = [...body.matchAll(/href="([^"]+\.csv[^"]*)"/gi)].map((m) => ({ title: m[1], url: m[1] }));
-      const all = [...atts, ...bodyCsvs];
-      const isCsv = (a) => /\.csv/i.test(a.url || "");
-      const ttl = (a) => `${a.title || ""} ${a.url || ""}`.toLowerCase();
-      const isRef = (a) => /reference|geograph|\bgeo\b|offence(-| )?(reference|table)|lookup/.test(ttl(a));
-      console.log(`ho-charge-rate csv candidates: ${all.filter(isCsv).map((a) => (a.url || "").split("/").pop()).join(" | ")}`);
-      const csv =
-        all.find((a) => isCsv(a) && /outcome/.test(ttl(a)) && !isRef(a)) ||
-        all.find((a) => isCsv(a) && /outcome/.test(ttl(a)));
-      if (!csv) throw new Error("ho-charge-rate: no outcomes data CSV found in attachments or body");
-      console.log(`  ho-charge-rate: ${csv.url}`);
-      const res = await fetch(csv.url, fetchOpts({ accept: "text/csv,*/*" }));
-      if (!res.ok) throw new Error(`ho-charge-rate CSV → HTTP ${res.status}`);
-      const lines = (await res.text()).split(/\r?\n/);
-      const header = parseCsvLine(lines[0]).map((h) => h.replace(/^﻿/, "").trim().toLowerCase());
-      const yCol = header.findIndex((h) => /financial year|year ending|fin.*year|^year$|^period$/.test(h));
-      const ogCol = header.findIndex((h) => /outcome group/.test(h));
-      const otCol = header.findIndex((h) => /outcome (type|description|sub)/.test(h));
-      const cCol = header.findIndex((h) => /number of offences|offence count|^offences$|^count$|^number$/.test(h));
-      if (yCol < 0 || cCol < 0 || (ogCol < 0 && otCol < 0)) {
-        console.log(`ho-charge-rate header: ${header.join("|")}`);
-        throw new Error("ho-charge-rate: year/count/outcome columns not found");
+      // Use the small "Crime outcomes in England and Wales" ODS summary tables
+      // (charged/summonsed proportion by financial year), not the giant open
+      // data CSV. Discover the latest release, take its outcomes ODS.
+      const path = await govukLatest(
+        "crime outcomes in england and wales",
+        (r) => /crime-outcomes-in-england-and-wales-\d/.test(r.link || ""),
+      );
+      console.log(`  ho-charge-rate release: ${path}`);
+      const atts = await govukAttachments(path);
+      const ods =
+        atts.find((a) => /\.ods/i.test(a.url || "") && /outcome/i.test(`${a.title || ""} ${a.url || ""}`)) ||
+        atts.find((a) => /\.ods/i.test(a.url || ""));
+      if (!ods) { console.log(`ho-charge-rate atts: ${atts.map((a) => a.title).join(" | ")}`); throw new Error("ho-charge-rate: no outcomes ODS attachment"); }
+      console.log(`  ho-charge-rate ODS: ${ods.url}`);
+      const book = await xlsxBook(ods.url);
+      console.log(`  ho-charge-rate sheets: ${book.SheetNames.join("|")}`);
+      const isFy = (s) => /20\d\d\s*[\/\-]\s*\d{2}/.test(s) || /^20\d\d$/.test(s) || /(year (ending|to)).*20\d\d/i.test(s);
+      const yend = (s) => { const m = String(s).match(/20\d\d/g); return m ? m[m.length - 1] : null; };
+      for (const sn of book.SheetNames) {
+        const rows = await sheetRows(book, sn);
+        let hi = -1, yearCols = [];
+        for (let i = 0; i < Math.min(rows.length, 18); i++) {
+          const yc = (rows[i] || []).map((c, idx) => [idx, String(c ?? "")]).filter(([, s]) => isFy(s));
+          if (yc.length >= 4) { hi = i; yearCols = yc; break; }
+        }
+        if (hi < 0) continue;
+        const candRows = rows.map((r, i) => [i, r]).filter(([, r]) => Array.isArray(r) && /charg|summons/i.test(String(r[0] ?? r[1] ?? "")));
+        for (const [ri, row] of candRows) {
+          const points = [];
+          for (const [idx, label] of yearCols) {
+            const ye = yend(label); if (!ye) continue;
+            let v = typeof row[idx] === "number" ? row[idx] : parseFloat(String(row[idx] ?? "").replace(/[%,]/g, ""));
+            if (!Number.isFinite(v)) continue;
+            if (v <= 1) v *= 100;
+            if (v < 2 || v > 30) continue;
+            points.push({ date: `${ye}-01-01`, value: +v.toFixed(2) });
+          }
+          if (points.length >= 5) {
+            console.log(`  ho-charge-rate: sheet="${sn}" row=${ri} ${points.length} pts`);
+            return points.sort((a, b) => (a.date < b.date ? -1 : 1));
+          }
+        }
       }
-      const totals = {}, charged = {};
-      for (let i = 1; i < lines.length; i++) {
-        const r = parseCsvLine(lines[i]);
-        if (r.length <= cCol) continue;
-        const yr = String(r[yCol] ?? "").trim();
-        const ym = yr.match(/(\d{4})/g);
-        if (!ym) continue;
-        const yy = ym[ym.length - 1]; // ending year of e.g. "2024/25" → 2024, "Mar 2025" → 2025
-        const n = parseFloat(String(r[cCol] ?? "").replace(/,/g, ""));
-        if (!Number.isFinite(n)) continue;
-        const cat = `${ogCol >= 0 ? r[ogCol] : ""} ${otCol >= 0 ? r[otCol] : ""}`.toLowerCase();
-        totals[yy] = (totals[yy] || 0) + n;
-        if (/charg|summons/.test(cat)) charged[yy] = (charged[yy] || 0) + n;
+      throw new Error("ho-charge-rate: no charged/summonsed time series found in ODS");
+    },
+  },
+
+  // NHS dentistry — % of adult population seen by an NHS dentist in the last 24
+  // months (the "can't find an NHS dentist" grievance). NHSBSA publishes this
+  // as open data on a public S3 bucket, bypassing the digital.nhs.uk block.
+  {
+    id: "dhsc-nhs-dentistry",
+    min: 20,
+    max: 70, // percent of adults seen (24 months)
+    get: async () => {
+      const listUrl = "https://nhsbsa-opendata.s3.eu-west-2.amazonaws.com/?list-type=2&prefix=dental";
+      const res = await fetch(listUrl, fetchOpts({ accept: "application/xml,*/*" }));
+      if (!res.ok) throw new Error(`dentistry S3 list → HTTP ${res.status}`);
+      const keys = [...(await res.text()).matchAll(/<Key>([^<]+)<\/Key>/g)].map((m) => m[1]);
+      const csvKeys = keys.filter((k) => /\.csv$/i.test(k));
+      console.log(`  dentistry csv keys: ${csvKeys.slice(0, 40).join(" | ")}`);
+      const key =
+        csvKeys.find((k) => /patients?[_-]?seen/i.test(k) && /geo|country|region|annual|nat/i.test(k)) ||
+        csvKeys.find((k) => /patients?[_-]?seen/i.test(k));
+      if (!key) throw new Error("dentistry: no patients_seen CSV in bucket");
+      const csvUrl = `https://nhsbsa-opendata.s3.eu-west-2.amazonaws.com/${key}`;
+      console.log(`  dhsc-nhs-dentistry: ${csvUrl}`);
+      const c = await fetch(csvUrl, fetchOpts({ accept: "text/csv,*/*" }));
+      if (!c.ok) throw new Error(`dentistry CSV → HTTP ${c.status}`);
+      const lines = (await c.text()).split(/\r?\n/).filter((l) => l.trim());
+      const header = parseCsvLine(lines[0]).map((h) => h.replace(/^﻿/, "").trim());
+      const H = header.map((h) => h.toLowerCase());
+      console.log(`  dentistry header: ${header.join("|")}`);
+      const yCol = H.findIndex((h) => /year/.test(h));
+      const geoNameCol = H.findIndex((h) => /country|region|geograph.*name|org.*name|^name$/.test(h));
+      const patTypeCol = H.findIndex((h) => /patient.?type|patient.?group|^type$|adult|child|age/.test(h));
+      const pctCol = H.findIndex((h) => /percent|proportion|pop.*seen|seen.*pop|%/.test(h));
+      if (yCol < 0 || pctCol < 0) throw new Error("dentistry: year/percentage columns not found");
+      const points = [], seen = new Set();
+      for (const line of lines.slice(1)) {
+        const r = parseCsvLine(line);
+        const geo = geoNameCol >= 0 ? String(r[geoNameCol] ?? "").trim() : "England";
+        if (geoNameCol >= 0 && !/^england$/i.test(geo)) continue;
+        const pt = patTypeCol >= 0 ? String(r[patTypeCol] ?? "").toLowerCase() : "adult";
+        if (patTypeCol >= 0 && !/adult/.test(pt)) continue;
+        const yr = String(r[yCol] ?? "").match(/20\d\d/g);
+        const ye = yr ? yr[yr.length - 1] : null;
+        if (!ye) continue;
+        let v = typeof r[pctCol] === "number" ? r[pctCol] : parseFloat(String(r[pctCol] ?? "").replace(/[%,]/g, ""));
+        if (!Number.isFinite(v)) continue;
+        if (v <= 1) v *= 100;
+        if (v < 20 || v > 70) continue;
+        if (seen.has(ye)) continue;
+        seen.add(ye);
+        points.push({ date: `${ye}-01-01`, value: +v.toFixed(1) });
       }
-      const points = Object.keys(totals)
-        .filter((y) => totals[y] > 0)
-        .sort()
-        .map((y) => ({ date: `${y}-01-01`, value: +((100 * (charged[y] || 0)) / totals[y]).toFixed(2) }))
-        .filter((p) => p.value > 0);
-      if (points.length < 5) { console.log(`ho-charge-rate: only ${points.length} yrs; charged keys=${Object.keys(charged).join(",")}`); throw new Error(`ho-charge-rate: only ${points.length} points`); }
-      return points;
+      if (points.length < 3) { console.log(`dentistry: only ${points.length} pts; header=${header.join("|")}`); throw new Error(`dentistry: only ${points.length} points`); }
+      return points.sort((a, b) => (a.date < b.date ? -1 : 1));
     },
   },
 
