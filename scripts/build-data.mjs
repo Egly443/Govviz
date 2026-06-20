@@ -1293,7 +1293,11 @@ const SOURCES = [
       const h2 = await r2.text();
       const xlsx = [...h2.matchAll(/href="([^"]+\.xlsx?[^"]*)"/gi)].map((m) => m[1]);
       console.log(`  dentistry xlsx links: ${xlsx.map((u) => u.split("/").pop()).slice(0, 12).join(" | ") || "none"}`);
-      const pick = xlsx.find((u) => /national|overview|summary|patients?[ _-]?seen/i.test(u)) || xlsx[0];
+      // Prefer the patient file (dental_patient_*), not contract/activity/workforce.
+      const pick =
+        xlsx.find((u) => /dental_patient|patients?[ _-]?seen/i.test(u) && !/contract|workforce|metadata/i.test(u)) ||
+        xlsx.find((u) => /patient/i.test(u) && !/contract|workforce|metadata/i.test(u)) ||
+        xlsx[0];
       if (!pick) throw new Error("dentistry: no summary XLSX link on report page");
       const xlsxUrl = pick.startsWith("http") ? pick : `https://www.nhsbsa.nhs.uk${pick}`;
       console.log(`  dhsc-nhs-dentistry: ${xlsxUrl}`);
