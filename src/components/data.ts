@@ -522,34 +522,6 @@ export const aePerformance: TrendSeries = {
   ],
 };
 
-// NHS dentistry — % of adult population seen by an NHS dentist in the last 24
-// months (the "can't find an NHS dentist" grievance). NHSBSA dental statistics.
-export const nhsDentistry: TrendSeries = {
-  id: "dhsc-nhs-dentistry",
-  title: "Adults seen by an NHS dentist",
-  subtitle: "% of adult population seen in the previous 24 months",
-  unit: "percent",
-  format: (v) => `${v.toFixed(1)}%`,
-  shortFormat: (v) => `${v.toFixed(0)}%`,
-  yFormat: (v) => `${v.toFixed(0)}%`,
-  deltaFormat: (v) => `${v > 0 ? "+" : ""}${v.toFixed(1)}pp`,
-  goodDirection: "up",
-  source: "NHS Business Services Authority (NHS dental statistics)",
-  sourceUrl: "https://www.nhsbsa.nhs.uk/statistical-collections/dental-england/",
-  cadence: "annual",
-  points: realPoints(
-    "dhsc-nhs-dentistry",
-    annualSeries(
-      [[2014, 51], [2019, 50], [2020, 47], [2022, 43], [2024, 40]],
-      2014,
-      2024,
-      38,
-      0.1,
-    ),
-  ),
-  annotations: [{ date: "2020-01-01", label: "Covid-19" }],
-};
-
 // Category 2 ambulance response (emergencies like heart attack / stroke) — the
 // "waited hours for an ambulance" grievance. 18-minute national standard.
 export const ambulanceC2: TrendSeries = {
