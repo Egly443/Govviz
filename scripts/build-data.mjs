@@ -1207,6 +1207,27 @@ const SOURCES = [
     },
   },
 
+  // TEMP diagnostic probe: identify the GP Patient Survey "overall experience"
+  // column mnemonic in the 2025 national CSV. Single fetch; always SKIPs.
+  {
+    id: "dhsc-gp-probe",
+    get: async () => {
+      const url =
+        "https://www.gp-patient.co.uk/Download?fileRedirect=2025%2Fsurvey-results%2Fnational-results%2Fnational-data-csv%2FGPPS_2025_National_data_(weighted)_(csv)_v2_PUBLIC_v2.csv";
+      const r = await fetch(url, fetchOpts({ accept: "text/csv,*/*" }));
+      console.log(`  gp-probe HTTP ${r.status}`);
+      if (!r.ok) throw new Error(`gp-probe HTTP ${r.status}`);
+      const lines = (await r.text()).split(/\r?\n/).filter((l) => l.trim());
+      const header = parseCsvLine(lines[0]);
+      console.log(`  gp-probe rows=${lines.length} cols=${header.length}`);
+      const cand = header.filter((h) => /overall|experience|recommend|satisf|good/i.test(h));
+      console.log(`  gp-probe candidate cols: ${cand.slice(0, 40).join(" | ") || "none"}`);
+      const mnem = [...new Set(header.filter((h) => /\.pct$/i.test(h)).map((h) => h.replace(/_\d+\.pct$/i, "")))];
+      console.log(`  gp-probe pct mnemonics (${mnem.length}): ${mnem.join(" | ")}`);
+      throw new Error("gp-probe: diagnostic only");
+    },
+  },
+
   // Home Office — % of recorded offences resulting in a charge or summons.
   // The police-recorded-crime-and-outcomes open data table is a long CSV
   // (year × force × offence × outcome × count); aggregate nationally per year:
