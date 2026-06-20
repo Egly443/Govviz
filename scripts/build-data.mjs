@@ -1206,10 +1206,11 @@ const SOURCES = [
     get: async () => {
       // Use the small "Crime outcomes in England and Wales" ODS summary tables
       // (charged/summonsed proportion by financial year), not the giant open
-      // data CSV. Discover the latest release, take its outcomes ODS.
-      const path = await govukLatest(
-        "crime outcomes in england and wales",
-        (r) => /crime-outcomes-in-england-and-wales-\d/.test(r.link || ""),
+      // data CSV. Find the latest outcomes release in the crime-statistics
+      // collection, then take its outcomes ODS.
+      const path = await govukCollectionLatest(
+        "crime-statistics",
+        (d) => /crime outcomes in england and wales/i.test(d.title || ""),
       );
       console.log(`  ho-charge-rate release: ${path}`);
       const atts = await govukAttachments(path);
@@ -1259,17 +1260,22 @@ const SOURCES = [
     min: 20,
     max: 70, // percent of adults seen (24 months)
     get: async () => {
-      const listUrl = "https://nhsbsa-opendata.s3.eu-west-2.amazonaws.com/?list-type=2&prefix=dental";
-      const res = await fetch(listUrl, fetchOpts({ accept: "application/xml,*/*" }));
-      if (!res.ok) throw new Error(`dentistry S3 list → HTTP ${res.status}`);
-      const keys = [...(await res.text()).matchAll(/<Key>([^<]+)<\/Key>/g)].map((m) => m[1]);
-      const csvKeys = keys.filter((k) => /\.csv$/i.test(k));
-      console.log(`  dentistry csv keys: ${csvKeys.slice(0, 40).join(" | ")}`);
-      const key =
-        csvKeys.find((k) => /patients?[_-]?seen/i.test(k) && /geo|country|region|annual|nat/i.test(k)) ||
-        csvKeys.find((k) => /patients?[_-]?seen/i.test(k));
-      if (!key) throw new Error("dentistry: no patients_seen CSV in bucket");
-      const csvUrl = `https://nhsbsa-opendata.s3.eu-west-2.amazonaws.com/${key}`;
+      // Discover the patients-seen CSV via the NHSBSA CKAN open data API (the
+      // S3 bucket allows GetObject but not ListObjects).
+      const search = await fetch(
+        "https://opendata.nhsbsa.net/api/3/action/package_search?q=dental%20patients%20seen&rows=30",
+        fetchOpts({ accept: "application/json" }),
+      );
+      if (!search.ok) throw new Error(`dentistry CKAN search → HTTP ${search.status}`);
+      const pkgs = (await search.json())?.result?.results || [];
+      const resources = pkgs.flatMap((p) => p.resources || []);
+      const csvRes = resources.filter((r) => /csv/i.test(r.format || "") || /\.csv$/i.test(r.url || ""));
+      console.log(`  dentistry CKAN csv resources: ${csvRes.map((r) => (r.name || r.url || "").split("/").pop()).slice(0, 40).join(" | ")}`);
+      const pick =
+        csvRes.find((r) => /patients?[ _-]?seen/i.test(`${r.name} ${r.url}`) && /geo|country|region|annual|nat/i.test(`${r.name} ${r.url}`)) ||
+        csvRes.find((r) => /patients?[ _-]?seen/i.test(`${r.name} ${r.url}`));
+      if (!pick) throw new Error("dentistry: no patients_seen CSV resource in CKAN");
+      const csvUrl = pick.url;
       console.log(`  dhsc-nhs-dentistry: ${csvUrl}`);
       const c = await fetch(csvUrl, fetchOpts({ accept: "text/csv,*/*" }));
       if (!c.ok) throw new Error(`dentistry CSV → HTTP ${c.status}`);
