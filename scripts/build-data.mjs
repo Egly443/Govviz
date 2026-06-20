@@ -1207,67 +1207,6 @@ const SOURCES = [
     },
   },
 
-  // GP Patient Survey (Ipsos): % reporting a good overall experience of their
-  // GP practice — the #1 day-to-day NHS access grievance. Scrape the reports
-  // page for national CSV links across years and read the overall-experience
-  // "good" figure. Per-year files; diagnostics dump candidate links/columns.
-  {
-    id: "dhsc-gp-access",
-    min: 50,
-    max: 95, // percent good overall experience (very good + fairly good)
-    get: async () => {
-      const base = "https://www.gp-patient.co.uk";
-      // Per-year national CSVs live at a stable path; only the filename suffix
-      // varies. Single-row (England) wide files; "good" = overallexp options 1+2.
-      const cand = (y) =>
-        [
-          `GPPS_${y}_National_data_(weighted)_(csv)_v2_PUBLIC_v2.csv`,
-          `GPPS_${y}_National_data_(weighted)_(csv)_PUBLIC.csv`,
-          `GPPS_${y}_National_data_(weighted)_(csv)_PUBLIC_v2.csv`,
-          `GPPS_${y}_National_data_(weighted)_PUBLIC.csv`,
-        ].map(
-          (f) =>
-            `${base}/Download?fileRedirect=${y}%2Fsurvey-results%2Fnational-results%2Fnational-data-csv%2F${f}`,
-        );
-      const num = (cell) => {
-        const v = parseFloat(String(cell ?? "").replace(/[%,]/g, ""));
-        return Number.isFinite(v) ? (v <= 1 ? v * 100 : v) : NaN;
-      };
-      const byYear = {};
-      let cols = null;
-      for (let y = 2018; y <= 2025; y++) {
-        for (const url of cand(y)) {
-          try {
-            const r = await fetch(url, fetchOpts({ accept: "text/csv,*/*" }));
-            if (!r.ok) continue;
-            const lines = (await r.text()).split(/\r?\n/).filter((l) => l.trim());
-            if (lines.length < 2) continue;
-            const header = parseCsvLine(lines[0]).map((h) => h.trim().toLowerCase());
-            const row = parseCsvLine(lines[1]);
-            if (!cols) cols = header.filter((h) => /overallexp/.test(h)).slice(0, 12);
-            const i1 = header.findIndex((h) => /overallexp_1\.pct/.test(h));
-            const i2 = header.findIndex((h) => /overallexp_2\.pct/.test(h));
-            if (i1 < 0 || i2 < 0) continue;
-            const good = num(row[i1]) + num(row[i2]);
-            if (good >= 50 && good <= 95) {
-              byYear[y] = +good.toFixed(1);
-              setSrc(url);
-              break;
-            }
-          } catch (e) { void e; }
-        }
-      }
-      const points = Object.entries(byYear)
-        .map(([y, v]) => ({ date: `${y}-01-01`, value: v }))
-        .sort((a, b) => (a.date < b.date ? -1 : 1));
-      if (points.length < 4) {
-        console.log(`  gp-access overallexp cols seen: ${(cols || []).join("|") || "none"}`);
-        throw new Error(`gp-access: only ${points.length} year(s)`);
-      }
-      return points;
-    },
-  },
-
   // Home Office — % of recorded offences resulting in a charge or summons.
   // The police-recorded-crime-and-outcomes open data table is a long CSV
   // (year × force × offence × outcome × count); aggregate nationally per year:

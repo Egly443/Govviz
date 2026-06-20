@@ -3,7 +3,6 @@ import {
   aePerformance,
   ambulanceC2,
   capitalOverrun,
-  gpAccess,
   clinicalPer1000,
   dischargeDelays,
   healthSpendGdp,
@@ -1656,7 +1655,7 @@ export const departments: Department[] = [
       "Waiting list has stopped growing but remains near record highs. The 18-week standard has not been met for a decade and the social-care discharge bottleneck is structural. Agency spend has eased since the 2023 peak; capital delivery is worsening.",
     themes: ["Waiting list", "Urgent care", "Workforce", "Capital"],
     hero: waitingList,
-    core: [rtt18Week, gpAccess, ambulanceC2, dischargeDelays, agencySpend, capitalOverrun, dhscSpendPerLifeYear],
+    core: [rtt18Week, ambulanceC2, dischargeDelays, agencySpend, capitalOverrun, dhscSpendPerLifeYear],
     supporting: [aePerformance, clinicalPer1000, hospitalBeds, healthSpendGdp, dhscHealthSpendPc, infantMortality, dhscSuicide, dhscMeasles, dhscOop, turnover, vacancyRate, lifeExpectancy],
   },
   {

@@ -28,10 +28,13 @@ blanks unsourced series; we don't fabricate).
 - **Effort:** 1–2 CI iterations (discovery is solved; parse the national table).
 
 ### 2. 🟡 GP appointment access — the #1 public gripe (DHSC)
-- **Metric:** *% who had a good experience getting through to their practice* (GP Patient Survey) **or** *fully-qualified GPs per 100k patients* (falling).
-- **Source A — GP Patient Survey (Ipsos):** `gp-patient.co.uk/downloads/{year}/...` publishes national results. PDFs are common; look for the CSV/XLSX "national" data file. Not Cloudflare-gated (unlike digital.nhs.uk).
-- **Source B — NHS Digital "Appointments in General Practice" / GP workforce:** 🔴 digital.nhs.uk is Cloudflare-blocked (403 even with a browser UA) — same wall as `turnover`.
-- **Recommendation:** pursue Source A (GPPS). Effort: 2–3 iterations (discover the per-year data file, parse a consistent question across years; watch for question-wording changes pre/post-2021).
+- **Metric:** *% reporting a good overall experience of their GP practice* (GP Patient Survey, good = very good + fairly good).
+- **Source — GP Patient Survey (Ipsos):** reachable, NOT Cloudflare-gated. **Findings from CI (attempted, then parked):**
+  - The reports page (`gp-patient.co.uk/surveysandreports`) only links the **current year's** national CSV. Filenames look like `GPPS_2025_National_data_(weighted)_(csv)_v2_PUBLIC_v2.csv`.
+  - Per-year national CSVs sit at a **stable path**: `https://www.gp-patient.co.uk/Download?fileRedirect={year}%2Fsurvey-results%2Fnational-results%2Fnational-data-csv%2F{filename}`. The filename **suffix varies by year** (`_v2_PUBLIC_v2`, `_PUBLIC`, …) — needs per-year resolution.
+  - The national CSV is a **single England row, very wide**; columns are `{mnemonic}_{n}.count` / `_{n}.pct` / `.basew`. **The overall-experience mnemonic is NOT `overallexp`** (tried — no match). The remaining blocker: **dump the full header to identify the real mnemonic** (search for the overall-experience question), then read `% good = {mnemonic}_1.pct + {mnemonic}_2.pct`.
+- **Remaining steps (≈2 rounds):** (1) one cheap diagnostic — fetch only the 2025 national CSV and log every column containing `exp`/`overall`/`good` to identify the mnemonic; (2) build the per-year series for ≥4 years, with a clear label that the question/methodology was redesigned in 2018 (don't span the break).
+- **Source B — NHS Digital appointments / GP workforce:** 🔴 digital.nhs.uk is Cloudflare-blocked (403) — same wall as `turnover`.
 
 ### 3. 🔴 Potholes / local road condition (DfT)
 - **Metric:** % of local 'A'/'B'/'C' roads where maintenance should be considered (DfT RDC tables).

@@ -526,34 +526,6 @@ export const aePerformance: TrendSeries = {
   ],
 };
 
-// GP access — the single biggest day-to-day NHS gripe. GP Patient Survey
-// (Ipsos) headline: % reporting a good overall experience of their practice.
-export const gpAccess: TrendSeries = {
-  id: "dhsc-gp-access",
-  title: "GP practice experience",
-  subtitle: "% reporting a good overall experience of their GP practice",
-  unit: "percent",
-  format: (v) => `${v.toFixed(1)}%`,
-  shortFormat: (v) => `${v.toFixed(0)}%`,
-  yFormat: (v) => `${v.toFixed(0)}%`,
-  deltaFormat: (v) => `${v > 0 ? "+" : ""}${v.toFixed(1)}pp`,
-  goodDirection: "up",
-  source: "GP Patient Survey (Ipsos, NHS England)",
-  sourceUrl: "https://www.gp-patient.co.uk/surveysandreports",
-  cadence: "annual",
-  points: realPoints(
-    "dhsc-gp-access",
-    annualSeries(
-      [[2018, 84], [2020, 82], [2022, 72], [2023, 71], [2024, 74], [2025, 75]],
-      2018,
-      2025,
-      39,
-      0.2,
-    ),
-  ),
-  annotations: [{ date: "2022-01-01", label: "Post-pandemic access" }],
-};
-
 // Category 2 ambulance response (emergencies like heart attack / stroke) — the
 // "waited hours for an ambulance" grievance. 18-minute national standard.
 export const ambulanceC2: TrendSeries = {
