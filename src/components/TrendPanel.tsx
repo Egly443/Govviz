@@ -20,6 +20,7 @@ import {
   seriesIsReal,
   SHOW_ILLUSTRATIVE,
   slicePoints,
+  stalenessOf,
   type SeriesLine,
   type SeriesUnit,
   type TrendSeries,
@@ -93,6 +94,8 @@ export function TrendPanel({
         .filter((d): d is string => !!d)
         .sort()[0]
     : realAsOf(series.id);
+  // Data vintage / staleness — only meaningful for real series.
+  const vintage = real ? stalenessOf(series) : null;
 
   // Production honesty gate: never render a fabricated trend line. An unsourced
   // series shows an explicit placeholder instead of its illustrative fallback.
@@ -172,6 +175,23 @@ export function TrendPanel({
                 title="No live source wired yet — values are indicative, not official statistics"
               >
                 Illustrative
+              </span>
+            )}
+            {real && vintage && Number.isFinite(vintage.latestYear) && (
+              <span
+                className="rounded-full border px-1.5 py-px text-[10px]"
+                style={
+                  vintage.stale
+                    ? { color: "#f6c451", borderColor: "#f6c45155", background: "#f6c45118" }
+                    : { borderColor: "var(--border)", background: "var(--surface)" }
+                }
+                title={
+                  vintage.stale
+                    ? `Aged data: latest point is ${vintage.latestDate} (~${vintage.monthsOld} months old) — the source has not published newer figures.`
+                    : `Data through ${vintage.latestDate}`
+                }
+              >
+                {vintage.stale ? `aged · to ${vintage.latestYear}` : `to ${vintage.latestYear}`}
               </span>
             )}
           </div>
@@ -351,15 +371,18 @@ export function TrendPanel({
 
       {/* Footer */}
       <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 border-t border-border/60 pt-3 text-[11px] text-muted-foreground">
-        <a
-          href={series.sourceUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline decoration-dotted underline-offset-2 hover:text-foreground"
-          title={`Source: ${series.source}`}
-        >
-          Source: {series.source} ↗
-        </a>
+        <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+          <a
+            href={series.sourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline decoration-dotted underline-offset-2 hover:text-foreground"
+            title={`Source: ${series.source}`}
+          >
+            Source: {series.source} ↗
+          </a>
+          {real && asOf && <span className="opacity-70">· fetched {asOf}</span>}
+        </span>
         {multi ? (
           <span className="tabular-nums">{formatMonth(current.date)}</span>
         ) : (

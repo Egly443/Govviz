@@ -4,6 +4,7 @@ import { TrendPanel } from "./TrendPanel";
 import { TurnoverBreakdown } from "./TurnoverBreakdown";
 import { DepartmentTabs } from "./DepartmentTabs";
 import { realAsOf } from "./data";
+import { departmentScore, ragColor } from "./overview";
 import type { Department } from "./departments";
 
 interface Props {
@@ -119,19 +120,42 @@ export function DepartmentPage({ department: dept }: Props) {
 }
 
 function SynthesisCard({ dept }: { dept: Department }) {
+  const graded = departmentScore(dept);
   return (
     <div className="rounded-xl border border-border bg-card p-5 sm:p-6">
       <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-        Synthesis
+        Competence rating
       </div>
-      <h3 className="mt-1 text-lg font-semibold tracking-tight">Competence rating</h3>
+      <h3 className="mt-1 text-lg font-semibold tracking-tight">
+        Derived from the indicators
+      </h3>
       <div className="mt-4 flex items-baseline gap-2">
-        <span className="text-5xl font-semibold tracking-tight text-primary">
-          {dept.rating}
+        <span
+          className="text-5xl font-semibold tracking-tight"
+          style={{ color: graded ? ragColor(graded.score) : "var(--muted-foreground)" }}
+          title={
+            graded
+              ? `Role-weighted mean RAG score ${graded.score.toFixed(2)} across ${graded.n} scored indicator${graded.n === 1 ? "" : "s"}`
+              : undefined
+          }
+        >
+          {graded ? graded.grade : "—"}
         </span>
         <span className="text-sm text-muted-foreground">/ A&ndash;F scale</span>
       </div>
-      <p className="mt-3 max-w-3xl text-sm text-muted-foreground">{dept.synthesis}</p>
+      <p className="mt-1.5 text-[11px] text-muted-foreground">
+        {graded
+          ? `Mechanically computed from ${graded.n} scored indicator${graded.n === 1 ? "" : "s"} (mean score ${graded.score.toFixed(2)}) — same rubric as the overview heatmap.`
+          : "Awaiting officially-sourced indicators to score."}
+      </p>
+
+      <div className="mt-4 border-t border-border/60 pt-4">
+        <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+          Editorial assessment
+        </div>
+        <p className="mt-2 max-w-3xl text-sm text-muted-foreground">{dept.synthesis}</p>
+      </div>
+
       <div className="mt-5 flex flex-wrap gap-1.5">
         {dept.themes.map((t) => (
           <span

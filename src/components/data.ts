@@ -841,6 +841,36 @@ export function deltaVs(series: TrendSeries, monthsBack: number) {
   return { diff, then, abs: Math.abs(diff) };
 }
 
+/**
+ * Data vintage + staleness for a series: how old its most recent point is, and
+ * whether that exceeds a cadence-aware tolerance for publication lag. Lets the
+ * UI surface the actual coverage end ("to 2021") and loudly flag series whose
+ * source has gone quiet — the honest counterpart to the "Official data" badge.
+ */
+export function stalenessOf(series: TrendSeries): {
+  latestDate: string;
+  latestYear: number;
+  monthsOld: number;
+  stale: boolean;
+} {
+  const last = series.points[series.points.length - 1];
+  const latestDate = last?.date ?? "";
+  const t = latestDate ? new Date(latestDate).getTime() : NaN;
+  const monthsOld = Number.isFinite(t)
+    ? Math.max(0, Math.round((Date.now() - t) / (1000 * 60 * 60 * 24 * 30.44)))
+    : Infinity;
+  // Tolerances allow for normal publication lag; beyond them the source has
+  // genuinely not refreshed and the chart is showing aged data.
+  const limit =
+    series.cadence === "monthly" ? 5 : series.cadence === "quarterly" ? 8 : 22;
+  return {
+    latestDate,
+    latestYear: latestDate ? new Date(latestDate).getUTCFullYear() : NaN,
+    monthsOld,
+    stale: monthsOld > limit,
+  };
+}
+
 export function minMax(series: TrendSeries) {
   let min = series.points[0];
   let max = series.points[0];

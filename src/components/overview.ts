@@ -1,4 +1,10 @@
-import { latest, minMax, seriesIsReal, type TrendSeries } from "./data";
+import {
+  latest,
+  minMax,
+  seriesIsReal,
+  SHOW_ILLUSTRATIVE,
+  type TrendSeries,
+} from "./data";
 import { departments, type Department } from "./departments";
 
 export type IndicatorRole = "hero" | "core" | "supporting";
@@ -77,6 +83,52 @@ export function ragColor(score: number): string {
   const light =
     s < 0.5 ? 40 + 6 * (s / 0.5) : 46 - 5 * ((s - 0.5) / 0.5);
   return `hsl(${hue.toFixed(0)} 58% ${light.toFixed(0)}%)`;
+}
+
+/** Map a 0..1 RAG score to an A–F letter grade (reproducible, not editorial). */
+export function scoreToGrade(score: number): string {
+  const s = clamp01(score);
+  const bands: [number, string][] = [
+    [0.9, "A"], [0.83, "A-"], [0.76, "B+"], [0.7, "B"], [0.63, "B-"],
+    [0.56, "C+"], [0.5, "C"], [0.43, "C-"], [0.36, "D+"], [0.3, "D"],
+    [0.22, "D-"],
+  ];
+  for (const [floor, grade] of bands) if (s >= floor) return grade;
+  return "F";
+}
+
+/**
+ * A department's competence grade, derived mechanically from the RAG scores of
+ * its indicators (role-weighted mean), so it is reproducible from the same
+ * rubric the treemap uses — not a hand-typed opinion. Only *scored* indicators
+ * count: in production that means real, officially-sourced series (unsourced
+ * placeholders are excluded); in dev/illustrative builds all count. Returns
+ * null when nothing is scorable, so the UI can show "awaiting data".
+ */
+export function departmentScore(
+  dept: Department,
+): { score: number; grade: string; n: number } | null {
+  const lists: [IndicatorRole, TrendSeries[]][] = [
+    ["hero", [dept.hero]],
+    ["core", dept.core],
+    ["supporting", dept.supporting ?? []],
+  ];
+  const seen = new Set<string>();
+  let wsum = 0, w = 0, n = 0;
+  for (const [role, list] of lists) {
+    for (const s of list) {
+      if (seen.has(s.id)) continue;
+      seen.add(s.id);
+      if (!seriesIsReal(s) && !SHOW_ILLUSTRATIVE) continue; // skip prod placeholders
+      const weight = ROLE_WEIGHT[role];
+      wsum += ragScore(s) * weight;
+      w += weight;
+      n++;
+    }
+  }
+  if (w === 0) return null;
+  const score = wsum / w;
+  return { score, grade: scoreToGrade(score), n };
 }
 
 export function buildOverview(): DeptBlock[] {

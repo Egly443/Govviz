@@ -28,7 +28,6 @@ export type Department = {
   fullName: string;
   pageTitle?: string; // H1 override; defaults to `Department for {fullName}`
   blurb: string;
-  rating: string;
   synthesis: string;
   themes: string[];
   spendBn: number; // illustrative departmental total managed expenditure, £bn
@@ -1652,7 +1651,6 @@ export const departments: Department[] = [
     fullName: "Health & Social Care",
     blurb:
       "Decades of monthly data on how the department is performing against its stated objectives. Headline numbers in context, not in isolation.",
-    rating: "C+",
     synthesis:
       "Waiting list has stopped growing but remains near record highs. The 18-week standard has not been met for a decade and the social-care discharge bottleneck is structural. Agency spend has eased since the 2023 peak; capital delivery is worsening.",
     themes: ["Waiting list", "Urgent care", "Workforce", "Capital"],
@@ -1667,7 +1665,6 @@ export const departments: Department[] = [
     fullName: "Education",
     blurb:
       "How the schools system is performing on the measures that families and economists both care about: outcomes, retention, financial sustainability, and pipeline.",
-    rating: "D+",
     synthesis:
       "The disadvantaged attainment gap has widened back beyond its pre-2019 level. Early-career attrition is structurally higher than a decade ago, training recruitment is missing target by a third, and high-needs deficits are compounding.",
     themes: ["Attainment", "Workforce", "Funding", "Pipeline"],
@@ -1683,7 +1680,6 @@ export const departments: Department[] = [
     pageTitle: "Home Office",
     blurb:
       "Operational throughput on the highest-volume, highest-salience flows: asylum, visas, and the costs of contingency.",
-    rating: "D",
     synthesis:
       "The legacy asylum backlog has cleared, but new intake keeps the headline above its 2010s baseline. Hotel run-rate has fallen from the 2023 peak but remains an order of magnitude above pre-2019. Visa SLAs are recovering.",
     themes: ["Throughput", "Workforce", "Value for money", "Service standard"],
@@ -1698,7 +1694,6 @@ export const departments: Department[] = [
     fullName: "Justice",
     blurb:
       "The throughput, cost, and capacity of the criminal-justice system. Hard to fudge: courts list cases publicly and prisons publish costs.",
-    rating: "D-",
     synthesis:
       "Crown Court outstanding cases continue to grow; completion times are over 700 days. Prison officer attrition has eased from its 2022 peak but unit costs keep rising faster than inflation.",
     themes: ["Backlog", "Cost", "Workforce", "Speed"],
@@ -1712,7 +1707,6 @@ export const departments: Department[] = [
     fullName: "Defence",
     blurb:
       "Whether the armed forces are at the size, mix, and readiness that the National Security Strategy requires, and whether equipment programmes deliver on time and on budget.",
-    rating: "D",
     synthesis:
       "Manning is below requirement across all three services. Voluntary outflow in critical trades has accelerated since Ukraine. The equipment programme remains structurally unaffordable; the IPA portfolio overruns are rising.",
     themes: ["People", "Procurement", "Readiness", "Affordability"],
@@ -1727,7 +1721,6 @@ export const departments: Department[] = [
     fullName: "Work & Pensions",
     blurb:
       "Whether claimants get decisions promptly, whether work coaches have manageable caseloads, and whether the system is losing money to fraud and error.",
-    rating: "C-",
     synthesis:
       "PIP clearance has improved from its 2022 peak but remains over twice its 2014 baseline. Work coach ratios are double the pre-UC norm. Fraud and error is structurally elevated since the Covid easements.",
     themes: ["Speed", "Capacity", "Integrity", "Backlog"],
@@ -1742,7 +1735,6 @@ export const departments: Department[] = [
     fullName: "Transport",
     blurb:
       "Daily reliability and long-term asset health: cancellations passengers see, agency backlogs drivers see, and capital programmes taxpayers pay for.",
-    rating: "D+",
     synthesis:
       "Rail cancellation scores have not returned to pre-pandemic norms. DVLA has recovered most of its 2021 backlog. Capital portfolio overruns have ballooned; SRN pavement condition is deteriorating.",
     themes: ["Reliability", "Service", "Delivery", "Assets"],
@@ -1758,7 +1750,6 @@ export const departments: Department[] = [
     pageTitle: "HM Treasury",
     blurb:
       "The economy and the public finances: living standards people actually feel, the cost of the national debt, and how much tax is taken in total. Sized here by debt interest, the Treasury's largest direct outlay.",
-    rating: "D",
     synthesis:
       "Real incomes per head have barely grown since 2008 and pay has lagged prices through the cost-of-living crisis. Debt is near 100% of GDP and debt interest has surged with rates. The tax burden is its highest since the 1940s, while productivity — the ultimate driver of pay and receipts — has flatlined.",
     themes: ["Living standards", "Debt", "Tax", "Cost of living"],
