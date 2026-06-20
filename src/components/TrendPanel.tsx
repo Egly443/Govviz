@@ -165,6 +165,14 @@ export function TrendPanel({
             <span>
               {series.cadence === "annual" ? "Annual" : "Monthly"} · {series.points.length} points
             </span>
+            {series.vfm && (
+              <span
+                className="rounded-full border border-primary/30 bg-primary/10 px-1.5 py-px text-[10px] text-primary"
+                title="Value-for-money indicator: cost ÷ outcome, unit cost, or spending efficiency/leakage"
+              >
+                Value for money
+              </span>
+            )}
             {real ? (
               <span
                 className="rounded-full border border-primary/25 bg-primary/10 px-1.5 py-px text-[10px] text-primary"
@@ -266,8 +274,17 @@ export function TrendPanel({
             customFormat={series.deltaFormat}
           />
           {series.target && (
-            <span className="inline-flex items-center gap-1 rounded-full border border-border bg-surface px-2 py-0.5 text-[11px] text-muted-foreground">
-              Target {series.format(series.target.value)}
+            <span
+              className="inline-flex items-center gap-1 rounded-full border border-border bg-surface px-2 py-0.5 text-[11px] text-muted-foreground"
+              title={
+                series.target.kind === "reference"
+                  ? `Reference line (${series.target.label}) — a historical baseline, not an official target`
+                  : `Official standard: ${series.target.label}`
+              }
+            >
+              {series.target.kind === "reference"
+                ? `Ref: ${series.target.label}`
+                : `Target ${series.format(series.target.value)}`}
             </span>
           )}
         </div>

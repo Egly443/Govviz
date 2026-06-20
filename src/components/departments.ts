@@ -30,7 +30,10 @@ export type Department = {
   blurb: string;
   synthesis: string;
   themes: string[];
-  spendBn: number; // illustrative departmental total managed expenditure, £bn
+  // Approximate Total Managed Expenditure, £bn (HMT Public Spending Statistics /
+  // PESA, 2025-26 — real outturn-basis figures, used only to size treemap tiles).
+  // HMT is sized by debt interest (its largest direct outlay; see blurb).
+  spendBn: number;
   hero: TrendSeries;
   core: TrendSeries[];
   supporting?: TrendSeries[];
@@ -506,6 +509,7 @@ const mojPrisonOfficerResign: TrendSeries = {
 
 const mojCostPerPrisoner: TrendSeries = {
   id: "moj-cost-per-prisoner",
+  vfm: true,
   title: "Average cost per prisoner",
   subtitle: "Direct + overheads, real terms £/yr",
   unit: "currency",
@@ -645,6 +649,7 @@ const modVoluntaryOutflow: TrendSeries = {
 
 const modProcurement: TrendSeries = {
   id: "mod-procurement",
+  vfm: true,
   title: "MoD major projects delivery confidence",
   subtitle: "% of MoD GMPP projects rated Amber/Red or Red",
   unit: "percent",
@@ -779,13 +784,14 @@ const dwpWorkCoach: TrendSeries = {
 
 const dwpFraudError: TrendSeries = {
   id: "dwp-fraud-error",
+  vfm: true,
   title: "Fraud & error in benefit spend",
   subtitle: "Overpayments as % of total benefit expenditure",
   unit: "percent",
   format: fmtPct,
   shortFormat: fmtPct,
   goodDirection: "down",
-  target: { value: 1.9, label: "Pre-2018 baseline" },
+  target: { value: 1.9, label: "Pre-2018 baseline", kind: "reference" },
   source: "DWP fraud and error in the benefit system",
   sourceUrl:
     "https://www.gov.uk/government/collections/fraud-and-error-in-the-benefit-system",
@@ -855,7 +861,7 @@ const dftCancellations: TrendSeries = {
   format: fmtPct,
   shortFormat: fmtPct,
   goodDirection: "down",
-  target: { value: 3.0, label: "Pre-pandemic norm" },
+  target: { value: 3.0, label: "Pre-pandemic norm", kind: "reference" },
   source: "Office of Rail and Road, cancellation statistics",
   sourceUrl: "https://dataportal.orr.gov.uk/statistics/performance/passenger-rail-performance/",
   cadence: "monthly",
@@ -918,6 +924,7 @@ const dftDvlaBacklog: TrendSeries = {
 
 const dftCapitalOverrun: TrendSeries = {
   id: "dft-capital-overrun",
+  vfm: true,
   title: "DfT major projects delivery confidence",
   subtitle: "% of DfT GMPP projects rated Amber/Red or Red",
   unit: "percent",
@@ -1169,7 +1176,7 @@ const hmtDebt: TrendSeries = {
   shortFormat: fmtPctWhole,
   yFormat: fmtPctWhole,
   goodDirection: "down",
-  target: { value: 40, label: "Old 40% ceiling" },
+  target: { value: 40, label: "Old 40% ceiling", kind: "reference" },
   source: "ONS / OBR public sector finances",
   sourceUrl:
     "https://www.ons.gov.uk/economy/governmentpublicsectorandtaxes/publicsectorfinance",
@@ -1210,7 +1217,8 @@ const hmtDebtCash: TrendSeries = {
   yFormat: fmtGbpTnShort,
   deltaFormat: (v) => `${v > 0 ? "+" : ""}£${Math.round(v)}bn`,
   goodDirection: "down",
-  target: { value: 3000, label: "£3tn" },
+  // No target: £3tn was just a round marker above the current level, which made
+  // record debt score green. Scored on its own range instead (record high = red).
   source: "ONS / OBR public sector finances",
   sourceUrl:
     "https://www.ons.gov.uk/economy/governmentpublicsectorandtaxes/publicsectorfinance",
@@ -1291,6 +1299,7 @@ const hmtUnemployment: TrendSeries = {
 
 const hmtDebtInterest: TrendSeries = {
   id: "hmt-debt-interest",
+  vfm: true,
   title: "Debt interest",
   subtitle: "Debt interest as % of government revenue",
   unit: "percent",
@@ -1556,7 +1565,7 @@ function wbS(o: {
   format: (v: number) => string;
   shortFormat?: (v: number) => string;
   yFormat?: (v: number) => string;
-  target?: { value: number; label: string };
+  target?: { value: number; label: string; kind?: "standard" | "reference" };
   source: string;
   code: string;
   anchors: [number, number][];
@@ -1619,6 +1628,7 @@ const dhscSpendPerLifeYear = ratioSeries({
   yFormat: (v) => `$${Math.round(v)}`,
   deltaFormat: (v) => `${v > 0 ? "+" : ""}$${Math.round(v)}`,
   goodDirection: "down",
+  vfm: true,
   source: "World Bank (WHO) ÷ ONS national life tables",
   sourceUrl: "https://data.worldbank.org/indicator/SH.XPD.CHEX.PC.CD?locations=GB",
 });
@@ -1647,7 +1657,7 @@ export const departments: Department[] = [
   {
     code: "dhsc",
     name: "DHSC",
-    spendBn: 190,
+    spendBn: 204,
     fullName: "Health & Social Care",
     blurb:
       "Decades of monthly data on how the department is performing against its stated objectives. Headline numbers in context, not in isolation.",
@@ -1661,7 +1671,7 @@ export const departments: Department[] = [
   {
     code: "dfe",
     name: "DfE",
-    spendBn: 90,
+    spendBn: 95,
     fullName: "Education",
     blurb:
       "How the schools system is performing on the measures that families and economists both care about: outcomes, retention, financial sustainability, and pipeline.",
@@ -1675,7 +1685,7 @@ export const departments: Department[] = [
   {
     code: "home-office",
     name: "Home Office",
-    spendBn: 22,
+    spendBn: 21,
     fullName: "Home Office",
     pageTitle: "Home Office",
     blurb:
@@ -1690,7 +1700,7 @@ export const departments: Department[] = [
   {
     code: "moj",
     name: "MoJ",
-    spendBn: 12,
+    spendBn: 13,
     fullName: "Justice",
     blurb:
       "The throughput, cost, and capacity of the criminal-justice system. Hard to fudge: courts list cases publicly and prisons publish costs.",
@@ -1703,7 +1713,7 @@ export const departments: Department[] = [
   {
     code: "mod",
     name: "MoD",
-    spendBn: 55,
+    spendBn: 56,
     fullName: "Defence",
     blurb:
       "Whether the armed forces are at the size, mix, and readiness that the National Security Strategy requires, and whether equipment programmes deliver on time and on budget.",
@@ -1717,7 +1727,7 @@ export const departments: Department[] = [
   {
     code: "dwp",
     name: "DWP",
-    spendBn: 250,
+    spendBn: 290,
     fullName: "Work & Pensions",
     blurb:
       "Whether claimants get decisions promptly, whether work coaches have manageable caseloads, and whether the system is losing money to fraud and error.",
@@ -1731,7 +1741,7 @@ export const departments: Department[] = [
   {
     code: "dft",
     name: "DfT",
-    spendBn: 28,
+    spendBn: 30,
     fullName: "Transport",
     blurb:
       "Daily reliability and long-term asset health: cancellations passengers see, agency backlogs drivers see, and capital programmes taxpayers pay for.",

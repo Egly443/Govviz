@@ -33,7 +33,13 @@ export type TrendSeries = {
   /** Optional delta formatter (overrides built-in). Receives signed delta. */
   deltaFormat?: (v: number) => string;
   goodDirection: "up" | "down";
-  target?: { value: number; label: string };
+  // kind "standard" = an official/statutory benchmark; "reference" = a historical
+  // baseline or marker (labelled honestly as such, not implied to be a target).
+  target?: { value: number; label: string; kind?: "standard" | "reference" };
+  /** Marks the department's value-for-money indicator (cost ÷ outcome, unit
+   *  cost, or spending efficiency/leakage). Shown with a "Value for money"
+   *  badge so the pillar is explicit. */
+  vfm?: boolean;
   source: string;
   sourceUrl: string;
   cadence: "monthly" | "quarterly" | "annual";
@@ -134,11 +140,14 @@ export function ratioSeries(o: {
   yFormat?: (v: number) => string;
   deltaFormat?: (v: number) => string;
   goodDirection: "up" | "down";
-  target?: { value: number; label: string };
+  // kind "standard" = an official/statutory benchmark; "reference" = a historical
+  // baseline or marker (labelled honestly as such, not implied to be a target).
+  target?: { value: number; label: string; kind?: "standard" | "reference" };
   source: string;
   sourceUrl: string;
   scale?: number;
   round?: number;
+  vfm?: boolean;
   annotations?: Annotation[];
 }): TrendSeries {
   const scale = o.scale ?? 1;
@@ -162,6 +171,7 @@ export function ratioSeries(o: {
     deltaFormat: o.deltaFormat,
     goodDirection: o.goodDirection,
     target: o.target,
+    vfm: o.vfm,
     source: o.source,
     sourceUrl: o.sourceUrl,
     cadence: o.num.cadence,
@@ -399,7 +409,7 @@ export const agencySpend: TrendSeries = {
   format: fmtGbp,
   shortFormat: fmtGbpShort,
   goodDirection: "down",
-  target: { value: 2.4, label: "NHSE cap ambition" },
+  target: { value: 2.4, label: "NHSE ambition", kind: "reference" },
   source: "NHS England board papers / NAO",
   sourceUrl:
     "https://www.nao.org.uk/reports/nhs-financial-management-and-sustainability/",

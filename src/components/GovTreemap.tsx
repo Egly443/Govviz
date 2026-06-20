@@ -163,7 +163,7 @@ export function GovTreemap({
                     )}
                   </span>
                 )}
-                {cell.series.target && (
+                {cell.series.target && cell.series.target.kind !== "reference" && (
                   <span
                     className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-white/70"
                     title="Has an official target"

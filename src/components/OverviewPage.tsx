@@ -50,10 +50,11 @@ export function OverviewPage() {
         </section>
 
         <p className="mt-3 text-[11px] text-muted-foreground">
-          Tile colour is relative to each indicator&rsquo;s own min&ndash;max
-          history (green = best in range, red = worst), oriented so green is
-          always good. A dot marks indicators with an official target. Spending
-          figures are illustrative departmental totals.
+          Tile colour scores each indicator against its published target where
+          one exists (green = at or beyond the standard), otherwise its own
+          historical range; always oriented so green is good. A dot marks
+          indicators with an official target. Tile size is approximate
+          departmental Total Managed Expenditure (HMT, 2025&ndash;26).
         </p>
 
         <Footer />
