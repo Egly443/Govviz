@@ -1252,65 +1252,6 @@ const SOURCES = [
     },
   },
 
-  // NHS dentistry — % of adult population seen by an NHS dentist in the last 24
-  // months (the "can't find an NHS dentist" grievance). NHSBSA publishes this
-  // as open data on a public S3 bucket, bypassing the digital.nhs.uk block.
-  {
-    id: "dhsc-nhs-dentistry",
-    min: 20,
-    max: 70, // percent of adults seen (24 months)
-    get: async () => {
-      // Discover the patients-seen CSV via the NHSBSA CKAN open data API (the
-      // S3 bucket allows GetObject but not ListObjects).
-      const search = await fetch(
-        "https://opendata.nhsbsa.net/api/3/action/package_search?q=dental%20patients%20seen&rows=30",
-        fetchOpts({ accept: "application/json" }),
-      );
-      if (!search.ok) throw new Error(`dentistry CKAN search → HTTP ${search.status}`);
-      const pkgs = (await search.json())?.result?.results || [];
-      const resources = pkgs.flatMap((p) => p.resources || []);
-      const csvRes = resources.filter((r) => /csv/i.test(r.format || "") || /\.csv$/i.test(r.url || ""));
-      console.log(`  dentistry CKAN csv resources: ${csvRes.map((r) => (r.name || r.url || "").split("/").pop()).slice(0, 40).join(" | ")}`);
-      const pick =
-        csvRes.find((r) => /patients?[ _-]?seen/i.test(`${r.name} ${r.url}`) && /geo|country|region|annual|nat/i.test(`${r.name} ${r.url}`)) ||
-        csvRes.find((r) => /patients?[ _-]?seen/i.test(`${r.name} ${r.url}`));
-      if (!pick) throw new Error("dentistry: no patients_seen CSV resource in CKAN");
-      const csvUrl = pick.url;
-      console.log(`  dhsc-nhs-dentistry: ${csvUrl}`);
-      const c = await fetch(csvUrl, fetchOpts({ accept: "text/csv,*/*" }));
-      if (!c.ok) throw new Error(`dentistry CSV → HTTP ${c.status}`);
-      const lines = (await c.text()).split(/\r?\n/).filter((l) => l.trim());
-      const header = parseCsvLine(lines[0]).map((h) => h.replace(/^﻿/, "").trim());
-      const H = header.map((h) => h.toLowerCase());
-      console.log(`  dentistry header: ${header.join("|")}`);
-      const yCol = H.findIndex((h) => /year/.test(h));
-      const geoNameCol = H.findIndex((h) => /country|region|geograph.*name|org.*name|^name$/.test(h));
-      const patTypeCol = H.findIndex((h) => /patient.?type|patient.?group|^type$|adult|child|age/.test(h));
-      const pctCol = H.findIndex((h) => /percent|proportion|pop.*seen|seen.*pop|%/.test(h));
-      if (yCol < 0 || pctCol < 0) throw new Error("dentistry: year/percentage columns not found");
-      const points = [], seen = new Set();
-      for (const line of lines.slice(1)) {
-        const r = parseCsvLine(line);
-        const geo = geoNameCol >= 0 ? String(r[geoNameCol] ?? "").trim() : "England";
-        if (geoNameCol >= 0 && !/^england$/i.test(geo)) continue;
-        const pt = patTypeCol >= 0 ? String(r[patTypeCol] ?? "").toLowerCase() : "adult";
-        if (patTypeCol >= 0 && !/adult/.test(pt)) continue;
-        const yr = String(r[yCol] ?? "").match(/20\d\d/g);
-        const ye = yr ? yr[yr.length - 1] : null;
-        if (!ye) continue;
-        let v = typeof r[pctCol] === "number" ? r[pctCol] : parseFloat(String(r[pctCol] ?? "").replace(/[%,]/g, ""));
-        if (!Number.isFinite(v)) continue;
-        if (v <= 1) v *= 100;
-        if (v < 20 || v > 70) continue;
-        if (seen.has(ye)) continue;
-        seen.add(ye);
-        points.push({ date: `${ye}-01-01`, value: +v.toFixed(1) });
-      }
-      if (points.length < 3) { console.log(`dentistry: only ${points.length} pts; header=${header.join("|")}`); throw new Error(`dentistry: only ${points.length} points`); }
-      return points.sort((a, b) => (a.date < b.date ? -1 : 1));
-    },
-  },
-
   // DfT / ORR rail cancellations score (% of planned trains cancelled, all
   // operators). ORR data portal Table 3123 ODS (media id may rotate → SKIPs safe).
   {
