@@ -18,6 +18,12 @@ const fetchOpts = (headers) => ({
   signal: AbortSignal.timeout(30_000),
 });
 
+// Exact-source provenance: helpers record the URL they actually fetched so the
+// baked dataset can link to the precise file/table (not just a landing page).
+// The main loop resets this per series and keeps the first non-null value.
+let _src = null;
+const setSrc = (u) => { if (u) _src = String(u); };
+
 const MONTHS = {
   JAN: 1, FEB: 2, MAR: 3, APR: 4, MAY: 5, JUN: 6,
   JUL: 7, AUG: 8, SEP: 9, OCT: 10, NOV: 11, DEC: 12,
@@ -76,6 +82,7 @@ async function ons(topic, cdid, dataset, freq = "years") {
               lastErr = new Error(`${c}/${ds}: no usable points`);
               break;
             }
+            setSrc(url);
             return points;
           } catch (e) {
             lastErr = e;
@@ -130,6 +137,7 @@ async function eesCsv(datasetId) {
         return Object.fromEntries(headers.map((h, i) => [h, cells[i] ?? ""]));
       });
       console.log(`  EES ${datasetId}: ${rows.length} rows, cols: ${headers.join("|")}`);
+      setSrc(`https://explore-education-statistics.service.gov.uk/data-catalogue/data-set/${datasetId}`);
       return { headers, rows };
     } catch (e) {
       lastErr = e;
@@ -156,6 +164,7 @@ async function unhcr(endpoint, params = {}) {
         await sleep(600 * (attempt + 1));
         continue;
       }
+      setSrc("https://www.unhcr.org/refugee-statistics/download");
       return (await res.json()).items || [];
     } catch (e) {
       lastErr = e;
@@ -192,6 +201,7 @@ async function wb(indicator, country = "GBR") {
         .filter((p) => Number.isFinite(p.value))
         .sort((a, b) => (a.date < b.date ? -1 : 1));
       if (!points.length) throw new Error(`WB ${indicator}: no usable points`);
+      setSrc(url);
       return points;
     } catch (e) {
       lastErr = e;
@@ -246,6 +256,7 @@ async function xlsxBook(url) {
   if (!res.ok) throw new Error(`spreadsheet ${url} → HTTP ${res.status}`);
   const buf = Buffer.from(await res.arrayBuffer());
   const XLSX = await sheetjs();
+  setSrc(url);
   return XLSX.read(buf, { type: "buffer" });
 }
 // Read one sheet as an array-of-arrays (header:1), blank rows removed.
@@ -269,6 +280,7 @@ async function govukContent(path) {
   const url = `https://www.gov.uk/api/content/${path}`;
   const res = await fetch(url, fetchOpts({ accept: "application/json" }));
   if (!res.ok) throw new Error(`gov.uk content ${path} → HTTP ${res.status}`);
+  setSrc(`https://www.gov.uk/${path}`);
   return res.json();
 }
 async function govukAttachments(path) {
@@ -1145,6 +1157,7 @@ const SOURCES = [
       console.log(`  dhsc-ambulance-c2: ${csvUrl}`);
       const res = await fetch(csvUrl, fetchOpts({ accept: "text/csv,*/*" }));
       if (!res.ok) throw new Error(`dhsc-ambulance-c2 CSV → HTTP ${res.status}`);
+      setSrc(csvUrl);
       const lines = (await res.text()).split(/\r?\n/).filter((l) => l.trim());
       const header = parseCsvLine(lines[0]).map((h) => h.replace(/^﻿/, "").trim());
       const yearCol = header.findIndex((h) => /^year$/i.test(h));
@@ -1191,6 +1204,58 @@ const SOURCES = [
         throw new Error(`dhsc-ambulance-c2: only ${points.length} points`);
       }
       return points.sort((a, b) => (a.date < b.date ? -1 : 1));
+    },
+  },
+
+  // GP Patient Survey (Ipsos): % reporting a good overall experience of their
+  // GP practice — the #1 day-to-day NHS access grievance. Scrape the reports
+  // page for national CSV links across years and read the overall-experience
+  // "good" figure. Per-year files; diagnostics dump candidate links/columns.
+  {
+    id: "dhsc-gp-access",
+    min: 50,
+    max: 95, // percent good overall experience
+    get: async () => {
+      const base = "https://www.gp-patient.co.uk";
+      let html = "";
+      for (const p of [`${base}/surveysandreports`, `${base}/latest-survey/results`, `${base}/analysistool`]) {
+        try { const r = await fetch(p, fetchOpts({ accept: "text/html,*/*" })); if (r.ok) html += await r.text(); } catch (e) { void e; }
+      }
+      if (!html) throw new Error("gp-access: reports pages unreachable");
+      const links = [...new Set([...html.matchAll(/href="([^"]+\.csv[^"]*)"/gi)].map((m) => m[1]))]
+        .map((u) => (u.startsWith("http") ? u : `${base}${u.startsWith("/") ? "" : "/"}${u}`));
+      console.log(`  gp-access csv links (${links.length}): ${links.map((u) => u.split("/").pop()).slice(0, 25).join(" | ")}`);
+      const natl = links.filter((u) => /national|weighted|england/i.test(u));
+      const pick = (natl.length ? natl : links).slice(0, 8);
+      const byYear = {};
+      let sampleHeader = null;
+      for (const url of pick) {
+        try {
+          const r = await fetch(url, fetchOpts({ accept: "text/csv,*/*" }));
+          if (!r.ok) continue;
+          const lines = (await r.text()).split(/\r?\n/).filter((l) => l.trim());
+          if (lines.length < 2) continue;
+          const header = parseCsvLine(lines[0]).map((h) => h.trim());
+          if (!sampleHeader) sampleHeader = header;
+          const ci = header.findIndex((h) => /overall.*experience/i.test(h) && /good|positive|q\b/i.test(h));
+          const yr = (url.match(/20\d\d/) || [])[0];
+          if (ci < 0 || !yr) continue;
+          for (const line of lines.slice(1, 6)) {
+            const cells = parseCsvLine(line);
+            let v = parseFloat(String(cells[ci] ?? "").replace(/[%,]/g, ""));
+            if (v > 0 && v <= 1) v *= 100;
+            if (v >= 50 && v <= 95) { byYear[yr] = +v.toFixed(1); break; }
+          }
+        } catch (e) { void e; }
+      }
+      const points = Object.entries(byYear)
+        .map(([y, v]) => ({ date: `${y}-01-01`, value: v }))
+        .sort((a, b) => (a.date < b.date ? -1 : 1));
+      if (points.length < 4) {
+        if (sampleHeader) console.log(`  gp-access header sample: ${sampleHeader.slice(0, 30).join("|")}`);
+        throw new Error(`gp-access: only ${points.length} year(s) parsed`);
+      }
+      return points;
     },
   },
 
@@ -1678,6 +1743,7 @@ let fail = 0;
 for (const s of SOURCES) {
   const tag = `${s.id}${s.line ? ":" + s.line : ""}`;
   try {
+    _src = null;
     let points = await s.get();
     if (s.scale) points = points.map((p) => ({ date: p.date, value: p.value * s.scale }));
     // Sanity guard: a wrong-but-resolving code can't show wrong data. Reject
@@ -1699,9 +1765,12 @@ for (const s of SOURCES) {
     if (s.line) (out[s.id].lines ??= []).push({ id: s.line, points });
     else out[s.id].points = points;
     out[s.id].asOf = new Date().toISOString().slice(0, 10);
+    // Exact source URL of the file/table actually fetched (first line wins for
+    // multi-line series). Falls back to the series' static sourceUrl if unknown.
+    if (_src) out[s.id].srcUrl ??= _src;
     ok++;
     console.log(
-      `ok   ${tag}  ${points.length} pts  ${points[0].date}..${points[points.length - 1].date}`,
+      `ok   ${tag}  ${points.length} pts  ${points[0].date}..${points[points.length - 1].date}  src=${_src ?? "-"}`,
     );
   } catch (e) {
     fail++;
@@ -1713,7 +1782,7 @@ for (const s of SOURCES) {
 const file =
   `// AUTO-GENERATED by scripts/build-data.mjs — do not edit or commit populated data.\n` +
   `export type RawPoint = { date: string; value: number };\n` +
-  `export type RawSeries = { points?: RawPoint[]; lines?: { id: string; points: RawPoint[] }[]; asOf?: string };\n` +
+  `export type RawSeries = { points?: RawPoint[]; lines?: { id: string; points: RawPoint[] }[]; asOf?: string; srcUrl?: string };\n` +
   `export const SERIES_DATA: Record<string, RawSeries> = ${JSON.stringify(out, null, 2)};\n`;
 mkdirSync(dirname(OUT), { recursive: true });
 writeFileSync(OUT, file);

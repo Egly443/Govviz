@@ -17,6 +17,7 @@ import {
   latest,
   minMax,
   realAsOf,
+  realSourceUrl,
   seriesIsReal,
   SHOW_ILLUSTRATIVE,
   slicePoints,
@@ -96,6 +97,8 @@ export function TrendPanel({
     : realAsOf(series.id);
   // Data vintage / staleness — only meaningful for real series.
   const vintage = real ? stalenessOf(series) : null;
+  // Exact file CI fetched (preferred over the static landing-page sourceUrl).
+  const exactSrc = real ? realSourceUrl(series.id) : undefined;
 
   // Production honesty gate: never render a fabricated trend line. An unsourced
   // series shows an explicit placeholder instead of its illustrative fallback.
@@ -373,13 +376,17 @@ export function TrendPanel({
       <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 border-t border-border/60 pt-3 text-[11px] text-muted-foreground">
         <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
           <a
-            href={series.sourceUrl}
+            href={exactSrc ?? series.sourceUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="underline decoration-dotted underline-offset-2 hover:text-foreground"
-            title={`Source: ${series.source}`}
+            title={
+              exactSrc
+                ? `Exact file fetched: ${exactSrc}`
+                : `Source: ${series.source}`
+            }
           >
-            Source: {series.source} ↗
+            Source: {series.source}{exactSrc ? " ⤓" : ""} ↗
           </a>
           {real && asOf && <span className="opacity-70">· fetched {asOf}</span>}
         </span>

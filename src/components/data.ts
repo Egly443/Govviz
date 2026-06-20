@@ -91,6 +91,10 @@ export const SHOW_ILLUSTRATIVE =
 export function realAsOf(id: string): string | undefined {
   return SERIES_DATA[id]?.asOf;
 }
+/** Exact URL of the file/table CI actually fetched for this series, if known. */
+export function realSourceUrl(id: string): string | undefined {
+  return SERIES_DATA[id]?.srcUrl;
+}
 
 // International peer set for World Bank comparator charts. Keep in sync with
 // WB_PEERS in scripts/build-data.mjs and src/components/departments.ts.
@@ -520,6 +524,34 @@ export const aePerformance: TrendSeries = {
     { date: "2020-03-01", label: "Covid-19" },
     { date: "2023-12-01", label: "Winter crisis" },
   ],
+};
+
+// GP access — the single biggest day-to-day NHS gripe. GP Patient Survey
+// (Ipsos) headline: % reporting a good overall experience of their practice.
+export const gpAccess: TrendSeries = {
+  id: "dhsc-gp-access",
+  title: "GP practice experience",
+  subtitle: "% reporting a good overall experience of their GP practice",
+  unit: "percent",
+  format: (v) => `${v.toFixed(1)}%`,
+  shortFormat: (v) => `${v.toFixed(0)}%`,
+  yFormat: (v) => `${v.toFixed(0)}%`,
+  deltaFormat: (v) => `${v > 0 ? "+" : ""}${v.toFixed(1)}pp`,
+  goodDirection: "up",
+  source: "GP Patient Survey (Ipsos, NHS England)",
+  sourceUrl: "https://www.gp-patient.co.uk/surveysandreports",
+  cadence: "annual",
+  points: realPoints(
+    "dhsc-gp-access",
+    annualSeries(
+      [[2018, 84], [2020, 82], [2022, 72], [2023, 71], [2024, 74], [2025, 75]],
+      2018,
+      2025,
+      39,
+      0.2,
+    ),
+  ),
+  annotations: [{ date: "2022-01-01", label: "Post-pandemic access" }],
 };
 
 // Category 2 ambulance response (emergencies like heart attack / stroke) — the
