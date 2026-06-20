@@ -1214,46 +1214,55 @@ const SOURCES = [
   {
     id: "dhsc-gp-access",
     min: 50,
-    max: 95, // percent good overall experience
+    max: 95, // percent good overall experience (very good + fairly good)
     get: async () => {
       const base = "https://www.gp-patient.co.uk";
-      let html = "";
-      for (const p of [`${base}/surveysandreports`, `${base}/latest-survey/results`, `${base}/analysistool`]) {
-        try { const r = await fetch(p, fetchOpts({ accept: "text/html,*/*" })); if (r.ok) html += await r.text(); } catch (e) { void e; }
-      }
-      if (!html) throw new Error("gp-access: reports pages unreachable");
-      const links = [...new Set([...html.matchAll(/href="([^"]+\.csv[^"]*)"/gi)].map((m) => m[1]))]
-        .map((u) => (u.startsWith("http") ? u : `${base}${u.startsWith("/") ? "" : "/"}${u}`));
-      console.log(`  gp-access csv links (${links.length}): ${links.map((u) => u.split("/").pop()).slice(0, 25).join(" | ")}`);
-      const natl = links.filter((u) => /national|weighted|england/i.test(u));
-      const pick = (natl.length ? natl : links).slice(0, 8);
+      // Per-year national CSVs live at a stable path; only the filename suffix
+      // varies. Single-row (England) wide files; "good" = overallexp options 1+2.
+      const cand = (y) =>
+        [
+          `GPPS_${y}_National_data_(weighted)_(csv)_v2_PUBLIC_v2.csv`,
+          `GPPS_${y}_National_data_(weighted)_(csv)_PUBLIC.csv`,
+          `GPPS_${y}_National_data_(weighted)_(csv)_PUBLIC_v2.csv`,
+          `GPPS_${y}_National_data_(weighted)_PUBLIC.csv`,
+        ].map(
+          (f) =>
+            `${base}/Download?fileRedirect=${y}%2Fsurvey-results%2Fnational-results%2Fnational-data-csv%2F${f}`,
+        );
+      const num = (cell) => {
+        const v = parseFloat(String(cell ?? "").replace(/[%,]/g, ""));
+        return Number.isFinite(v) ? (v <= 1 ? v * 100 : v) : NaN;
+      };
       const byYear = {};
-      let sampleHeader = null;
-      for (const url of pick) {
-        try {
-          const r = await fetch(url, fetchOpts({ accept: "text/csv,*/*" }));
-          if (!r.ok) continue;
-          const lines = (await r.text()).split(/\r?\n/).filter((l) => l.trim());
-          if (lines.length < 2) continue;
-          const header = parseCsvLine(lines[0]).map((h) => h.trim());
-          if (!sampleHeader) sampleHeader = header;
-          const ci = header.findIndex((h) => /overall.*experience/i.test(h) && /good|positive|q\b/i.test(h));
-          const yr = (url.match(/20\d\d/) || [])[0];
-          if (ci < 0 || !yr) continue;
-          for (const line of lines.slice(1, 6)) {
-            const cells = parseCsvLine(line);
-            let v = parseFloat(String(cells[ci] ?? "").replace(/[%,]/g, ""));
-            if (v > 0 && v <= 1) v *= 100;
-            if (v >= 50 && v <= 95) { byYear[yr] = +v.toFixed(1); break; }
-          }
-        } catch (e) { void e; }
+      let cols = null;
+      for (let y = 2018; y <= 2025; y++) {
+        for (const url of cand(y)) {
+          try {
+            const r = await fetch(url, fetchOpts({ accept: "text/csv,*/*" }));
+            if (!r.ok) continue;
+            const lines = (await r.text()).split(/\r?\n/).filter((l) => l.trim());
+            if (lines.length < 2) continue;
+            const header = parseCsvLine(lines[0]).map((h) => h.trim().toLowerCase());
+            const row = parseCsvLine(lines[1]);
+            if (!cols) cols = header.filter((h) => /overallexp/.test(h)).slice(0, 12);
+            const i1 = header.findIndex((h) => /overallexp_1\.pct/.test(h));
+            const i2 = header.findIndex((h) => /overallexp_2\.pct/.test(h));
+            if (i1 < 0 || i2 < 0) continue;
+            const good = num(row[i1]) + num(row[i2]);
+            if (good >= 50 && good <= 95) {
+              byYear[y] = +good.toFixed(1);
+              setSrc(url);
+              break;
+            }
+          } catch (e) { void e; }
+        }
       }
       const points = Object.entries(byYear)
         .map(([y, v]) => ({ date: `${y}-01-01`, value: v }))
         .sort((a, b) => (a.date < b.date ? -1 : 1));
       if (points.length < 4) {
-        if (sampleHeader) console.log(`  gp-access header sample: ${sampleHeader.slice(0, 30).join("|")}`);
-        throw new Error(`gp-access: only ${points.length} year(s) parsed`);
+        console.log(`  gp-access overallexp cols seen: ${(cols || []).join("|") || "none"}`);
+        throw new Error(`gp-access: only ${points.length} year(s)`);
       }
       return points;
     },
