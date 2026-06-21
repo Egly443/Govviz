@@ -728,8 +728,9 @@ const SOURCES = [
       const res = await fetch(`https://www.data.gov.uk/api/3/action/package_show?id=${pkg}`, fetchOpts({ accept: "application/json" }));
       if (!res.ok) throw new Error(`EDM CKAN HTTP ${res.status}`);
       const j = await res.json();
-      const resources = (j.result?.resources || []).filter((r) => /\.xlsx?(\?|$)/i.test(r.url || "") || /xls/i.test(r.format || ""));
-      console.log(`  sewage resources: ${resources.map((r) => `${(r.name || "").slice(0, 24)}::${(r.url || "").split("/").pop()}`).slice(0, 15).join(" | ")}`);
+      const all = j.result?.resources || [];
+      console.log(`  sewage CKAN success=${j.success} resources=${all.length} all=${all.map((r) => `${r.format || "?"}::${(r.url || "").split("/").pop()}`).slice(0, 20).join(" | ")}`);
+      const resources = all.filter((r) => /\.(xlsx?|ods)(\?|$)/i.test(r.url || "") || /xls|ods|spreadsheet|excel/i.test(r.format || ""));
       const num = (c) => { const v = typeof c === "number" ? c : parseFloat(String(c ?? "").replace(/,/g, "")); return Number.isFinite(v) ? v : null; };
       const points = [];
       let dumped = false;
@@ -774,13 +775,18 @@ const SOURCES = [
     max: 100,
     get: async () => {
       // The parent statistics page lists only PDFs; the machine-readable
-      // classification dataset lives on each yearly edition document.
+      // classification dataset lives on each yearly edition page, which appear
+      // as HTML attachments (links.documents is empty for this collection).
       const parent = await govukContent("government/statistics/bathing-water-quality-statistics");
-      const docs = (parent?.links?.documents || []).filter((d) => /bathing water/i.test(d.title || ""));
-      docs.sort((a, b) => String(b.public_updated_at || "").localeCompare(String(a.public_updated_at || "")));
+      const editions = [
+        ...(parent?.links?.documents || []).map((d) => String(d.base_path || "")),
+        ...(parent?.details?.attachments || []).map((a) => String(a.url || "")).filter((u) => /\/bathing-water-quality-statistics\/.+\d{4}/i.test(u)),
+      ].map((u) => u.replace(/^https?:\/\/www\.gov\.uk\//, "").replace(/^\//, "")).filter(Boolean);
+      const seen = new Set();
+      const docs = editions.filter((p) => (seen.has(p) ? false : (seen.add(p), true))).sort((a, b) => b.localeCompare(a));
+      console.log(`  bathing editions: ${docs.slice(0, 6).join(" | ")}`);
       let file = null;
-      for (const doc of docs.slice(0, 4)) {
-        const p = String(doc.base_path || "").replace(/^\//, "");
+      for (const p of docs.slice(0, 5)) {
         let eatts;
         try { eatts = await govukAttachments(p); } catch { continue; }
         const cand = eatts.find((a) => /\.(ods|xlsx?|csv)(\?|$)/i.test(a.url || "") && /classif|complian|quality|result/i.test(`${a.title || ""} ${a.url || ""}`)) || eatts.find((a) => /\.(ods|xlsx?|csv)(\?|$)/i.test(a.url || ""));
