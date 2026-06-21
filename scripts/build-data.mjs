@@ -549,31 +549,43 @@ const SOURCES = [
         return null;
       };
       let result = null, dumped = false;
-      for (const ods of odsAtts.slice(0, 3)) {
+      for (const ods of odsAtts.slice(0, 2)) {
         console.log(`  mhclg-ta try: ${ods.url.split("/").pop()}`);
-        const book = await xlsxBook(ods.url);
+        let book;
+        try { book = await xlsxBook(ods.url); } catch (e) { console.log(`  mhclg-ta read err: ${e.message}`); continue; }
         console.log(`  mhclg-ta sheets: ${book.SheetNames.join("|")}`);
-        const sheetOrder = book.SheetNames.filter((n) => /\bta\b|temporary|ta_?1|ta1/i.test(n)).concat(book.SheetNames);
+        const taSheets = book.SheetNames.filter((n) => /^ta\d?$|temporary/i.test(n));
+        const sheetOrder = taSheets.concat(book.SheetNames);
         for (const sn of [...new Set(sheetOrder)]) {
-          const rows = await sheetRows(book, sn);
-          for (let hi = 0; hi < Math.min(rows.length, 14); hi++) {
-            const hdr = (rows[hi] || []).map((c) => String(c ?? "").toLowerCase());
-            const totCol = hdr.findIndex((h) => /total.*(temporary|in ta)|households.*temporary accommodation|total number of households|^total$/.test(h));
-            if (totCol < 0) continue;
-            const dateCol = (rows[hi] || []).findIndex((c, i) => i !== totCol && rows.slice(hi + 1, hi + 8).some((r) => toDate(r?.[i])));
+          let rows;
+          try { rows = await sheetRows(book, sn); } catch (e) { void e; continue; }
+          for (let hi = 0; hi < Math.min(rows.length, 16); hi++) {
+            const row = rows[hi] || [];
+            const dateCol = row.findIndex((c, i) => rows.slice(hi + 1, hi + 8).filter((r) => toDate(r?.[i])).length >= 3);
             if (dateCol < 0) continue;
+            // total TA households: header cell with "total"/"all", else the last numeric column.
+            const hdr = row.map((c) => String(c ?? "").toLowerCase());
+            let totCol = hdr.findIndex((h) => /total|all (types|households)|households in temporary/.test(h));
+            if (totCol < 0) { const nums = (rows[hi + 1] || []).map((c, i) => [i, typeof c === "number" ? c : parseFloat(String(c ?? "").replace(/,/g, ""))]).filter(([i, v]) => i !== dateCol && Number.isFinite(v) && v >= 30000 && v <= 250000); if (nums.length) totCol = nums[nums.length - 1][0]; }
+            if (totCol < 0) continue;
             const points = [];
             for (const r of rows.slice(hi + 1)) {
               const d = toDate(r?.[dateCol]); if (!d) continue;
               const v = typeof r[totCol] === "number" ? r[totCol] : parseFloat(String(r[totCol] ?? "").replace(/,/g, ""));
               if (Number.isFinite(v) && v >= 30000 && v <= 250000) points.push({ date: d, value: Math.round(v) });
             }
-            if (points.length >= 8) { console.log(`  mhclg-ta ${ods.url.split("/").pop()} sheet="${sn}" ${points.length} pts`); result = points.sort((a, b) => (a.date < b.date ? -1 : 1)); break; }
+            if (points.length >= 8) { console.log(`  mhclg-ta ${ods.url.split("/").pop()} sheet="${sn}" col=${totCol} ${points.length} pts`); result = points.sort((a, b) => (a.date < b.date ? -1 : 1)); break; }
           }
           if (result) break;
         }
         if (result) break;
-        if (!dumped) { dumped = true; const r0 = await sheetRows(book, book.SheetNames[0]); console.log(`  mhclg-ta dump ${book.SheetNames[0]}:`); for (const r of r0.slice(0, 8)) console.log(`    ${JSON.stringify(r).slice(0, 220)}`); }
+        if (!dumped) {
+          dumped = true;
+          const ts = book.SheetNames.find((n) => /^ta1$/i.test(n)) || book.SheetNames.find((n) => /^ta/i.test(n)) || book.SheetNames[0];
+          const r0 = await sheetRows(book, ts);
+          console.log(`  mhclg-ta dump ${ts}:`);
+          for (const r of r0.slice(0, 10)) console.log(`    ${JSON.stringify(r).slice(0, 240)}`);
+        }
       }
       if (result) return result;
       throw new Error("mhclg-ta: TA total series not found");
@@ -592,18 +604,20 @@ const SOURCES = [
       console.log(`  mhclg-dwellings atts: ${atts.map((a) => (a.url || "").split("/").pop()).slice(0, 20).join(" | ")}`);
       // England annual time series lives in a Live_Table ODS (try 122, 120, 118…), not the old regional .xls.
       const odsAtts = atts.filter((a) => /live_table_\d+\.ods/i.test(a.url || ""));
-      const ord = ["122", "120", "118", "123", "124", "117"];
+      const ord = ["120", "118", "117", "122", "123", "124"];
       const tnum = (u) => (String(u).match(/live_table_(\d+)/i) || [])[1] || "999";
       odsAtts.sort((a, b) => (ord.indexOf(tnum(a.url)) + 1 || 99) - (ord.indexOf(tnum(b.url)) + 1 || 99));
       let dumped = "";
       for (const att of odsAtts) {
-        const book = await xlsxBook(att.url);
+        let book;
+        try { book = await xlsxBook(att.url); } catch (e) { console.log(`  mhclg-dwellings ${att.url.split("/").pop()} read err: ${e.message}`); continue; }
         for (const sn of book.SheetNames) {
-          const rows = await sheetRows(book, sn);
+          let rows;
+          try { rows = await sheetRows(book, sn); } catch (e) { void e; continue; }
           let hdr = -1, valCol = -1;
-          for (let i = 0; i < Math.min(rows.length, 14); i++) {
+          for (let i = 0; i < Math.min(rows.length, 16); i++) {
             const h = (rows[i] || []).map((c) => String(c ?? "").toLowerCase());
-            const vc = h.findIndex((x) => /net additional dwellings/.test(x));
+            const vc = h.findIndex((x) => /net additional dwellings|net additions/.test(x));
             if (vc >= 0) { hdr = i; valCol = vc; break; }
           }
           if (hdr < 0) continue;
@@ -615,11 +629,13 @@ const SOURCES = [
             if (Number.isFinite(v) && v >= 80000 && v <= 400000) points.push({ date: `${m[1]}-01-01`, value: Math.round(v) });
           }
           if (points.length >= 5) { console.log(`  mhclg-dwellings ${att.url.split("/").pop()} sheet="${sn}" ${points.length} pts`); return points.sort((a, b) => (a.date < b.date ? -1 : 1)); }
-          if (!dumped && /net additional/i.test(JSON.stringify(rows.slice(0, 6)))) {
-            dumped = att.url.split("/").pop();
-            console.log(`  mhclg-dwellings dump ${dumped}/${sn}:`);
-            for (const r of rows.slice(0, 8)) console.log(`    ${JSON.stringify(r).slice(0, 220)}`);
-          }
+        }
+        if (!dumped) {
+          dumped = att.url.split("/").pop();
+          const dsn = book.SheetNames.find((n) => !/cover|content|note|metadata/i.test(n)) || book.SheetNames[0];
+          const rows = await sheetRows(book, dsn);
+          console.log(`  mhclg-dwellings dump ${dumped}/${dsn}:`);
+          for (const r of rows.slice(0, 10)) console.log(`    ${JSON.stringify(r).slice(0, 240)}`);
         }
       }
       throw new Error("mhclg-dwellings: England series not found");
