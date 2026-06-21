@@ -1,0 +1,9 @@
+# Shows a "Sponsor" button on the repo and a funding panel in the sidebar.
+# PayPal is not a first-class FUNDING.yml platform, so it goes under `custom`
+# (any URL is allowed; URLs containing ":" must be quoted).
+custom: ["https://www.paypal.me/VbirdAI"]
+
+# Optional: once you join GitHub Sponsors (https://github.com/sponsors) you get
+# native, recurring, tiered sponsorship (the cleanest way to run the monthly /
+# yearly tiers). Then add your username here and it gains its own Sponsor button:
+# github: [Egly443]
