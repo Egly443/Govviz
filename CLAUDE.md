@@ -193,3 +193,11 @@ Per-series research notes (sources, drafted fetchers, dead-ends) live in `docs/b
 - Tax burden = receipts (ONS `ANBV`, £m) ÷ GDP — already wired via WB
   `GC.TAX.TOTL.GD.ZS` (tax % GDP). The explicit ONS ratio is not needed unless
   UK-domestic definition differs materially.
+
+## TODO / follow-ups
+- **Enable blog analytics (GoatCounter):** the `/blog` route + cookieless beacon
+  are wired but dormant. To turn on: create a free site at goatcounter.com, then
+  add an **Actions variable** `VITE_GOATCOUNTER=https://YOURCODE.goatcounter.com/count`
+  (repo → Settings → Secrets and variables → Actions → Variables). The next
+  deploy starts counting. Unset = no tracker ships. Share via the UTM links in
+  `docs/share-links.md` to attribute traction by channel/recipient.
