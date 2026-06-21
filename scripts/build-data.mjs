@@ -259,6 +259,21 @@ async function xlsxBook(url) {
   setSrc(url);
   return XLSX.read(buf, { type: "buffer" });
 }
+// Parse an in-memory spreadsheet buffer (e.g. an entry unzipped from a .zip).
+async function xlsxBookFromBuffer(buf) {
+  const XLSX = await sheetjs();
+  return XLSX.read(buf, { type: "buffer" });
+}
+// Download a .zip and return its entries as { name, buf } (lazy fflate import;
+// installed in CI alongside xlsx).
+let _fflate;
+async function unzipUrl(url) {
+  if (!_fflate) { const m = await import("fflate"); _fflate = m.default ?? m; }
+  const res = await fetch(url, fetchOpts({ accept: "application/zip,application/octet-stream,*/*" }));
+  if (!res.ok) throw new Error(`zip ${url} → HTTP ${res.status}`);
+  const files = _fflate.unzipSync(new Uint8Array(await res.arrayBuffer()));
+  return Object.entries(files).map(([name, data]) => ({ name, buf: Buffer.from(data) }));
+}
 // Read one sheet as an array-of-arrays (header:1), blank rows removed.
 async function sheetRows(book, name) {
   const XLSX = await sheetjs();
@@ -729,36 +744,43 @@ const SOURCES = [
       if (!res.ok) throw new Error(`EDM CKAN HTTP ${res.status}`);
       const j = await res.json();
       const all = j.result?.resources || [];
-      console.log(`  sewage CKAN success=${j.success} resources=${all.length} all=${all.map((r) => `${r.format || "?"}::${(r.url || "").split("/").pop()}`).slice(0, 20).join(" | ")}`);
-      const resources = all.filter((r) => /\.(xlsx?|ods)(\?|$)/i.test(r.url || "") || /xls|ods|spreadsheet|excel/i.test(r.format || ""));
+      const dec = (r) => decodeURIComponent(r.url || "");
+      console.log(`  sewage CKAN success=${j.success} resources=${all.length} all=${all.map((r) => `${r.format || "?"}::${dec(r).split("=").pop()}`).slice(0, 20).join(" | ")}`);
+      // Each year is published as a .zip containing the annual-return workbook(s).
+      const zips = all.filter((r) => /\.zip/i.test(dec(r)) && /\b20\d\d\b/.test(dec(r)) && !/long-term|trend/i.test(dec(r)));
       const num = (c) => { const v = typeof c === "number" ? c : parseFloat(String(c ?? "").replace(/,/g, "")); return Number.isFinite(v) ? v : null; };
       const points = [];
       let dumped = false;
-      for (const r of resources) {
-        const ym = `${r.name || ""} ${r.url || ""}`.match(/\b(20\d\d)\b/);
+      for (const r of zips) {
+        const ym = dec(r).match(/\b(20\d\d)\b/);
         if (!ym) continue;
         const year = ym[1];
         if (points.some((p) => p.date.startsWith(year))) continue;
         try {
-          const book = await xlsxBook(r.url);
+          const entries = (await unzipUrl(r.url)).filter((e) => /\.xlsx?$/i.test(e.name));
           let sum = 0, n = 0, durName = "";
-          for (const sn of book.SheetNames) {
-            if (/read ?me|guide|cover|content|index|note|summary|glossary|metadata/i.test(sn)) continue;
-            let rows;
-            try { rows = await sheetRows(book, sn); } catch { continue; }
-            let hi = -1, dc = -1;
-            for (let i = 0; i < Math.min(rows.length, 20); i++) {
-              const h = (rows[i] || []).map((c) => String(c ?? "").toLowerCase());
-              const idx = h.findIndex((x) => /duration/.test(x) && /\b(hr|hrs|hour)/.test(x) && !/average|mean|count/.test(x));
-              if (idx >= 0) { hi = i; dc = idx; durName = h[idx]; break; }
+          for (const ent of entries) {
+            let book;
+            try { book = await xlsxBookFromBuffer(ent.buf); } catch { continue; }
+            for (const sn of book.SheetNames) {
+              if (/read ?me|guide|cover|content|index|note|summary|glossary|metadata|definition/i.test(sn)) continue;
+              let rows;
+              try { rows = await sheetRows(book, sn); } catch { continue; }
+              let hi = -1, dc = -1;
+              for (let i = 0; i < Math.min(rows.length, 25); i++) {
+                const h = (rows[i] || []).map((c) => String(c ?? "").toLowerCase());
+                let idx = h.findIndex((x) => /duration/.test(x) && /(hr|hrs|hour)/.test(x) && /total|annual/.test(x) && !/average|mean|count/.test(x));
+                if (idx < 0) idx = h.findIndex((x) => /duration/.test(x) && /(hr|hrs|hour)/.test(x) && !/average|mean|count|month/.test(x));
+                if (idx >= 0) { hi = i; dc = idx; durName = h[idx]; break; }
+              }
+              if (dc < 0) continue;
+              for (const row of rows.slice(hi + 1)) { const v = num(row[dc]); if (v != null && v >= 0 && v <= 9000) { sum += v; n++; } }
             }
-            if (dc < 0) continue;
-            for (const row of rows.slice(hi + 1)) { const v = num(row[dc]); if (v != null && v >= 0 && v <= 9000) { sum += v; n++; } }
           }
           if (n > 50 && sum >= 500000 && sum <= 6000000) { console.log(`  sewage ${year}: ${Math.round(sum)} hrs from ${n} overflows (col="${durName}")`); points.push({ date: `${year}-01-01`, value: Math.round(sum) }); setSrc(r.url); }
           else {
-            console.log(`  sewage ${year}: sum=${Math.round(sum)} n=${n} (rejected)`);
-            if (!dumped) { dumped = true; const sn = book.SheetNames.find((s) => !/read|guide|cover|content|index|note|summary|glossary|metadata/i.test(s)) || book.SheetNames[0]; const rows = await sheetRows(book, sn); console.log(`  sewage dump sheets=[${book.SheetNames.join("|")}] "${sn}" r0=${JSON.stringify(rows[0] || []).slice(0, 260)} r1=${JSON.stringify(rows[1] || []).slice(0, 200)}`); }
+            console.log(`  sewage ${year}: sum=${Math.round(sum)} n=${n} entries=${entries.length} (rejected)`);
+            if (!dumped && entries[0]) { dumped = true; const book = await xlsxBookFromBuffer(entries[0].buf); const sn = book.SheetNames.find((s) => !/read|guide|cover|content|index|note|summary|glossary|metadata|definition/i.test(s)) || book.SheetNames[0]; const rows = await sheetRows(book, sn); console.log(`  sewage dump ${entries[0].name} sheets=[${book.SheetNames.join("|")}] "${sn}" r0=${JSON.stringify(rows[0] || []).slice(0, 240)} r1=${JSON.stringify(rows[1] || []).slice(0, 160)}`); }
           }
         } catch (e) { console.log(`  sewage ${year} err ${e.message}`); }
       }

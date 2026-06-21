@@ -35,10 +35,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # SheetJS for .ods/.xlsx source parsing; --no-save keeps package-lock.json
-      # in sync (npm ci would fail on a drifted lockfile).
+      # SheetJS for .ods/.xlsx source parsing + fflate to unzip EDM .zip
+      # archives; --no-save keeps package-lock.json in sync (npm ci would
+      # fail on a drifted lockfile).
       - name: Install spreadsheet parser
-        run: npm install --no-save xlsx
+        run: npm install --no-save xlsx fflate
 
       # Fetch official statistics and bake them into src/generated/seriesData.ts.
       # Best-effort: any source that fails is skipped (bundled illustrative data

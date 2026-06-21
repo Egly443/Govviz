@@ -22,7 +22,8 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      # SheetJS for .ods/.xlsx parsing; --no-save keeps package-lock.json intact.
-      - run: npm install --no-save xlsx
+      # SheetJS for .ods/.xlsx parsing + fflate to unzip EDM .zip archives;
+      # --no-save keeps package-lock.json intact.
+      - run: npm install --no-save xlsx fflate
       - name: Fetch live data (no deploy)
         run: node scripts/build-data.mjs
