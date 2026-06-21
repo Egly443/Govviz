@@ -656,8 +656,8 @@ const SOURCES = [
           dumped = att.url.split("/").pop();
           const dsn = book.SheetNames.find((n) => !/cover|content|note|metadata/i.test(n)) || book.SheetNames[0];
           const rows = await sheetRows(book, dsn);
-          console.log(`  mhclg-dwellings dump ${dumped}/${dsn}:`);
-          for (const r of rows.slice(0, 10)) console.log(`    ${JSON.stringify(r).slice(0, 240)}`);
+          console.log(`  mhclg-dwellings dump ${dumped}/${dsn} col0 labels:`);
+          rows.forEach((r, i) => { const c0 = String(r?.[0] ?? "").trim(); if (c0) console.log(`    [${i}] ${c0.slice(0, 80)}`); });
         }
       }
       throw new Error("mhclg-dwellings: England series not found");
