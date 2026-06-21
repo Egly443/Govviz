@@ -58,9 +58,26 @@ There is also an **equity** dimension, and it cuts to value for money. Badly-pub
 
 Strip out the rhetoric and the problem is sharp and defensible:
 
-> The UK produces world-class primary statistics across many independent and arm's-length bodies, but has **no coordinating, machine-first publishing standard and no domestic harmonisation layer** across that estate. So every consumer — increasingly an agent acting for a citizen — privately rebuilds discovery, identity, normalisation, semantics and provenance, per source, by hand. That private cost is invisible to producers and falls entirely on the public, heaviest in the high-accountability tail.
+> The UK produces world-class primary statistics across many independent and arm's-length bodies, but has **lacked a coordinating, machine-first publishing standard and a production domestic harmonisation layer** across that estate. So every consumer — increasingly an agent acting for a citizen — privately rebuilds discovery, identity, normalisation, semantics and provenance, per source, by hand. That private cost is invisible to producers and falls entirely on the public, heaviest in the high-accountability tail.
 
-A note on the source I praised. The cleanest dataset I touched was the World Bank's — but that is *survivorship bias*, and the correction matters. The World Bank is a downstream *aggregator* that ingests national outputs (often the ONS's), harmonises them, and re-publishes them — stale and smoothed — after someone else did the hard part. The lesson is not "every primary publisher should look like the World Bank." It is: **a harmonisation layer is what makes data usable, the World Bank proves it can exist, and the UK has no domestic equivalent for its own statistics.** We currently outsource the usability of our own data to a foreign aggregator. The proposal is to build that thin layer once, at home, over the timely primary outputs we already produce — without touching their timeliness or methodology.
+A note on the source I praised. The cleanest dataset I touched was the World Bank's — but that is *survivorship bias*, and the correction matters. The World Bank is a downstream *aggregator* that ingests national outputs (often the ONS's), harmonises them, and re-publishes them — stale and smoothed — after someone else did the hard part. The lesson is not "every primary publisher should look like the World Bank." It is: **a harmonisation layer is what makes data usable, the World Bank proves it can exist, and the UK is only now starting to build a domestic equivalent — the National Data Library — but does not yet run one in production.** We currently outsource much of the usability of our own data to a foreign aggregator. The proposal is to build that thin layer once, at home, over the timely primary outputs we already produce — without touching their timeliness or methodology.
+
+---
+
+## This is now policy-relevant, not hypothetical (January 2026)
+
+When I started, the argument above was mine to make alone. It no longer is — and that is the most important update to this post. In January 2026 two things landed that turn "one engineer's gripe" into the emerging official consensus:
+
+- **GDS and DSIT published *Guidelines and best practices for making government datasets ready for AI*** — a FAIR-based, four-pillar "AI-ready data" framework whose first pillar is technical optimisation (modern interoperable formats, reliable API access), alongside metadata, governance and stewardship standards, an action plan and a self-assessment checklist. It states plainly that **data readiness, not algorithms, is now the main constraint** on government AI — exactly the "the bottleneck has moved" claim above.
+- **The Open Data Institute prototyped an AI-ready National Data Library ("NDL-Lite")** — built in about four months on open-source tooling, standardising 100,000+ files from six public sources including data.gov.uk. Its headline finding is the one I argued from a single dashboard, now shown at scale: government data is so badly labelled, stale or invisible that **AI agents ignore it and fall back on news and commercial sources that are often wrong**. It also proves the cheap-and-fast point — a national cross-government asset *can* be stood up quickly — while flagging that significant barriers remain before a prototype becomes production.
+
+So the diagnosis here is no longer contested; it is government-and-ODI consensus, with the National Data Library the institutional home for the "domestic harmonisation layer" this post calls for. That changes what the argument is *for*. The open question is no longer **"is this real?"** but **"what makes it stick?"** — and that is where the field evidence in this post earns its keep:
+
+1. **Mandate, not guidance.** The new framework is best-practice plus a *voluntary self-assessment*. Data-quality initiatives published as guidance have historically under-delivered, because adoption is uneven without a gate. The missing layer is the one this post argues for: **machine-readability as an assurance gate, co-owned with accessibility, with procurement teeth** — the enforcement above the advice.
+2. **The accountability tail, not the tractable average.** NDL-Lite aggregated six relatively tractable sources. The war stories above — sewage ZIPs, PDF-only bathing water, reconstructed NHS waiting times, 403-blocked workforce data — are precisely the cases a first prototype does not reach, and they are where public scrutiny concentrates. "AI-ready" must be measured at the tail, not the mean.
+3. **Production and maintenance, not just the prototype.** "Built in four months, cheaply" proves feasibility and invites under-resourcing of the hard 80%: currency, provenance at source, refresh, and coverage of the awkward sources. The value-for-money case below should be read as *prototype cost is not production-and-maintenance cost*.
+
+In short: the strategy that follows is no longer a proposal into a vacuum. It is the **execution and accountability-tail companion** to a live government framework and a working ODI prototype — the part that turns an AI-readiness *aspiration* into an AI-readiness *guarantee*.
 
 ---
 
@@ -121,6 +138,8 @@ Convenience is not quality, so score on **two independent axes** — and never l
 
 A trusted National Statistic published as a PDF is **T3/M0** — governance excellent, machine-readability absent — and the model says exactly that. The programme's job is to lift the M score **without ever lowering the T score**. Accessibility isn't a competing axis; it is a *beneficiary* of M4+, because the accessible rendering is generated from the same canonical source.
 
+This maps cleanly onto the official world rather than competing with it. The **M-axis is a sharper, externally-auditable expression of the GDS/DSIT four-pillar self-assessment** — M4–M5 is roughly a dataset that passes the technical-optimisation, metadata and access pillars — and the **T-axis is what the FAIR "Reusable" principle and the Code of Practice for Statistics already certify**. Read the two-axis score as the accountability-weighted lens you point *at* the official checklist: it tells you which datasets to lift first (high-T, low-M — the trusted statistics still trapped in PDFs), and it stops a producer "passing" readiness by shipping a clean but ungoverned blob.
+
 ---
 
 ## The pan-national note, without the fantasy
@@ -138,7 +157,7 @@ The trap is to commission a strategy and build nothing. The antidote is to ship 
 - Publish one canonical tidy CSV per series with CSVW metadata, generated from the existing pipeline.
 - Add the machine-readability gate to assurance for those series, co-signed with accessibility.
 
-That is enough to prove the model, retire the worst of the archaeology where it hurts most, and make the value-for-money case with evidence rather than slides.
+That is enough to prove the model, retire the worst of the archaeology where it hurts most, make the value-for-money case with evidence rather than slides — and give the GDS/DSIT self-assessment and the National Data Library something concrete and accountable to certify, starting with the series the public most needs to read.
 
 ---
 
@@ -153,3 +172,12 @@ I built the dashboard. The point was never that it was impossible. The point is 
 ---
 
 *If you publish official statistics and want to know what your release scores on the two-axis model — and the cheapest path to lifting the M score without touching the T score — that is the conversation worth having.*
+
+---
+
+## References
+
+- GDS & DSIT, *Guidelines and best practices for making government datasets ready for AI* (19 January 2026) — [gov.uk](https://www.gov.uk/government/publications/making-government-datasets-ready-for-ai/guidelines-and-best-practices-for-making-government-datasets-ready-for-ai); *Building AI-Ready Datasets for the UK* [(PDF)](https://assets.publishing.service.gov.uk/media/696e43965a37ab534a9e23ac/Building_AI-Ready_Datasets_for_the_UK.pdf).
+- *National Data Library: progress update, January 2026* — [gov.uk](https://www.gov.uk/government/publications/national-data-library-progress-update-january-2026).
+- Open Data Institute, *Prototyping an AI-ready National Data Library* (NDL-Lite) — [theodi.org](https://theodi.org/insights/reports/prototyping-an-ai-ready-national-data-library/).
+- "Why AI agents are ignoring government data" — [The Stack](https://www.thestack.technology/why-ai-agents-are-ignoring-government-data/); "UK National Data Library plan needs work, study finds" — [The Register](https://www.theregister.com/2026/04/08/national_data_library_plan/).
