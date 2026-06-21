@@ -554,29 +554,48 @@ const SOURCES = [
         let book;
         try { book = await xlsxBook(ods.url); } catch (e) { console.log(`  mhclg-ta read err: ${e.message}`); continue; }
         console.log(`  mhclg-ta sheets: ${book.SheetNames.join("|")}`);
+        void toDate;
         const taSheets = book.SheetNames.filter((n) => /^ta\d?$|temporary/i.test(n));
         const sheetOrder = taSheets.concat(book.SheetNames);
+        // TA1 layout: year in col 0 (blank → carry forward on Q2–Q4), quarter
+        // ("Q1".."Q4") in col 1, "Total number of households in TA" total in a
+        // numeric column (first plausible value, typically col 3). Pick the
+        // total column from the header row ("total number of households in TA").
         for (const sn of [...new Set(sheetOrder)]) {
           let rows;
           try { rows = await sheetRows(book, sn); } catch (e) { void e; continue; }
-          for (let hi = 0; hi < Math.min(rows.length, 16); hi++) {
-            const row = rows[hi] || [];
-            const dateCol = row.findIndex((c, i) => rows.slice(hi + 1, hi + 8).filter((r) => toDate(r?.[i])).length >= 3);
-            if (dateCol < 0) continue;
-            // total TA households: header cell with "total"/"all", else the last numeric column.
-            const hdr = row.map((c) => String(c ?? "").toLowerCase());
-            let totCol = hdr.findIndex((h) => /total|all (types|households)|households in temporary/.test(h));
-            if (totCol < 0) { const nums = (rows[hi + 1] || []).map((c, i) => [i, typeof c === "number" ? c : parseFloat(String(c ?? "").replace(/,/g, ""))]).filter(([i, v]) => i !== dateCol && Number.isFinite(v) && v >= 30000 && v <= 250000); if (nums.length) totCol = nums[nums.length - 1][0]; }
-            if (totCol < 0) continue;
-            const points = [];
-            for (const r of rows.slice(hi + 1)) {
-              const d = toDate(r?.[dateCol]); if (!d) continue;
-              const v = typeof r[totCol] === "number" ? r[totCol] : parseFloat(String(r[totCol] ?? "").replace(/,/g, ""));
-              if (Number.isFinite(v) && v >= 30000 && v <= 250000) points.push({ date: d, value: Math.round(v) });
-            }
-            if (points.length >= 8) { console.log(`  mhclg-ta ${ods.url.split("/").pop()} sheet="${sn}" col=${totCol} ${points.length} pts`); result = points.sort((a, b) => (a.date < b.date ? -1 : 1)); break; }
+          // header row carrying the "Total number of households in TA" label.
+          let hi = -1, totCol = -1;
+          for (let i = 0; i < Math.min(rows.length, 12); i++) {
+            const idx = (rows[i] || []).findIndex((c) => /total number of households in ta\b/i.test(String(c ?? "")));
+            if (idx >= 0) { hi = i; totCol = idx; break; }
           }
-          if (result) break;
+          // quarter column: first column whose cells below match Q1..Q4.
+          const startRow = hi >= 0 ? hi + 1 : 0;
+          let qCol = -1;
+          for (let i = 0; i < 6; i++) {
+            if (rows.slice(startRow, startRow + 12).filter((r) => /^Q[1-4]$/i.test(String(r?.[i] ?? "").trim())).length >= 3) { qCol = i; break; }
+          }
+          if (qCol < 0) continue;
+          const yrCol = qCol - 1 >= 0 ? qCol - 1 : 0;
+          let curYear = null;
+          const points = [];
+          for (const r of rows.slice(startRow)) {
+            const ym = String(r?.[yrCol] ?? "").match(/\b(19|20)\d\d\b/);
+            if (ym) curYear = +ym[0];
+            const qm = String(r?.[qCol] ?? "").trim().match(/^Q([1-4])$/i);
+            if (!curYear || !qm) continue;
+            // total: header column if known, else first plausible numeric after qCol.
+            let v = NaN;
+            if (totCol >= 0) v = typeof r[totCol] === "number" ? r[totCol] : parseFloat(String(r[totCol] ?? "").replace(/,/g, ""));
+            if (!Number.isFinite(v) || v < 30000 || v > 250000) {
+              for (let i = qCol + 1; i < r.length; i++) { const x = typeof r[i] === "number" ? r[i] : parseFloat(String(r[i] ?? "").replace(/,/g, "")); if (Number.isFinite(x) && x >= 30000 && x <= 250000) { v = x; break; } }
+            }
+            if (!Number.isFinite(v) || v < 30000 || v > 250000) continue;
+            const mm = String(+qm[1] * 3).padStart(2, "0"); // end-of-quarter month
+            points.push({ date: `${curYear}-${mm}-01`, value: Math.round(v) });
+          }
+          if (points.length >= 8) { console.log(`  mhclg-ta ${ods.url.split("/").pop()} sheet="${sn}" qCol=${qCol} totCol=${totCol} ${points.length} pts`); result = points.sort((a, b) => (a.date < b.date ? -1 : 1)); break; }
         }
         if (result) break;
         if (!dumped) {
@@ -614,21 +633,24 @@ const SOURCES = [
         for (const sn of book.SheetNames) {
           let rows;
           try { rows = await sheetRows(book, sn); } catch (e) { void e; continue; }
-          let hdr = -1, valCol = -1;
-          for (let i = 0; i < Math.min(rows.length, 16); i++) {
-            const h = (rows[i] || []).map((c) => String(c ?? "").toLowerCase());
-            const vc = h.findIndex((x) => /net additional dwellings|net additions/.test(x));
-            if (vc >= 0) { hdr = i; valCol = vc; break; }
+          // Transposed layout: a header row carries financial years ("2006-07")
+          // across columns; "Net additional dwellings" is a ROW. Pair each
+          // year column with that row's value.
+          let yearRow = -1;
+          for (let i = 0; i < Math.min(rows.length, 20); i++) {
+            if ((rows[i] || []).filter((c) => /\b(19|20)\d\d[-/]\d{2}\b/.test(String(c ?? ""))).length >= 4) { yearRow = i; break; }
           }
-          if (hdr < 0) continue;
+          if (yearRow < 0) continue;
+          const valRow = rows.find((r) => /net additional dwellings|net additions/i.test(String(r?.[0] ?? "")));
+          if (!valRow) continue;
           const points = [];
-          for (const r of rows.slice(hdr + 1)) {
-            const m = String(r?.[0] ?? "").match(/(20\d\d)[-/](\d{2})/) || String(r?.[0] ?? "").match(/^(20\d\d)$/);
-            if (!m) continue;
-            const v = typeof r[valCol] === "number" ? r[valCol] : parseFloat(String(r[valCol] ?? "").replace(/,/g, ""));
-            if (Number.isFinite(v) && v >= 80000 && v <= 400000) points.push({ date: `${m[1]}-01-01`, value: Math.round(v) });
+          for (let c = 0; c < rows[yearRow].length; c++) {
+            const ym = String(rows[yearRow][c] ?? "").match(/\b(19|20)\d\d[-/](\d{2})\b/);
+            if (!ym) continue;
+            const v = typeof valRow[c] === "number" ? valRow[c] : parseFloat(String(valRow[c] ?? "").replace(/,/g, ""));
+            if (Number.isFinite(v) && v >= 80000 && v <= 400000) points.push({ date: `${ym[0].slice(0, 4)}-01-01`, value: Math.round(v) });
           }
-          if (points.length >= 5) { console.log(`  mhclg-dwellings ${att.url.split("/").pop()} sheet="${sn}" ${points.length} pts`); return points.sort((a, b) => (a.date < b.date ? -1 : 1)); }
+          if (points.length >= 5) { console.log(`  mhclg-dwellings ${att.url.split("/").pop()} sheet="${sn}" ${points.length} pts (transposed)`); return points.sort((a, b) => (a.date < b.date ? -1 : 1)); }
         }
         if (!dumped) {
           dumped = att.url.split("/").pop();
