@@ -2,6 +2,12 @@
 
 *We are heading, fast, for a world where most people meet government data through an AI agent acting on their behalf. That is not a prediction to argue about; it is a deployment curve. The strategic question is no longer "will citizens use LLMs to read public data" — it is "how do we get our public data to the point where the LLM just works?" This is a field report on why we are not there yet, and a costed, defensible route to getting there.*
 
+> **Key takeaways (TL;DR):**
+> - UK public statistics are collected and published at public expense, but mostly in **human-first formats** — transposed spreadsheets, PDF-only tables, zip-of-workbooks, slug-drifting URLs, JavaScript-only pages — that **AI agents acting for citizens cannot reliably read**.
+> - The fix is **not** collecting more data. It is a thin, **machine-first publishing and harmonisation layer** over the outputs we already produce: stable identifiers, canonical **tidy data (CSVW / SDMX)**, in-band semantics and provenance, **open-by-default** access, and an **open agent interface (MCP)** — governed like accessibility, not against it.
+> - It is **cheap and sequenceable** (stable IDs + a `latest` alias first), **measurable** (a two-axis **Trust × Machine-readability** maturity model), and **testable** (an adversarial **conformance suite** built from the hardest real UK datasets — sewage spills, NHS waiting times, bathing water).
+> - This now aligns with the **January 2026 GDS / DSIT "AI-ready data" guidance** and the **ODI's National Data Library (NDL-Lite) prototype**. The unsolved part is **mandate, the accountability tail, and production funding** — not the diagnosis.
+
 ---
 
 ## The premise that should be trivial
@@ -262,6 +268,28 @@ I built the dashboard. The point was never that it was impossible. The point is 
 ---
 
 *If you publish official statistics and want to know what your release scores on the two-axis model — and the cheapest path to lifting the M score without touching the T score — that is the conversation worth having.*
+
+---
+
+## Frequently asked questions
+
+### Why can't AI agents read UK government open data?
+Most public statistics are published human-first: transposed "accessible" spreadsheets, PDF-only tables, zip-of-workbooks with no published national total, URLs whose filenames change every release, and JavaScript-only web pages. A browser-less client — an AI agent acting for a citizen — gets no usable data, so it falls back on news or commercial sources that are often wrong.
+
+### What does "agentic open data" mean?
+Publishing public data so that the AI agents increasingly acting on people's behalf can read it reliably and safely — the same way accessibility means publishing so assistive technology can read it. In practice: stable identifiers, canonical machine-readable data, in-band semantics, open-by-default access, and an open agent interface.
+
+### How do you make a government dataset AI-ready?
+Publish a canonical, long-format ("tidy") machine artifact described by open standards (CSVW, and SDMX where the statistical model needs it), with a stable resolvable identifier and a `latest` alias, in-band unit / coverage / revision / suppression metadata and provenance, a published plausible-range guard, and open, automation-friendly access — then render the human page and accessible workbook from that same source. See the AI-ready series profile linked in the references.
+
+### Doesn't this conflict with accessibility or statistical disclosure control?
+No — it strengthens both. The accessible workbook is generated from the same canonical source, so disabled users and AI agents are served from one governed artifact; and suppression of small cells is encoded as machine-readable codes rather than ignored, so disclosure control is respected, not bypassed.
+
+### What is the conformance suite?
+An adversarial, machine-checkable test set built from the hardest real UK datasets — storm-overflow (sewage) spill hours, NHS RTT waiting times, bathing-water quality, households in temporary accommodation, the median house-price-to-earnings ratio. Each case carries a two-axis Trust × Machine-readability score, explicit pass criteria, and a probe, so "AI-ready" is measured at the accountability tail, not the easy average.
+
+### How does this relate to the National Data Library and the GDS/DSIT guidance?
+It is the execution-and-enforcement companion to them. The January 2026 GDS / DSIT "AI-ready data" guidance and the ODI's National Data Library (NDL-Lite) prototype establish the diagnosis and the direction; this essay supplies the field evidence, the awkward-tail test set, a costed sequencing, and the case for turning voluntary guidance into an assurance gate with procurement teeth.
 
 ---
 
