@@ -772,8 +772,10 @@ const SOURCES = [
               let hi = -1, dc = -1;
               for (let i = 0; i < Math.min(rows.length, 25); i++) {
                 const h = (rows[i] || []).map((c) => String(c ?? "").toLowerCase().replace(/\s+/g, " "));
-                let idx = h.findIndex((x) => /duration/.test(x) && /total|annual/.test(x) && !/average|mean|\bcount|%|percent|number of/.test(x));
-                if (idx < 0) idx = h.findIndex((x) => /duration/.test(x) && !/average|mean|\bcount|%|percent|number of|month/.test(x));
+                // "Total Duration (hours) of all spills …" — only the duration
+                // column contains "duration", so no count/percent exclusion needed.
+                let idx = h.findIndex((x) => /total duration/.test(x) && /hour|hr/.test(x) && !/average|mean/.test(x));
+                if (idx < 0) idx = h.findIndex((x) => /duration/.test(x) && /total|annual/.test(x) && !/average|mean/.test(x));
                 if (idx >= 0) { hi = i; dc = idx; durName = h[idx]; break; }
               }
               if (dc < 0) { if (!dumped) { dumped = true; console.log(`  sewage dump-hdr ${ent.name.split("/").pop()} sheet="${sn}" hdr=${JSON.stringify((rows[0] || []).map((c) => String(c ?? "").slice(0, 40)))}`); } continue; }
