@@ -15,7 +15,16 @@ export function BlogPage() {
           </ReactMarkdown>
         </article>
         <div className="mt-10 rounded-xl border border-border bg-card p-5 text-sm text-muted-foreground">
-          Built and maintained in the open. If this is useful, you can{" "}
+          Built and maintained in the open. Prefer the machine-readable version?
+          Grab the{" "}
+          <a
+            href={`${import.meta.env.BASE_URL}blog.md`}
+            className="text-primary hover:underline"
+          >
+            raw Markdown
+          </a>{" "}
+          (also served as a static, no-JavaScript page). If this is useful, you
+          can{" "}
           <a
             href="https://github.com/egly443/govviz#support-this-work"
             target="_blank"
