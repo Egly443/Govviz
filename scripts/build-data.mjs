@@ -641,7 +641,8 @@ const SOURCES = [
             if ((rows[i] || []).filter((c) => /\b(19|20)\d\d[-/]\d{2}\b/.test(String(c ?? ""))).length >= 4) { yearRow = i; break; }
           }
           if (yearRow < 0) continue;
-          const valRow = rows.find((r) => /net additional dwellings|net additions/i.test(String(r?.[0] ?? "")));
+          // Anchor to the row label (not the "Source: …net additional dwellings…" caption).
+          const valRow = rows.find((r) => /^(total )?net additional dwellings/i.test(String(r?.[0] ?? "").trim()));
           if (!valRow) continue;
           const points = [];
           for (let c = 0; c < rows[yearRow].length; c++) {
