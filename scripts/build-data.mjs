@@ -716,52 +716,50 @@ const SOURCES = [
   },
 
   // Defra storm-overflow spill hours (England, annual). EA Event Duration
-  // Monitoring annual returns — sum the total spill duration across every
-  // monitored storm overflow for each year's CSV/spreadsheet.
+  // Monitoring annual returns (data.gov.uk CKAN). Each yearly workbook has one
+  // sheet per water company; sum the total spill-duration column across every
+  // monitored overflow to get the national annual total.
   {
     id: "defra-sewage-hours",
     min: 500000,
     max: 6000000,
     get: async () => {
-      const path = await govukLatest("storm overflow spill data event duration monitoring", (r) => /storm overflow|event duration|edm/i.test(`${r.title || ""} ${r.link || ""}`))
-        .catch(() => "government/statistics/storm-overflow-spill-data");
-      console.log(`  sewage release: ${path}`);
-      const atts = await govukAttachments(path);
-      console.log(`  sewage atts: ${atts.map((a) => `${(a.title || "").slice(0, 30)}::${(a.url || "").split("/").pop()}`).slice(0, 25).join(" | ")}`);
+      const pkg = "19f6064d-7356-466f-844e-d20ea10ae9fd"; // EDM Storm Overflows – Annual Returns
+      const res = await fetch(`https://www.data.gov.uk/api/3/action/package_show?id=${pkg}`, fetchOpts({ accept: "application/json" }));
+      if (!res.ok) throw new Error(`EDM CKAN HTTP ${res.status}`);
+      const j = await res.json();
+      const resources = (j.result?.resources || []).filter((r) => /\.xlsx?(\?|$)/i.test(r.url || "") || /xls/i.test(r.format || ""));
+      console.log(`  sewage resources: ${resources.map((r) => `${(r.name || "").slice(0, 24)}::${(r.url || "").split("/").pop()}`).slice(0, 15).join(" | ")}`);
       const num = (c) => { const v = typeof c === "number" ? c : parseFloat(String(c ?? "").replace(/,/g, "")); return Number.isFinite(v) ? v : null; };
       const points = [];
       let dumped = false;
-      // Each annual file = one year of per-asset returns; sum the duration column.
-      for (const att of atts) {
-        const fn = (att.url || "").split("/").pop() || "";
-        if (!/\.(csv|xlsx?|ods)(\?|$)/i.test(fn)) continue;
-        const ym = `${att.title || ""} ${fn}`.match(/\b(20\d\d)\b/);
+      for (const r of resources) {
+        const ym = `${r.name || ""} ${r.url || ""}`.match(/\b(20\d\d)\b/);
         if (!ym) continue;
         const year = ym[1];
+        if (points.some((p) => p.date.startsWith(year))) continue;
         try {
-          let rows;
-          if (/\.csv(\?|$)/i.test(fn)) {
-            const res = await fetch(att.url, fetchOpts({ accept: "text/csv,*/*" }));
-            if (!res.ok) { console.log(`  sewage ${fn} HTTP ${res.status}`); continue; }
-            rows = (await res.text()).trim().split(/\r?\n/).map((l) => parseCsvLine(l));
-            setSrc(att.url);
-          } else {
-            const book = await xlsxBook(att.url);
-            const sn = book.SheetNames.find((n) => /data|edm|spill|overflow/i.test(n)) || book.SheetNames[0];
-            rows = await sheetRows(book, sn);
+          const book = await xlsxBook(r.url);
+          let sum = 0, n = 0, durName = "";
+          for (const sn of book.SheetNames) {
+            if (/read ?me|guide|cover|content|index|note|summary|glossary|metadata/i.test(sn)) continue;
+            let rows;
+            try { rows = await sheetRows(book, sn); } catch { continue; }
+            let hi = -1, dc = -1;
+            for (let i = 0; i < Math.min(rows.length, 20); i++) {
+              const h = (rows[i] || []).map((c) => String(c ?? "").toLowerCase());
+              const idx = h.findIndex((x) => /duration/.test(x) && /\b(hr|hrs|hour)/.test(x) && !/average|mean|count/.test(x));
+              if (idx >= 0) { hi = i; dc = idx; durName = h[idx]; break; }
+            }
+            if (dc < 0) continue;
+            for (const row of rows.slice(hi + 1)) { const v = num(row[dc]); if (v != null && v >= 0 && v <= 9000) { sum += v; n++; } }
           }
-          const hdr = (rows[0] || []).map((c) => String(c ?? "").toLowerCase());
-          let durCol = hdr.findIndex((h) => /total duration.*(hr|hour)|spill.*duration|duration.*hour/.test(h));
-          if (durCol < 0) durCol = hdr.findIndex((h) => /duration/.test(h) && /hour|hrs/.test(h));
-          if (durCol < 0) {
-            if (!dumped) { dumped = true; console.log(`  sewage ${fn} headers: ${hdr.slice(0, 20).join(" | ")}`); }
-            continue;
+          if (n > 50 && sum >= 500000 && sum <= 6000000) { console.log(`  sewage ${year}: ${Math.round(sum)} hrs from ${n} overflows (col="${durName}")`); points.push({ date: `${year}-01-01`, value: Math.round(sum) }); setSrc(r.url); }
+          else {
+            console.log(`  sewage ${year}: sum=${Math.round(sum)} n=${n} (rejected)`);
+            if (!dumped) { dumped = true; const sn = book.SheetNames.find((s) => !/read|guide|cover|content|index|note|summary|glossary|metadata/i.test(s)) || book.SheetNames[0]; const rows = await sheetRows(book, sn); console.log(`  sewage dump sheets=[${book.SheetNames.join("|")}] "${sn}" r0=${JSON.stringify(rows[0] || []).slice(0, 260)} r1=${JSON.stringify(rows[1] || []).slice(0, 200)}`); }
           }
-          let sum = 0, n = 0;
-          for (const r of rows.slice(1)) { const v = num(r[durCol]); if (v != null && v >= 0) { sum += v; n++; } }
-          if (n > 0 && sum >= 500000 && sum <= 6000000) { console.log(`  sewage ${year}: ${Math.round(sum)} hrs from ${n} assets`); points.push({ date: `${year}-01-01`, value: Math.round(sum) }); }
-          else console.log(`  sewage ${year}: sum=${Math.round(sum)} n=${n} (out of range)`);
-        } catch (e) { console.log(`  sewage ${fn} err ${e.message}`); }
+        } catch (e) { console.log(`  sewage ${year} err ${e.message}`); }
       }
       if (points.length >= 3) return points.sort((a, b) => (a.date < b.date ? -1 : 1));
       throw new Error(`defra-sewage: only ${points.length} annual totals`);
@@ -775,13 +773,21 @@ const SOURCES = [
     min: 40,
     max: 100,
     get: async () => {
-      const path = await govukLatest("bathing water quality classifications england", (r) => /bathing water/i.test(`${r.title || ""} ${r.link || ""}`))
-        .catch(() => "government/statistics/bathing-water-quality-statistics");
-      console.log(`  bathing release: ${path}`);
-      const atts = await govukAttachments(path);
-      console.log(`  bathing atts: ${atts.map((a) => `${(a.title || "").slice(0, 30)}::${(a.url || "").split("/").pop()}`).slice(0, 25).join(" | ")}`);
-      const file = atts.find((a) => /\.(ods|xlsx?|csv)(\?|$)/i.test(a.url || "") && /classif|quality|england/i.test(`${a.title || ""} ${a.url || ""}`)) || atts.find((a) => /\.(ods|xlsx?|csv)(\?|$)/i.test(a.url || ""));
-      if (!file) throw new Error("bathing: no data file");
+      // The parent statistics page lists only PDFs; the machine-readable
+      // classification dataset lives on each yearly edition document.
+      const parent = await govukContent("government/statistics/bathing-water-quality-statistics");
+      const docs = (parent?.links?.documents || []).filter((d) => /bathing water/i.test(d.title || ""));
+      docs.sort((a, b) => String(b.public_updated_at || "").localeCompare(String(a.public_updated_at || "")));
+      let file = null;
+      for (const doc of docs.slice(0, 4)) {
+        const p = String(doc.base_path || "").replace(/^\//, "");
+        let eatts;
+        try { eatts = await govukAttachments(p); } catch { continue; }
+        const cand = eatts.find((a) => /\.(ods|xlsx?|csv)(\?|$)/i.test(a.url || "") && /classif|complian|quality|result/i.test(`${a.title || ""} ${a.url || ""}`)) || eatts.find((a) => /\.(ods|xlsx?|csv)(\?|$)/i.test(a.url || ""));
+        console.log(`  bathing edition ${p.split("/").pop()}: ${eatts.map((a) => (a.url || "").split("/").pop()).filter((u) => /\.(ods|xlsx?|csv)/i.test(u)).slice(0, 6).join(", ") || "(no data file)"}`);
+        if (cand) { file = cand; break; }
+      }
+      if (!file) throw new Error("bathing: no data file in editions");
       console.log(`  bathing file: ${file.url}`);
       const num = (c) => { const v = typeof c === "number" ? c : parseFloat(String(c ?? "").replace(/[,%]/g, "")); return Number.isFinite(v) ? v : null; };
       const book = await xlsxBook(file.url);
@@ -834,8 +840,24 @@ const SOURCES = [
       const book = await xlsxBook(url);
       console.log(`  affordability sheets: ${book.SheetNames.join("|")}`);
       const num = (c) => { const v = typeof c === "number" ? c : parseFloat(String(c ?? "").replace(/,/g, "")); return Number.isFinite(v) ? v : null; };
+      // Disambiguate via the Contents sheet: pick the table whose description is
+      // the MEDIAN house-price-to-MEDIAN-earnings ratio (not lower quartile).
+      let preferred = null;
+      try {
+        const contents = await sheetRows(book, book.SheetNames.find((n) => /content/i.test(n)) || "Contents");
+        for (const row of contents) {
+          const cells = (row || []).map((c) => String(c ?? ""));
+          const desc = cells.join(" ").toLowerCase();
+          if (/ratio/.test(desc) && /median house price/.test(desc) && /median.*earning/.test(desc) && !/lower quartile/.test(desc)) {
+            const code = cells.map((c) => c.trim()).find((c) => /^\d[a-z]$/i.test(c)) || (desc.match(/table\s*(\d[a-z])/) || [])[1];
+            if (code) { preferred = code.toLowerCase(); console.log(`  affordability Contents → median-ratio table "${preferred}": ${desc.slice(0, 90)}`); break; }
+          }
+        }
+      } catch (e) { console.log(`  affordability Contents parse err ${e.message}`); }
       // Median ratio table; rows = areas incl. England (code E92000001), cols = years.
-      const order = book.SheetNames.filter((n) => /median|5[a-z]?\b/i.test(n)).concat(book.SheetNames);
+      const order = (preferred ? book.SheetNames.filter((n) => n.toLowerCase() === preferred) : [])
+        .concat(book.SheetNames.filter((n) => /median/i.test(n)))
+        .concat(book.SheetNames);
       let dumped = false;
       for (const sn of [...new Set(order)]) {
         let rows;
