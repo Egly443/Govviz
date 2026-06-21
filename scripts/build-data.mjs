@@ -747,12 +747,15 @@ const SOURCES = [
       const dec = (r) => decodeURIComponent(r.url || "");
       console.log(`  sewage CKAN success=${j.success} resources=${all.length} all=${all.map((r) => `${r.format || "?"}::${dec(r).split("=").pop()}`).slice(0, 20).join(" | ")}`);
       // Each year is published as a .zip containing the annual-return workbook(s).
-      const zips = all.filter((r) => /\.zip/i.test(dec(r)) && /\b20\d\d\b/.test(dec(r)) && !/long-term|trend/i.test(dec(r)));
+      // The year sits between underscores (EDM_2020_…), so use digit boundaries
+      // rather than \b (underscore is a word char and would defeat \b).
+      const YEAR = /(?<![0-9])(20\d\d)(?![0-9])/;
+      const zips = all.filter((r) => /\.zip/i.test(dec(r)) && YEAR.test(dec(r)) && !/long-term|trend/i.test(dec(r)));
       const num = (c) => { const v = typeof c === "number" ? c : parseFloat(String(c ?? "").replace(/,/g, "")); return Number.isFinite(v) ? v : null; };
       const points = [];
       let dumped = false;
       for (const r of zips) {
-        const ym = dec(r).match(/\b(20\d\d)\b/);
+        const ym = dec(r).match(YEAR);
         if (!ym) continue;
         const year = ym[1];
         if (points.some((p) => p.date.startsWith(year))) continue;
