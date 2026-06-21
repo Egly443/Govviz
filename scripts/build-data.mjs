@@ -514,6 +514,152 @@ const SOURCES = [
   // fossil-only EN.ATM.CO2E.PC code referenced by the illustrative fallback).
   ...wbCompare("dft-co2-pc", "EN.GHG.CO2.PC.CE.AR5", { min: 1, max: 20 }),
 
+  // --- MHCLG & Defra (new departments) ---
+  // Defra air pollution: mean PM2.5 exposure (World Bank / OECD-IHME) — reliable.
+  { id: "defra-pm25", min: 1, max: 40, get: () => wb("EN.ATM.PM25.MC.M3") },
+
+  // MHCLG households in temporary accommodation (England, quarterly) — the
+  // statutory homelessness "live tables" ODS (sheet TA1 / England time series).
+  {
+    id: "mhclg-temp-accommodation",
+    min: 30000,
+    max: 250000,
+    get: async () => {
+      const atts = await govukAttachments("government/statistical-data-sets/live-tables-on-homelessness");
+      console.log(`  mhclg-ta atts: ${atts.map((a) => `${(a.title || "").slice(0, 32)}::${(a.url || "").split("/").pop()}`).slice(0, 30).join(" | ")}`);
+      const ods =
+        atts.find((a) => /\.ods/i.test(a.url || "") && /time.?series|england/i.test(`${a.title || ""} ${a.url || ""}`)) ||
+        atts.find((a) => /\.ods/i.test(a.url || "") && /temporary|\bta\b|tables?_? ?a/i.test(`${a.title || ""} ${a.url || ""}`)) ||
+        atts.find((a) => /\.ods/i.test(a.url || ""));
+      if (!ods) throw new Error("mhclg-ta: no ODS attachment");
+      console.log(`  mhclg-ta ODS: ${ods.url}`);
+      const book = await xlsxBook(ods.url);
+      console.log(`  mhclg-ta sheets: ${book.SheetNames.join("|")}`);
+      const toDate = (s) => {
+        s = String(s ?? "").trim();
+        let m = s.match(/^(\d{4})[ -]?Q([1-4])/i);
+        if (m) return `${m[1]}-${String((+m[2] - 1) * 3 + 1).padStart(2, "0")}-01`;
+        m = s.match(/^([A-Za-z]{3,})[ -](\d{4})$/);
+        const MON = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
+        if (m && MON[m[1].toLowerCase().slice(0, 3)]) return `${m[2]}-${String(MON[m[1].toLowerCase().slice(0, 3)]).padStart(2, "0")}-01`;
+        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+        return null;
+      };
+      for (const sn of book.SheetNames) {
+        const rows = await sheetRows(book, sn);
+        // locate a header row, the date column, and a "total ... temporary accommodation" column
+        for (let hi = 0; hi < Math.min(rows.length, 12); hi++) {
+          const hdr = (rows[hi] || []).map((c) => String(c ?? "").toLowerCase());
+          const totCol = hdr.findIndex((h) => /total.*(temporary|ta)|households.*temporary|number of households/.test(h));
+          if (totCol < 0) continue;
+          const dateCol = (rows[hi] || []).findIndex((c, i) => i !== totCol && rows.slice(hi + 1, hi + 6).some((r) => toDate(r?.[i])));
+          if (dateCol < 0) continue;
+          const points = [];
+          for (const r of rows.slice(hi + 1)) {
+            const d = toDate(r?.[dateCol]); if (!d) continue;
+            const v = typeof r[totCol] === "number" ? r[totCol] : parseFloat(String(r[totCol] ?? "").replace(/,/g, ""));
+            if (Number.isFinite(v) && v >= 30000 && v <= 250000) points.push({ date: d, value: Math.round(v) });
+          }
+          if (points.length >= 8) { console.log(`  mhclg-ta sheet="${sn}" ${points.length} pts`); return points.sort((a, b) => (a.date < b.date ? -1 : 1)); }
+        }
+      }
+      for (const sn of book.SheetNames.slice(0, 4)) {
+        const rows = await sheetRows(book, sn);
+        console.log(`  mhclg-ta dump ${sn}:`);
+        for (const r of rows.slice(0, 8)) console.log(`    ${JSON.stringify(r).slice(0, 240)}`);
+      }
+      throw new Error("mhclg-ta: TA total series not found");
+    },
+  },
+
+  // MHCLG net additional dwellings (England, annual). Housing supply ODS.
+  {
+    id: "mhclg-net-dwellings",
+    min: 80000,
+    max: 400000,
+    get: async () => {
+      const path = await govukCollectionLatest("net-supply-of-housing", (d) => /net additional dwellings|housing supply/i.test(d.title || ""));
+      console.log(`  mhclg-dwellings release: ${path}`);
+      const atts = await govukAttachments(path);
+      console.log(`  mhclg-dwellings atts: ${atts.map((a) => (a.url || "").split("/").pop()).slice(0, 20).join(" | ")}`);
+      const ods = atts.find((a) => /\.ods|\.xlsx?/i.test(a.url || "") && /live.?table|net|dwelling|supply/i.test(`${a.title || ""} ${a.url || ""}`)) || atts.find((a) => /\.ods|\.xlsx?/i.test(a.url || ""));
+      if (!ods) throw new Error("mhclg-dwellings: no spreadsheet");
+      console.log(`  mhclg-dwellings file: ${ods.url}`);
+      const book = await xlsxBook(ods.url);
+      console.log(`  mhclg-dwellings sheets: ${book.SheetNames.join("|")}`);
+      for (const sn of book.SheetNames) {
+        const rows = await sheetRows(book, sn);
+        const yi = rows.map((r, i) => [i, r]).filter(([, r]) => Array.isArray(r) && r.some((c) => /^20\d\d[ -]\d{2}$|^\d{4}-\d{2}$/.test(String(c ?? "").trim())));
+        // long format: a year/period column + a net-additions column
+        let hdr = -1, perCol = -1, valCol = -1;
+        for (let i = 0; i < Math.min(rows.length, 12); i++) {
+          const h = (rows[i] || []).map((c) => String(c ?? "").toLowerCase());
+          const vc = h.findIndex((x) => /net additional dwellings|net additions|total net/.test(x));
+          const pc = h.findIndex((x) => /year|period|financial/.test(x));
+          if (vc >= 0 && pc >= 0) { hdr = i; perCol = pc; valCol = vc; break; }
+        }
+        void yi;
+        if (hdr < 0) continue;
+        const points = [];
+        for (const r of rows.slice(hdr + 1)) {
+          const ym = String(r?.[perCol] ?? "").match(/20\d\d/g); if (!ym) continue;
+          const y = ym[ym.length - 1];
+          const v = typeof r[valCol] === "number" ? r[valCol] : parseFloat(String(r[valCol] ?? "").replace(/,/g, ""));
+          if (Number.isFinite(v) && v >= 80000 && v <= 400000) points.push({ date: `${y}-01-01`, value: Math.round(v) });
+        }
+        if (points.length >= 5) { console.log(`  mhclg-dwellings sheet="${sn}" ${points.length} pts`); return points.sort((a, b) => (a.date < b.date ? -1 : 1)); }
+      }
+      for (const sn of book.SheetNames.slice(0, 3)) {
+        const rows = await sheetRows(book, sn);
+        console.log(`  mhclg-dwellings dump ${sn}:`);
+        for (const r of rows.slice(0, 8)) console.log(`    ${JSON.stringify(r).slice(0, 220)}`);
+      }
+      throw new Error("mhclg-dwellings: series not found");
+    },
+  },
+
+  // Defra household recycling rate (England, annual %). Defra waste statistics.
+  {
+    id: "defra-recycling",
+    min: 20,
+    max: 70,
+    get: async () => {
+      const path = await govukCollectionLatest("waste-and-recycling-statistics", (d) => /local authority|household waste|uk statistics on waste/i.test(d.title || ""))
+        .catch(() => govukLatest("local authority collected waste england", (r) => /local authority|recycling|waste/i.test(r.title || "")));
+      console.log(`  defra-recycling release: ${path}`);
+      const atts = await govukAttachments(path);
+      console.log(`  defra-recycling atts: ${atts.map((a) => (a.url || "").split("/").pop()).slice(0, 20).join(" | ")}`);
+      const file = atts.find((a) => /\.ods|\.xlsx?|\.csv/i.test(a.url || "") && /recycl|household|england/i.test(`${a.title || ""} ${a.url || ""}`)) || atts.find((a) => /\.ods|\.xlsx?|\.csv/i.test(a.url || ""));
+      if (!file) throw new Error("defra-recycling: no data file");
+      console.log(`  defra-recycling file: ${file.url}`);
+      const book = await xlsxBook(file.url);
+      console.log(`  defra-recycling sheets: ${book.SheetNames.join("|")}`);
+      for (const sn of book.SheetNames) {
+        const rows = await sheetRows(book, sn);
+        for (let i = 0; i < Math.min(rows.length, 14); i++) {
+          const h = (rows[i] || []).map((c) => String(c ?? "").toLowerCase());
+          const vc = h.findIndex((x) => /recycl.*rate|rate.*recycl|% recycled|household.*recycling/.test(x));
+          const pc = h.findIndex((x) => /year|period/.test(x));
+          if (vc < 0 || pc < 0) continue;
+          const points = [];
+          for (const r of rows.slice(i + 1)) {
+            const ym = String(r?.[pc] ?? "").match(/20\d\d/g); if (!ym) continue;
+            let v = typeof r[vc] === "number" ? r[vc] : parseFloat(String(r[vc] ?? "").replace(/[%,]/g, ""));
+            if (v > 0 && v <= 1) v *= 100;
+            if (Number.isFinite(v) && v >= 20 && v <= 70) points.push({ date: `${ym[ym.length - 1]}-01-01`, value: +v.toFixed(1) });
+          }
+          if (points.length >= 5) { console.log(`  defra-recycling sheet="${sn}" ${points.length} pts`); return points.sort((a, b) => (a.date < b.date ? -1 : 1)); }
+        }
+      }
+      for (const sn of book.SheetNames.slice(0, 3)) {
+        const rows = await sheetRows(book, sn);
+        console.log(`  defra-recycling dump ${sn}:`);
+        for (const r of rows.slice(0, 8)) console.log(`    ${JSON.stringify(r).slice(0, 220)}`);
+      }
+      throw new Error("defra-recycling: series not found");
+    },
+  },
+
   // --- Treasury derived / standalone ---
   // Tax revenue % of GDP (World Bank/IMF), matches hmt-tax-burden realPoints wrapper.
   // min covers the full 1972+ history (central-government basis runs low in early decades).

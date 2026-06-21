@@ -1651,6 +1651,220 @@ const dwpYouthUnemp = wbS({ id: "dwp-youth-unemp", title: "Youth unemployment", 
 const dftCo2 = wbS({ id: "dft-co2-pc", title: "CO₂ emissions per person", subtitle: "Tonnes per person, per year — UK vs Germany & France", good: "down", format: fmt1, source: "World Bank", code: "EN.ATM.CO2E.PC", anchors: [[1990, 9.7], [2000, 9.0], [2010, 7.5], [2019, 5.2], [2020, 4.9]], start: 1990, end: 2020, seed: 351, amp: 0.05, compare: true });
 
 // ============================================================
+// MHCLG — Housing, Communities & Local Government
+// ============================================================
+const mhclgTempAccom: TrendSeries = {
+  id: "mhclg-temp-accommodation",
+  title: "Households in temporary accommodation",
+  subtitle: "Households housed in TA at quarter-end, England",
+  unit: "count",
+  format: fmtThousands,
+  shortFormat: fmtK,
+  yFormat: fmtK,
+  deltaFormat: fmtThousandsSigned,
+  goodDirection: "down",
+  source: "MHCLG statutory homelessness live tables (TA1)",
+  sourceUrl: "https://www.gov.uk/government/statistical-data-sets/live-tables-on-homelessness",
+  cadence: "quarterly",
+  points: realPoints(
+    "mhclg-temp-accommodation",
+    trajectory(
+      [
+        ["2010-12-01", 48000],
+        ["2017-12-01", 79000],
+        ["2020-03-01", 93000],
+        ["2023-12-01", 112000],
+        ["2025-09-01", 131000],
+      ],
+      "2010-12-01",
+      "2025-09-01",
+      401,
+      700,
+      0,
+    ),
+  ),
+  annotations: [{ date: "2020-01-01", label: "Covid-19" }],
+};
+
+const mhclgNetDwellings: TrendSeries = {
+  id: "mhclg-net-dwellings",
+  title: "New homes added",
+  subtitle: "Net additional dwellings per year, England",
+  unit: "count",
+  format: fmtThousands,
+  shortFormat: fmtK,
+  yFormat: fmtK,
+  deltaFormat: fmtThousandsSigned,
+  goodDirection: "up",
+  target: { value: 300000, label: "300k/yr target", kind: "standard" },
+  source: "MHCLG housing supply: net additional dwellings",
+  sourceUrl: "https://www.gov.uk/government/collections/net-supply-of-housing",
+  cadence: "annual",
+  points: realPoints(
+    "mhclg-net-dwellings",
+    annual(
+      [
+        [2010, 137000],
+        [2015, 171000],
+        [2019, 243000],
+        [2020, 216000],
+        [2023, 234000],
+        [2024, 221000],
+      ],
+      2010,
+      2024,
+      402,
+      1400,
+    ),
+  ),
+  annotations: [],
+};
+
+const mhclgAffordability: TrendSeries = {
+  id: "mhclg-affordability",
+  title: "Housing affordability",
+  subtitle: "Median house price ÷ median gross annual earnings, England",
+  unit: "count",
+  format: (v) => `${v.toFixed(1)}×`,
+  shortFormat: (v) => `${v.toFixed(1)}×`,
+  yFormat: (v) => `${v.toFixed(0)}×`,
+  deltaFormat: (v) => `${v > 0 ? "+" : ""}${v.toFixed(1)}×`,
+  goodDirection: "down",
+  source: "ONS house price to workplace-based earnings ratio",
+  sourceUrl:
+    "https://www.ons.gov.uk/peoplepopulationandcommunity/housing/datasets/ratioofhousepricetoworkplacebasedearningslowerquartileandmedian",
+  cadence: "annual",
+  points: realPoints(
+    "mhclg-affordability",
+    annual(
+      [
+        [1999, 4.4],
+        [2008, 7.2],
+        [2014, 7.1],
+        [2021, 9.1],
+        [2023, 8.3],
+        [2024, 7.8],
+      ],
+      1999,
+      2024,
+      403,
+      0.07,
+    ),
+  ),
+  annotations: [],
+};
+
+// ============================================================
+// Defra — Environment, Food & Rural Affairs
+// ============================================================
+const defraSewage: TrendSeries = {
+  id: "defra-sewage-hours",
+  title: "Sewage spill hours",
+  subtitle: "Storm overflow spill duration, England, million hours/yr",
+  unit: "count",
+  format: (v) => `${(v / 1e6).toFixed(2)}m hrs`,
+  shortFormat: (v) => `${(v / 1e6).toFixed(1)}m`,
+  yFormat: (v) => `${(v / 1e6).toFixed(1)}m`,
+  deltaFormat: (v) => `${v > 0 ? "+" : ""}${(v / 1e6).toFixed(2)}m`,
+  goodDirection: "down",
+  source: "Environment Agency storm overflow EDM annual returns",
+  sourceUrl: "https://www.gov.uk/government/statistics/storm-overflow-spill-data",
+  cadence: "annual",
+  points: realPoints(
+    "defra-sewage-hours",
+    annual(
+      [
+        [2020, 3100000],
+        [2021, 2670000],
+        [2022, 1750000],
+        [2023, 3610000],
+        [2024, 3614000],
+      ],
+      2020,
+      2024,
+      411,
+      25000,
+    ),
+  ),
+  annotations: [],
+};
+
+const defraBathingWater: TrendSeries = {
+  id: "defra-bathing-water",
+  title: "Bathing water quality",
+  subtitle: "% of designated bathing waters rated Good or Excellent, England",
+  unit: "percent",
+  format: fmtPct,
+  shortFormat: fmtPct,
+  goodDirection: "up",
+  source: "Defra / Environment Agency bathing water classifications",
+  sourceUrl: "https://www.gov.uk/government/statistics/bathing-water-quality-statistics",
+  cadence: "annual",
+  points: realPoints(
+    "defra-bathing-water",
+    annual(
+      [
+        [2015, 90],
+        [2019, 93],
+        [2022, 72],
+        [2024, 64],
+      ],
+      2015,
+      2024,
+      412,
+      0.5,
+    ),
+  ),
+  annotations: [{ date: "2024-01-01", label: "Stricter classification" }],
+};
+
+const defraRecycling: TrendSeries = {
+  id: "defra-recycling",
+  title: "Household recycling rate",
+  subtitle: "% of household waste recycled, England",
+  unit: "percent",
+  format: fmtPct,
+  shortFormat: fmtPct,
+  goodDirection: "up",
+  target: { value: 65, label: "65% by 2035", kind: "standard" },
+  source: "Defra statistics on waste",
+  sourceUrl: "https://www.gov.uk/government/statistics/uk-waste-data",
+  cadence: "annual",
+  points: realPoints(
+    "defra-recycling",
+    annual(
+      [
+        [2010, 40],
+        [2015, 44.3],
+        [2019, 45.5],
+        [2022, 43.4],
+        [2023, 44.1],
+      ],
+      2010,
+      2023,
+      413,
+      0.25,
+    ),
+  ),
+  annotations: [],
+};
+
+const defraPm25 = wbS({
+  id: "defra-pm25",
+  title: "Air pollution (PM2.5)",
+  subtitle: "Mean population exposure to fine particulates, µg/m³",
+  good: "down",
+  format: fmt1,
+  source: "World Bank (OECD/IHME)",
+  code: "EN.ATM.PM25.MC.M3",
+  anchors: [[1990, 15], [2000, 13.5], [2010, 12], [2015, 11], [2017, 10.5]],
+  start: 1990,
+  end: 2019,
+  seed: 414,
+  amp: 0.1,
+});
+
+// ============================================================
 // Registry
 // ============================================================
 export const departments: Department[] = [
@@ -1766,6 +1980,35 @@ export const departments: Department[] = [
     hero: hmtGdpPerCapita,
     core: [hmtCostOfLiving, hmtDebt, hmtDebtCash, hmtTaxBurden, hmtDebtInterest],
     supporting: [hmtUnemployment, hmtGdpGrowth, hmtEmployment, hmtParticipation, hmtInvestment, hmtTrade, hmtSavings, hmtCurrentAccount, hmtGniPerCapita, hmtRealIncome, hmtProductivity, hmtTaxSplit, hmtDeficit],
+  },
+  {
+    code: "mhclg",
+    name: "MHCLG",
+    spendBn: 30,
+    fullName: "Housing, Communities & Local Government",
+    pageTitle: "Ministry of Housing, Communities & Local Government",
+    blurb:
+      "Whether people can get and keep a roof: the supply of new homes, the affordability gap, and the households councils are housing in temporary accommodation.",
+    synthesis:
+      "Households in temporary accommodation are at record highs and housebuilding is running well below the 300,000-a-year ambition; affordability remains near its worst on record.",
+    themes: ["Homelessness", "Supply", "Affordability"],
+    hero: mhclgTempAccom,
+    core: [mhclgNetDwellings, mhclgAffordability],
+  },
+  {
+    code: "defra",
+    name: "Defra",
+    spendBn: 8,
+    fullName: "Environment, Food & Rural Affairs",
+    pageTitle: "Department for Environment, Food & Rural Affairs",
+    blurb:
+      "The environmental outcomes government is accountable for stewarding — even where private companies (water, waste) deliver and regulators (the Environment Agency, Ofwat) are meant to enforce.",
+    synthesis:
+      "Storm-overflow spill hours are near record levels and bathing-water quality has fallen sharply; household recycling has plateaued for a decade. Long-run air quality is the one clear improvement.",
+    themes: ["Water", "Waste", "Air"],
+    hero: defraSewage,
+    core: [defraBathingWater, defraRecycling],
+    supporting: [defraPm25],
   },
 ];
 
