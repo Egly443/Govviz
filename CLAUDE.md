@@ -112,7 +112,7 @@ find ONS CDIDs/WB codes/EES dataset IDs/gov.uk collection slugs, then wire the f
 - **Transposed/grouped ODS:** gov.uk "accessible" workbooks often put periods in columns (DASA 3a/5e) or per-period `{date} Rate` triplets (HMPPS); detect the header row and iterate columns.
 - **Branch CI harness:** `.github/workflows/data-check.yml` runs the fetcher on non-main pushes **without deploying** — validate parsers against live sources here (the sandbox has no internet), then promote to main. Production deploy (`deploy.yml`) runs only on `main`.
 
-### Coverage — current state (64 ok / 3 skipped as of 2026-06-15)
+### Coverage — current state (91 ok / 5 skipped as of 2026-06-21)
 Read the latest CI **"Fetch live data"** log (`mcp__github__get_job_logs`) for the authoritative
 `ok`/`SKIP` tally — the manifest is cumulative so one run shows everything. ~64 series IDs now
 bake real data across all departments (HMT/DHSC via ONS+World Bank; DfE via EES; DWP via World
@@ -122,7 +122,9 @@ Converted illustrative→real in the 2026-06 campaign: dwp-fraud-error, dfe-teac
 dfe-attainment-gap, moj-crown-backlog, moj-cost-per-prisoner, moj-officer-resignations,
 moj-completion-days, mod-personnel-shortfall, mod-voluntary-outflow, mod-procurement,
 dft-capital-overrun, ho-visa-sla, dft-rail-cancellations, ae-performance, agency-spend,
-discharge-delays.
+discharge-delays. Plus the 2026-06 MHCLG/Defra launch: mhclg-temp-accommodation (TA1 quarterly),
+mhclg-net-dwellings (LT120 transposed), mhclg-affordability (ONS median HPE ratio, Contents-disambiguated),
+defra-recycling (computed dry+organic/total), defra-pm25 + defra-forest (World Bank).
 
 ### Remaining illustrative
 **Fetchers wired but currently SKIP (CI-verified blockers):**
@@ -131,6 +133,8 @@ discharge-delays.
 | `waiting-list` | NHS England discontinued the national RTT timeseries; only split per-org monthly XLSX (`Incomplete-Provider` ~9 MB, etc.). Needs summing providers × RTT week-bands. `data.england.nhs.uk` CKAN → 404. |
 | `rtt-18-week` | Same per-provider RTT workbook; % within 18 weeks must be aggregated from it. |
 | `turnover` | digital.nhs.uk Cloudflare-blocks automated access (403 even with a browser UA); data.gov.uk `nhs-workforce-turnover` resources point back to digital.nhs.uk. Needs a non-gated source. |
+| `defra-sewage-hours` | EA Event Duration Monitoring annual returns are `.zip`-of-xlsx on data.gov.uk (pkg `19f6064d…`); parser unzips (fflate) and sums "Total Duration (hours)" across per-company sheets, but the `environment.data.gov.uk/api/file/download` endpoint rate-limit/403s automated requests (first zip occasionally succeeds, rest 403). Needs a non-gated mirror. Defra hero is `defra-recycling` instead. |
+| `defra-bathing-water` | gov.uk "bathing-water-quality-statistics" editions are HTML/PDF only — no machine-readable classification table to compute % Good/Excellent. EA Bathing Water Data Explorer API is on the same 403-prone `environment.data.gov.uk` host. |
 
 **Hard-blocked (no fetcher; charts intentionally illustrative):** DWP Stat-Xplore series
 (`dwp-pip-clearance`, `dwp-work-coach-ratio`, `dwp-uc-mr`) need a free API key as CI secret
