@@ -50,7 +50,7 @@ you'd like to see it continued, you can chip in via PayPal:
 | ☕ Buy me a coffee | £5 | [paypal.me/VbirdAI/5GBP](https://www.paypal.me/VbirdAI/5GBP) |
 | 🤖 **a) Claude Max for a month** — keep the lights on | £150 | [paypal.me/VbirdAI/150GBP](https://www.paypal.me/VbirdAI/150GBP) |
 | 🤖 **b) Claude Max for a year** — sustained momentum | £1,800 | [paypal.me/VbirdAI/1800GBP](https://www.paypal.me/VbirdAI/1800GBP) |
-| 🧑‍💻 **c) "No — I'm serious, I want you on this"** — a year of full-time work (≈ a London principal data scientist) | £330,000/yr (~£27,500/mo) | [paypal.me/VbirdAI/27500GBP](https://www.paypal.me/VbirdAI/27500GBP) |
+| 🧑‍💻 **c) "No — I'm serious, I want you on this"** — a year of full-time work (≈ an MTS) | £330,000/yr (~£27,500/mo) | [paypal.me/VbirdAI/27500GBP](https://www.paypal.me/VbirdAI/27500GBP) |
 
 *(Amounts are suggestions — PayPal lets you enter any value. For c), or for
 organisational sponsorship, [open an issue](../../issues) or get in touch.)*
