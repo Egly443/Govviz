@@ -42,7 +42,7 @@ theme in `src/styles.css`), **Recharts**, **d3-hierarchy**, **lucide-react**.
 - `.github/workflows/deploy.yml` builds on push to `main` and deploys via the
   official Pages actions; it copies `index.html` → `404.html` as the SPA
   deep-link fallback. **Deploys run from `main` only**, so changes must reach
-  `main` (open a PR) to go live.
+  `main` (via a PR or a direct push) to go live.
 - **Pages "Source" must be "GitHub Actions", not "Deploy from a branch".** If a
   `pages build and deployment` workflow run appears on each push, the source is
   set to the branch and GitHub serves the **raw repo source** (`/src/main.tsx`,
@@ -95,7 +95,10 @@ clearly-labelled illustrative generators.
 - `govukContent(path)` → gov.uk Content API JSON. Use `.details.attachments` (a page's current files) and `.links.documents` (a collection's editions). Works for `government/statistics/*`, `government/collections/*`, and `government/statistical-data-sets/*`.
 - `govukAttachments(path)` → that page's attachment list (title/url/content_type).
 - `govukCollectionLatest(slug, accept)` → newest edition (by `public_updated_at`) in a gov.uk **collection** whose doc passes `accept` → base_path. Robust way to follow a yearly-republished release.
-- `xlsxBook(url)` / `sheetRows(book, name)` → SheetJS reader for **.ods/.xls/.xlsx**. CI installs `xlsx` via `npm install --no-save xlsx` (keeps package-lock in sync); imported lazily. `sheetRows` returns array-of-arrays — numeric cells are numbers, suppression markers (`w`/`x`/`z`) are strings.
+- `govukLatest(q, accept)` → gov.uk Search API; newest result passing `accept` → path. Follows a series republished under a changing slug.
+- `xlsxBook(url)` / `xlsxBookFromBuffer(buf)` / `sheetRows(book, name)` → SheetJS reader for **.ods/.xls/.xlsx** (from a URL or an in-memory buffer). `sheetRows` returns array-of-arrays — numeric cells are numbers, suppression markers (`w`/`x`/`z`) are strings.
+- `unzipUrl(url)` → download a `.zip` and return its entries as `{ name, buf }` (fflate); pair with `xlsxBookFromBuffer` to read zipped workbooks.
+- CI installs the parser deps via `npm install --no-save xlsx fflate` (keeps package-lock in sync); both are imported lazily so local/offline runs skip them.
 - `parseCsvLine(line)` → quote-aware CSV splitter. Plus raw `fetch(url, fetchOpts({...}))` for HTML scrapes & CKAN APIs (`fetchOpts` sets UA + 30s timeout; pass `"user-agent"` to override).
 
 ### Discovering codes — **WebSearch works** (curl/WebFetch don't!)
@@ -109,14 +112,19 @@ find ONS CDIDs/WB codes/EES dataset IDs/gov.uk collection slugs, then wire the f
 - **gov.uk consolidated CSV collection:** loop `links.documents`, parse each CSV (mod-procurement + dft-capital-overrun = IPA GMPP delivery-confidence RAG).
 - **england.nhs.uk scrape:** fetch the topic/year HTML page, regex `href="...\.xlsx?|\.csv"` for the random-suffix file, then xlsxBook/CSV (ae-performance, discharge-delays). Links are server-rendered, NOT zipped.
 - **EES CSV:** `eesCsv(datasetId)` (dfe-teacher-recruitment, dfe-ect-attrition, dfe-attainment-gap = KS4 disadvantage gap index).
-- **Transposed/grouped ODS:** gov.uk "accessible" workbooks often put periods in columns (DASA 3a/5e) or per-period `{date} Rate` triplets (HMPPS); detect the header row and iterate columns.
+- **Transposed/grouped ODS:** gov.uk "accessible" workbooks often put periods in columns (DASA 3a/5e, MHCLG LT120 net-additional-dwellings, Defra recycling tonnages) or per-period `{date} Rate` triplets (HMPPS); detect the header/year row and iterate columns. Anchor row-label matches (`/^total net additional dwellings/`) so a "Source: …" caption doesn't match first.
+- **Quarterly carry-forward sheet:** MHCLG homelessness TA1 puts the year in col 0 (blank on Q2–Q4, carry forward), the quarter in col 1, and the value in a labelled column — read year+quarter from separate columns.
+- **ONS dataset workbook (not a CDID):** scrape the dataset landing-page HTML for the current `.xlsx`, read the **Contents** sheet to pick the right table by description (e.g. *median* vs lower-quartile ratio — both pass the guard, so disambiguate by label), then parse (mhclg-affordability).
+- **data.gov.uk CKAN `.zip`:** `package_show` → resource `.zip` URLs → `unzipUrl` → `xlsxBookFromBuffer` per entry; sum across per-entity sheets (defra-sewage EDM — works only when the EA endpoint isn't rate-limiting). Watch `\b` word boundaries on years flanked by underscores (`EDM_2020_…` needs digit boundaries, not `\b`).
 - **Branch CI harness:** `.github/workflows/data-check.yml` runs the fetcher on non-main pushes **without deploying** — validate parsers against live sources here (the sandbox has no internet), then promote to main. Production deploy (`deploy.yml`) runs only on `main`.
 
-### Coverage — current state (91 ok / 5 skipped as of 2026-06-21)
+### Coverage — current state (92 ok / 4 skipped as of 2026-06-21)
 Read the latest CI **"Fetch live data"** log (`mcp__github__get_job_logs`) for the authoritative
-`ok`/`SKIP` tally — the manifest is cumulative so one run shows everything. ~64 series IDs now
-bake real data across all departments (HMT/DHSC via ONS+World Bank; DfE via EES; DWP via World
-Bank; plus the gov.uk-ODS / statistical-data-set / england.nhs.uk operational series listed below).
+`ok`/`SKIP` tally — the manifest is cumulative so one run shows everything (the skip count
+fluctuates by ±1–2 because the two Defra EA series fetch intermittently). ~90 series IDs now
+bake real data across all ten departments (HMT/DHSC via ONS+World Bank; DfE via EES; DWP via World
+Bank; MHCLG/Defra via gov.uk-ODS + ONS + World Bank; plus the gov.uk-ODS / statistical-data-set /
+england.nhs.uk operational series listed below).
 
 Converted illustrative→real in the 2026-06 campaign: dwp-fraud-error, dfe-teacher-recruitment,
 dfe-attainment-gap, moj-crown-backlog, moj-cost-per-prisoner, moj-officer-resignations,
@@ -147,18 +155,19 @@ Per-series research notes (sources, drafted fetchers, dead-ends) live in `docs/b
 
 ### Workflow notes
 - User granted **direct pushes to `main`** for data iteration:
-  `git push origin HEAD:main && git push origin claude/govuk-mcp-verify-l6kckt`
+  `git push origin HEAD:main && git push origin <working-branch>`.
 - Commit as `Claude <noreply@anthropic.com>` (`git config user.email
   noreply@anthropic.com && git config user.name Claude`) so commits verify.
-- Working branch: `claude/govuk-mcp-verify-l6kckt`
+- Working branch: `claude/govviz-review-improvements-ktuwwh`.
 - **WebSearch reaches the internet** (curl/WebFetch don't). Use it to find stable
   CSV/Excel URLs or dataset IDs, then wire in CI — the actual fetch happens in CI.
 - `eesCsv(datasetId)` helper already in `build-data.mjs` — reuse for any new EES
   dataset IDs found.
 - **EES catalogue search:** `https://explore-education-statistics.service.gov.uk/
   data-catalogue` — use WebSearch to find dataset IDs matching a topic.
-- `xlsx` npm package is available if CI needs to parse Excel files; add as a CI
-  `npm install --no-save xlsx` step before the fetch script if needed.
+- `xlsx` and `fflate` are already installed in both workflows
+  (`npm install --no-save xlsx fflate`) — no extra step needed to parse Excel/ODS
+  or unzip archives.
 - Tax burden = receipts (ONS `ANBV`, £m) ÷ GDP — already wired via WB
   `GC.TAX.TOTL.GD.ZS` (tax % GDP). The explicit ONS ratio is not needed unless
   UK-domestic definition differs materially.
