@@ -532,6 +532,8 @@ const SOURCES = [
   // --- MHCLG & Defra (new departments) ---
   // Defra air pollution: mean PM2.5 exposure (World Bank / OECD-IHME) — reliable.
   { id: "defra-pm25", min: 1, max: 40, get: () => wb("EN.ATM.PM25.MC.M3") },
+  // Defra woodland cover: forest area % of land (World Bank / FAO) — reliable.
+  { id: "defra-forest", min: 5, max: 20, get: () => wb("AG.LND.FRST.ZS") },
 
   // MHCLG households in temporary accommodation (England, quarterly) — the
   // statutory homelessness "live tables" ODS (sheet TA1 / England time series).

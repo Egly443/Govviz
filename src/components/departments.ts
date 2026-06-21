@@ -1864,6 +1864,21 @@ const defraPm25 = wbS({
   amp: 0.1,
 });
 
+const defraForest = wbS({
+  id: "defra-forest",
+  title: "Woodland cover",
+  subtitle: "Forest area, % of UK land area",
+  good: "up",
+  format: fmt1,
+  source: "World Bank (FAO)",
+  code: "AG.LND.FRST.ZS",
+  anchors: [[1990, 11.5], [2000, 11.9], [2010, 12.9], [2020, 13.2]],
+  start: 1990,
+  end: 2021,
+  seed: 415,
+  amp: 0.05,
+});
+
 // ============================================================
 // Registry
 // ============================================================
@@ -2004,11 +2019,11 @@ export const departments: Department[] = [
     blurb:
       "The environmental outcomes government is accountable for stewarding — even where private companies (water, waste) deliver and regulators (the Environment Agency, Ofwat) are meant to enforce.",
     synthesis:
-      "Storm-overflow spill hours are near record levels and bathing-water quality has fallen sharply; household recycling has plateaued for a decade. Long-run air quality is the one clear improvement.",
-    themes: ["Water", "Waste", "Air"],
-    hero: defraSewage,
-    core: [defraBathingWater, defraRecycling],
-    supporting: [defraPm25],
+      "Household recycling has plateaued for a decade; long-run air quality is the clear improvement and woodland cover is edging up. Storm-overflow spills and bathing-water quality — privately delivered and EA-regulated — remain near the centre of public concern.",
+    themes: ["Waste", "Air", "Water"],
+    hero: defraRecycling,
+    core: [defraPm25, defraForest],
+    supporting: [defraBathingWater, defraSewage],
   },
 ];
 
