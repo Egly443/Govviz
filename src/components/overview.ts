@@ -16,6 +16,7 @@ export interface IndicatorCell {
   weight: number; // within-department size weight
   value: number; // treemap leaf value (share of departmental spend)
   score: number; // 0 (poor) .. 1 (good)
+  targeted: boolean; // RAG anchored to a published target (vs own-range fallback)
   current: number; // latest value
   real: boolean; // backed by an official source (derived-series aware)
 }
@@ -75,60 +76,48 @@ export function ragScore(series: TrendSeries): number {
 /**
  * Map 0..1 (poor..good) to a Finviz-style red → amber → green heat colour.
  * Piecewise hue so the midpoint reads amber rather than chartreuse.
+ *
+ * `benchmarked` = the score is anchored to a published target/standard. When
+ * false (the RAG fell back to position-within-own-history), the colour is
+ * heavily desaturated so it reads as *indicative, not a verdict* — an
+ * own-range score is not comparable to a target-anchored one.
  */
-export function ragColor(score: number): string {
+export function ragColor(score: number, benchmarked = true): string {
   const s = Math.max(0, Math.min(1, score));
   const hue =
     s < 0.5 ? 8 + (46 - 8) * (s / 0.5) : 46 + (142 - 46) * ((s - 0.5) / 0.5);
+  const sat = benchmarked ? 58 : 18;
   const light =
     s < 0.5 ? 40 + 6 * (s / 0.5) : 46 - 5 * ((s - 0.5) / 0.5);
-  return `hsl(${hue.toFixed(0)} 58% ${light.toFixed(0)}%)`;
+  return `hsl(${hue.toFixed(0)} ${sat}% ${light.toFixed(0)}%)`;
 }
 
-/** Map a 0..1 RAG score to an A–F letter grade (reproducible, not editorial). */
-export function scoreToGrade(score: number): string {
-  const s = clamp01(score);
-  const bands: [number, string][] = [
-    [0.9, "A"], [0.83, "A-"], [0.76, "B+"], [0.7, "B"], [0.63, "B-"],
-    [0.56, "C+"], [0.5, "C"], [0.43, "C-"], [0.36, "D+"], [0.3, "D"],
-    [0.22, "D-"],
-  ];
-  for (const [floor, grade] of bands) if (s >= floor) return grade;
-  return "F";
+export interface ScoredIndicator {
+  series: TrendSeries;
+  score: number;
+  /** True when the RAG is anchored to a published target/standard (not own-range). */
+  targeted: boolean;
 }
 
 /**
- * A department's competence grade, derived mechanically from the RAG scores of
- * its indicators (role-weighted mean), so it is reproducible from the same
- * rubric the treemap uses — not a hand-typed opinion. Only *scored* indicators
- * count: in production that means real, officially-sourced series (unsourced
- * placeholders are excluded); in dev/illustrative builds all count. Returns
- * null when nothing is scorable, so the UI can show "awaiting data".
+ * A department's scored indicators (no composite letter grade — deliberately
+ * not reduced to a single, value-laden verdict). Only *scored* indicators are
+ * returned: in production that means real, officially-sourced series; unsourced
+ * placeholders are excluded. The UI renders these as a per-indicator RAG strip.
  */
-export function departmentScore(
-  dept: Department,
-): { score: number; grade: string; n: number } | null {
-  const lists: [IndicatorRole, TrendSeries[]][] = [
-    ["hero", [dept.hero]],
-    ["core", dept.core],
-    ["supporting", dept.supporting ?? []],
-  ];
+export function departmentIndicators(dept: Department): ScoredIndicator[] {
+  const lists: TrendSeries[][] = [[dept.hero], dept.core, dept.supporting ?? []];
   const seen = new Set<string>();
-  let wsum = 0, w = 0, n = 0;
-  for (const [role, list] of lists) {
+  const out: ScoredIndicator[] = [];
+  for (const list of lists) {
     for (const s of list) {
       if (seen.has(s.id)) continue;
       seen.add(s.id);
       if (!seriesIsReal(s) && !SHOW_ILLUSTRATIVE) continue; // skip prod placeholders
-      const weight = ROLE_WEIGHT[role];
-      wsum += ragScore(s) * weight;
-      w += weight;
-      n++;
+      out.push({ series: s, score: ragScore(s), targeted: !!s.target });
     }
   }
-  if (w === 0) return null;
-  const score = wsum / w;
-  return { score, grade: scoreToGrade(score), n };
+  return out;
 }
 
 export function buildOverview(): DeptBlock[] {
@@ -157,6 +146,7 @@ export function buildOverview(): DeptBlock[] {
       weight: r.weight,
       value: (dept.spendBn * r.weight) / totalWeight,
       score: ragScore(r.series),
+      targeted: !!r.series.target,
       current: latest(r.series).value,
       real: seriesIsReal(r.series),
     }));

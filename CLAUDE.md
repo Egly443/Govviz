@@ -134,6 +134,28 @@ discharge-delays. Plus the 2026-06 MHCLG/Defra launch: mhclg-temp-accommodation 
 mhclg-net-dwellings (LT120 transposed), mhclg-affordability (ONS median HPE ratio, Contents-disambiguated),
 defra-recycling (computed dry+organic/total), defra-pm25 + defra-forest (World Bank).
 
+### Illustrative data REMOVED from the app (2026-06)
+Fabricated/illustrative fallbacks no longer render anywhere. `SHOW_ILLUSTRATIVE`
+is permanently `false` and `realPoints`/`realLine` return `[]` when CI hasn't
+baked data, so an unsourced series shows an explicit "no source yet" placeholder
+in **every** build (a local build without `src/generated/seriesData.ts` populated
+shows placeholders). `latest`/`minMax` are guarded for empty series. The A–F
+department "competence grade" was also removed (it was a composite indicator with
+undocumented weighting); department pages now show a per-indicator RAG snapshot,
+and un-targeted (own-range) RAG cells are desaturated and labelled "no external
+benchmark". Reference baselines are labelled with their basis/year.
+
+**TODO — source cleanup (cosmetic, low priority):** the inert anchor-literal
+arrays and the now-dead generators (`annual`/`trajectory`/`annualSeries`/`noise`
+in `data.ts` + `departments.ts`) still exist in source but produce nothing
+(their output is discarded by `realPoints`). Delete them when convenient;
+this needs changing `realPoints(id, fallback)` call sites to drop the 2nd arg.
+
+**TODO — indicators still needing a real source** (currently render placeholders;
+see the per-series notes in `docs/backlog-research/` and the rows below):
+`waiting-list`, `rtt-18-week`, `turnover`, `defra-sewage-hours` (intermittent),
+`defra-bathing-water`, plus the hard-blocked DWP Stat-Xplore / PDF-only series.
+
 ### Remaining illustrative
 **Fetchers wired but currently SKIP (CI-verified blockers):**
 | Series | Blocker |

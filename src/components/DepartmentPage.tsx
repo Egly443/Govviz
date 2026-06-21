@@ -4,7 +4,7 @@ import { TrendPanel } from "./TrendPanel";
 import { TurnoverBreakdown } from "./TurnoverBreakdown";
 import { DepartmentTabs } from "./DepartmentTabs";
 import { realAsOf } from "./data";
-import { departmentScore, ragColor } from "./overview";
+import { departmentIndicators, ragColor } from "./overview";
 import type { Department } from "./departments";
 
 interface Props {
@@ -120,34 +120,37 @@ export function DepartmentPage({ department: dept }: Props) {
 }
 
 function SynthesisCard({ dept }: { dept: Department }) {
-  const graded = departmentScore(dept);
+  const inds = departmentIndicators(dept);
   return (
     <div className="rounded-xl border border-border bg-card p-5 sm:p-6">
       <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-        Competence rating
+        Indicator snapshot
       </div>
       <h3 className="mt-1 text-lg font-semibold tracking-tight">
-        Derived from the indicators
+        {inds.length
+          ? `${inds.length} officially-sourced indicator${inds.length === 1 ? "" : "s"}`
+          : "Awaiting officially-sourced indicators"}
       </h3>
-      <div className="mt-4 flex items-baseline gap-2">
-        <span
-          className="text-5xl font-semibold tracking-tight"
-          style={{ color: graded ? ragColor(graded.score) : "var(--muted-foreground)" }}
-          title={
-            graded
-              ? `Role-weighted mean RAG score ${graded.score.toFixed(2)} across ${graded.n} scored indicator${graded.n === 1 ? "" : "s"}`
-              : undefined
-          }
-        >
-          {graded ? graded.grade : "—"}
-        </span>
-        <span className="text-sm text-muted-foreground">/ A&ndash;F scale</span>
-      </div>
-      <p className="mt-1.5 text-[11px] text-muted-foreground">
-        {graded
-          ? `Mechanically computed from ${graded.n} scored indicator${graded.n === 1 ? "" : "s"} (mean score ${graded.score.toFixed(2)}) — same rubric as the overview heatmap.`
-          : "Awaiting officially-sourced indicators to score."}
-      </p>
+      {inds.length > 0 && (
+        <>
+          <div className="mt-3 flex gap-1" role="img" aria-label="Per-indicator RAG snapshot">
+            {inds.map((i) => (
+              <span
+                key={i.series.id}
+                className="h-2.5 flex-1 rounded-sm"
+                style={{ background: ragColor(i.score, i.targeted) }}
+                title={`${i.series.title}${i.targeted ? "" : " — no external benchmark (scored vs own history)"}`}
+              />
+            ))}
+          </div>
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            Per-indicator RAG against each measure&rsquo;s published target where
+            one exists; muted bars have no external benchmark and are scored
+            against the series&rsquo; own history. Deliberately not reduced to a
+            single grade.
+          </p>
+        </>
+      )}
 
       <div className="mt-4 border-t border-border/60 pt-4">
         <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">

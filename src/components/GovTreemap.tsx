@@ -141,7 +141,7 @@ export function GovTreemap({
                   top: l.y0,
                   width: w,
                   height: h,
-                  background: sourced ? ragColor(cell.score) : "var(--surface)",
+                  background: sourced ? ragColor(cell.score, cell.targeted) : "var(--surface)",
                   opacity: sourced ? 1 : 0.5,
                 }}
               >

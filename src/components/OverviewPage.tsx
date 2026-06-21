@@ -87,7 +87,7 @@ function Legend() {
     [0.95, "Good"],
   ];
   return (
-    <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+    <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
       {swatches.map(([score, label]) => (
         <span key={label} className="flex items-center gap-1.5">
           <span
@@ -97,6 +97,13 @@ function Legend() {
           {label}
         </span>
       ))}
+      <span className="flex items-center gap-1.5" title="Scored against the series' own history, not a published target">
+        <span
+          className="h-2.5 w-2.5 rounded-sm"
+          style={{ background: ragColor(0.5, false) }}
+        />
+        No external benchmark
+      </span>
     </div>
   );
 }

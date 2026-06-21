@@ -791,7 +791,8 @@ const dwpFraudError: TrendSeries = {
   format: fmtPct,
   shortFormat: fmtPct,
   goodDirection: "down",
-  target: { value: 1.9, label: "Pre-2018 baseline", kind: "reference" },
+  // reference baseline (not a statutory target): ~2017-18 pre-Covid overpayment rate
+  target: { value: 1.9, label: "2017-18 level", kind: "reference" },
   source: "DWP fraud and error in the benefit system",
   sourceUrl:
     "https://www.gov.uk/government/collections/fraud-and-error-in-the-benefit-system",
@@ -861,7 +862,8 @@ const dftCancellations: TrendSeries = {
   format: fmtPct,
   shortFormat: fmtPct,
   goodDirection: "down",
-  target: { value: 3.0, label: "Pre-pandemic norm", kind: "reference" },
+  // reference baseline (not a target): 2018-19 ORR cancellation-score level
+  target: { value: 3.0, label: "2018-19 level", kind: "reference" },
   source: "Office of Rail and Road, cancellation statistics",
   sourceUrl: "https://dataportal.orr.gov.uk/statistics/performance/passenger-rail-performance/",
   cadence: "monthly",
@@ -1176,7 +1178,9 @@ const hmtDebt: TrendSeries = {
   shortFormat: fmtPctWhole,
   yFormat: fmtPctWhole,
   goodDirection: "down",
-  target: { value: 40, label: "Old 40% ceiling", kind: "reference" },
+  // reference baseline (not current policy): the former Sustainable Investment
+  // Rule 40%-of-GDP debt ceiling (pre-2008), shown as a historical marker
+  target: { value: 40, label: "Former 40% ceiling (pre-2008)", kind: "reference" },
   source: "ONS / OBR public sector finances",
   sourceUrl:
     "https://www.ons.gov.uk/economy/governmentpublicsectorandtaxes/publicsectorfinance",
@@ -1891,7 +1895,7 @@ export const departments: Department[] = [
     blurb:
       "Decades of monthly data on how the department is performing against its stated objectives. Headline numbers in context, not in isolation.",
     synthesis:
-      "Waiting list has stopped growing but remains near record highs. The 18-week standard has not been met for a decade and the social-care discharge bottleneck is structural. Agency spend has eased since the 2023 peak; capital delivery is worsening.",
+      "The waiting list has stopped growing but remains close to its highest in the published series. The 18-week standard has not been met for a decade and the social-care discharge bottleneck is structural. Agency spend has eased since the 2023 peak; capital delivery is worsening.",
     themes: ["Waiting list", "Urgent care", "Workforce", "Capital"],
     hero: waitingList,
     core: [rtt18Week, ambulanceC2, dischargeDelays, agencySpend, capitalOverrun, dhscSpendPerLifeYear],
@@ -1975,7 +1979,7 @@ export const departments: Department[] = [
     blurb:
       "Daily reliability and long-term asset health: cancellations passengers see, agency backlogs drivers see, and capital programmes taxpayers pay for.",
     synthesis:
-      "Rail cancellation scores have not returned to pre-pandemic norms. DVLA has recovered most of its 2021 backlog. Capital portfolio overruns have ballooned; SRN pavement condition is deteriorating.",
+      "Rail cancellation scores have not returned to pre-pandemic levels. DVLA has recovered most of its 2021 backlog. Capital portfolio overruns have risen sharply; SRN pavement condition is deteriorating.",
     themes: ["Reliability", "Service", "Delivery", "Assets"],
     hero: dftCancellations,
     core: [dftDvlaBacklog, dftCapitalOverrun, dftSrnDegradation],
@@ -2005,7 +2009,7 @@ export const departments: Department[] = [
     blurb:
       "Whether people can get and keep a roof: the supply of new homes, the affordability gap, and the households councils are housing in temporary accommodation.",
     synthesis:
-      "Households in temporary accommodation are at record highs and housebuilding is running well below the 300,000-a-year ambition; affordability remains near its worst on record.",
+      "Households in temporary accommodation are at their highest in the published series and housebuilding is running well below the 300,000-a-year ambition; affordability is close to its weakest on the ONS series.",
     themes: ["Homelessness", "Supply", "Affordability"],
     hero: mhclgTempAccom,
     core: [mhclgNetDwellings, mhclgAffordability],

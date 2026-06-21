@@ -57,15 +57,16 @@ export type TrendSeries = {
   annotations: Annotation[];
 };
 
-// Real fetched data (baked in CI) overrides the bundled illustrative series.
-// With an empty SERIES_DATA (dev/offline), the fallback is used unchanged.
-export function realPoints(id: string, fallback: Point[]): Point[] {
-  const p = SERIES_DATA[id]?.points;
-  return p && p.length ? p : fallback;
+// Real fetched data (baked in CI) is the ONLY data shown. Illustrative
+// fallbacks have been removed: a series with no baked data renders an explicit
+// "no source yet" placeholder rather than a fabricated trend. The `fallback`
+// argument is retained for call-site compatibility but is intentionally unused
+// (see docs/conformance + CLAUDE.md "Illustrative data removed" TODO).
+export function realPoints(id: string, _fallback?: Point[]): Point[] {
+  return SERIES_DATA[id]?.points ?? [];
 }
-export function realLine(id: string, lineId: string, fallback: Point[]): Point[] {
-  const l = SERIES_DATA[id]?.lines?.find((x) => x.id === lineId);
-  return l && l.points.length ? l.points : fallback;
+export function realLine(id: string, lineId: string, _fallback?: Point[]): Point[] {
+  return SERIES_DATA[id]?.lines?.find((x) => x.id === lineId)?.points ?? [];
 }
 /** True when CI baked real fetched data for this series id. */
 export function isRealSeries(id: string): boolean {
@@ -82,17 +83,14 @@ export function seriesIsReal(series: TrendSeries): boolean {
     : isRealSeries(series.id);
 }
 /**
- * Whether fabricated/illustrative fallbacks may be shown. In production we only
- * ever display real, officially-sourced data — an unsourced series renders an
- * explicit "no source wired yet" placeholder instead of an invented trend, so
- * the dashboard can never pass off illustrative curves as official statistics.
- * In dev — and in any build where CI did not bake data at all (empty
- * SERIES_DATA, e.g. a local production build) — the illustrative fallbacks
- * remain (clearly badged) so the app stays workable. The honesty gate only
- * bites once real data is present, i.e. on the actual deployment.
+ * Illustrative/fabricated data has been removed from the app entirely, so this
+ * is now permanently false: an unsourced series renders an explicit
+ * "no source yet" placeholder in every build (dev included), and the dashboard
+ * can never display anything but real, officially-sourced data. A local build
+ * without baked CI data therefore shows placeholders — populate
+ * src/generated/seriesData.ts (or run the CI fetch) to see real charts.
  */
-export const SHOW_ILLUSTRATIVE =
-  !import.meta.env.PROD || Object.keys(SERIES_DATA).length === 0;
+export const SHOW_ILLUSTRATIVE = false;
 /** Fetch date (YYYY-MM-DD) of the baked data, if any. */
 export function realAsOf(id: string): string | undefined {
   return SERIES_DATA[id]?.asOf;
@@ -614,43 +612,10 @@ export const turnover: TrendSeries = {
   ],
 };
 
-// Two-line: nursing vs medical vacancy rate (illustrative until CI supplies the
-// real NHS Vacancy Statistics by staff group).
-const nursingVacancyPts = trajectory(
-  [
-    ["2012-01-01", 5.4],
-    ["2015-06-01", 7.2],
-    ["2018-06-01", 8.6],
-    ["2021-09-01", 10.3],
-    ["2023-06-01", 9.4],
-    ["2026-04-01", 8.5],
-  ],
-  "2012-01-01",
-  "2026-04-01",
-  19,
-  0.18,
-  0.05,
-);
-const medicalVacancyPts = trajectory(
-  [
-    ["2012-01-01", 3.6],
-    ["2016-06-01", 5.1],
-    ["2019-06-01", 6.0],
-    ["2022-06-01", 7.4],
-    ["2024-06-01", 6.6],
-    ["2026-04-01", 6.1],
-  ],
-  "2012-01-01",
-  "2026-04-01",
-  27,
-  0.15,
-  0.04,
-);
-
 export const vacancyRate: TrendSeries = {
   id: "vacancy",
   title: "Health & social care vacancy rate",
-  subtitle: "Vacancies per 100 employee jobs, Human Health & Social Work sector (ONS JPB9); by-group breakdown indicative",
+  subtitle: "Vacancies per 100 employee jobs, Human Health & Social Work sector (ONS JPB9)",
   unit: "percent",
   format: fmtPct,
   shortFormat: fmtPct,
@@ -659,16 +624,9 @@ export const vacancyRate: TrendSeries = {
   sourceUrl:
     "https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/employmentandemployeetypes/timeseries/jpb9/lms",
   cadence: "monthly",
-  points: realPoints("vacancy", nursingVacancyPts),
-  // The by-group breakdown is illustrative only; once CI supplies the real
-  // sector-wide series, show that single line rather than mixing real and
-  // fabricated lines on one chart.
-  lines: isRealSeries("vacancy")
-    ? undefined
-    : [
-        { id: "nursing", label: "Nursing & midwifery", points: nursingVacancyPts },
-        { id: "medical", label: "Medical", points: medicalVacancyPts },
-      ],
+  points: realPoints("vacancy"),
+  // By-group breakdown removed (was illustrative). If CI later supplies the
+  // real NHS Vacancy Statistics by staff group, add them as real lines here.
   annotations: [{ date: "2020-03-01", label: "Covid-19" }],
 };
 
@@ -839,8 +797,12 @@ export const allSeries = [
 
 // Helpers ----------------------------------------------------
 
+// Sentinel for series with no baked data (illustrative fallbacks removed), so
+// scoring/rendering never crash on an empty series — such series are gated out
+// of display by the `seriesIsReal`/SHOW_ILLUSTRATIVE checks anyway.
+const EMPTY_POINT: Point = { date: "", value: NaN };
 export function latest(series: TrendSeries): Point {
-  return series.points[series.points.length - 1];
+  return series.points[series.points.length - 1] ?? EMPTY_POINT;
 }
 
 export function deltaVs(series: TrendSeries, monthsBack: number) {
@@ -886,6 +848,7 @@ export function stalenessOf(series: TrendSeries): {
 }
 
 export function minMax(series: TrendSeries) {
+  if (!series.points.length) return { min: EMPTY_POINT, max: EMPTY_POINT };
   let min = series.points[0];
   let max = series.points[0];
   for (const p of series.points) {
