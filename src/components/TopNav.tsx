@@ -15,6 +15,9 @@ export function TopNav() {
           </span>
         </Link>
         <nav className="flex items-center gap-4 text-xs text-muted-foreground">
+          <Link to="/blog" className="hover:text-foreground">
+            Essay
+          </Link>
           <a
             href="https://github.com/egly443/govviz"
             target="_blank"

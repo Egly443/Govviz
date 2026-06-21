@@ -84,3 +84,82 @@
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 }
+
+/* Long-form essay styling for the /blog route (react-markdown output). */
+.prose-blog {
+  color: var(--foreground);
+  font-size: 0.975rem;
+  line-height: 1.7;
+}
+.prose-blog > :first-child { margin-top: 0; }
+.prose-blog h1 {
+  font-size: 1.9rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin: 0 0 0.6rem;
+}
+.prose-blog h2 {
+  font-size: 1.35rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 2.2rem 0 0.75rem;
+  padding-top: 1.4rem;
+  border-top: 1px solid var(--border);
+}
+.prose-blog h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 1.6rem 0 0.5rem;
+}
+.prose-blog p { margin: 0.85rem 0; }
+.prose-blog a { color: var(--primary); text-decoration: underline; text-underline-offset: 2px; }
+.prose-blog ul, .prose-blog ol { margin: 0.85rem 0; padding-left: 1.4rem; }
+.prose-blog li { margin: 0.3rem 0; }
+.prose-blog ul { list-style: disc; }
+.prose-blog ol { list-style: decimal; }
+.prose-blog blockquote {
+  margin: 1.1rem 0;
+  padding: 0.6rem 1rem;
+  border-left: 3px solid var(--primary);
+  background: var(--card);
+  border-radius: 0 0.4rem 0.4rem 0;
+  color: var(--muted-foreground);
+}
+.prose-blog hr { border: 0; border-top: 1px solid var(--border); margin: 2rem 0; }
+.prose-blog code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85em;
+  background: var(--surface, var(--card));
+  border: 1px solid var(--border);
+  border-radius: 0.3rem;
+  padding: 0.05rem 0.35rem;
+}
+.prose-blog pre {
+  margin: 1.1rem 0;
+  padding: 0.9rem 1rem;
+  overflow-x: auto;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+.prose-blog pre code { background: none; border: 0; padding: 0; font-size: inherit; }
+.prose-blog table {
+  width: 100%;
+  margin: 1.2rem 0;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  display: block;
+  overflow-x: auto;
+}
+.prose-blog th, .prose-blog td {
+  border: 1px solid var(--border);
+  padding: 0.45rem 0.65rem;
+  text-align: left;
+  vertical-align: top;
+}
+.prose-blog th { background: var(--card); font-weight: 600; }
+.prose-blog em { color: var(--muted-foreground); }
+.prose-blog strong { color: var(--foreground); font-weight: 600; }

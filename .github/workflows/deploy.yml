@@ -50,6 +50,11 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          # Optional cookieless analytics — set repo/Actions variable
+          # VITE_GOATCOUNTER to e.g. https://YOURCODE.goatcounter.com/count.
+          # Unset = no tracker is shipped.
+          VITE_GOATCOUNTER: ${{ vars.VITE_GOATCOUNTER }}
 
       # SPA deep-link fallback is provided by public/404.html (Vite copies it
       # into dist/), which redirects unknown paths back into the app.

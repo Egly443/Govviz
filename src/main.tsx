@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { RouterProvider, createRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
+import { initAnalytics, trackPageview } from "./lib/analytics";
 import "./styles.css";
 
 // GitHub Pages SPA fallback: public/404.html encodes the requested route into
@@ -34,6 +35,19 @@ declare module "@tanstack/react-router" {
     router: typeof router;
   }
 }
+
+// Cookieless analytics: the beacon auto-counts the initial pageview, so we skip
+// the first router resolve and report only subsequent SPA navigations.
+initAnalytics();
+let firstResolve = true;
+router.subscribe("onResolved", () => {
+  if (firstResolve) {
+    firstResolve = false;
+    return;
+  }
+  const loc = router.state.location;
+  trackPageview(loc.pathname + (loc.searchStr ?? ""));
+});
 
 const rootEl = document.getElementById("root");
 if (!rootEl) throw new Error("Root element #root not found");

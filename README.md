@@ -55,6 +55,25 @@ you'd like to see it continued, you can chip in via PayPal:
 *(Amounts are suggestions — PayPal lets you enter any value. For c), or for
 organisational sponsorship, [open an issue](../../issues) or get in touch.)*
 
+## Reading & sharing the essay
+
+The *Agentic Open Data* essay is published as a real page at **`/blog`**
+(`egly443.github.io/Govviz/blog`) — not just a Markdown file — so it can be
+measured and shared.
+
+- **Analytics (optional, cookieless):** set a repo/Actions **variable**
+  `VITE_GOATCOUNTER` to your GoatCounter count URL
+  (`https://YOURCODE.goatcounter.com/count`) and the deploy build injects a
+  privacy-first beacon (no cookies, no personal data → no consent banner
+  required). Leave it unset and **no tracker is shipped**. It reports counts,
+  referrers, countries and UTM campaigns — not individuals.
+- **Sharing / traction:** post with the **UTM-tagged links** in
+  [`docs/share-links.md`](docs/share-links.md) so you can see which channel — or
+  which specific outreach (the ODI vs GDS email) — drove visits.
+- **What you can/can't know:** how many, from where, which channel/recipient,
+  which country — yes; named individual readers — no, unless they self-identify
+  (an email-capture CTA) or click a link you personally sent them.
+
 ## Project structure
 
 ```
