@@ -642,33 +642,35 @@ const SOURCES = [
       console.log(`  defra-recycling file: ${file.url}`);
       const book = await xlsxBook(file.url);
       console.log(`  defra-recycling sheets: ${book.SheetNames.join("|")}`);
+      // Transposed tonnage tables (years across columns); recycling rate is
+      // (dry + organic recycling) ÷ total collected.
       const order = book.SheetNames.filter((n) => /calendar/i.test(n))
         .concat(book.SheetNames.filter((n) => /financial/i.test(n)))
         .concat(book.SheetNames);
+      const num = (c) => { const v = typeof c === "number" ? c : parseFloat(String(c ?? "").replace(/,/g, "")); return Number.isFinite(v) ? v : null; };
       for (const sn of [...new Set(order)]) {
         const rows = await sheetRows(book, sn);
-        let hi = -1, rc = -1, yc = -1;
-        for (let i = 0; i < Math.min(rows.length, 16); i++) {
-          const h = (rows[i] || []).map((c) => String(c ?? "").toLowerCase());
-          const r = h.findIndex((x) => /recycling rate/.test(x) && !/dry/.test(x));
-          if (r >= 0) { hi = i; rc = r; yc = h.findIndex((x) => /year|period/.test(x)); break; }
+        let yearCols = [];
+        for (let i = 0; i < Math.min(rows.length, 8); i++) {
+          const yc = (rows[i] || []).map((c, idx) => [idx, String(c ?? "").trim()]).filter(([, s]) => /^20\d\d([/-]\d{2})?$/.test(s));
+          if (yc.length >= 5) { yearCols = yc; break; }
         }
-        if (hi < 0) continue;
+        if (!yearCols.length) continue;
+        const findRow = (re) => rows.find((r) => Array.isArray(r) && re.test(String(r[0] ?? "").toLowerCase()));
+        const total = findRow(/total collected/);
+        const dry = findRow(/sent for dry recycling/);
+        const org = findRow(/sent for organic recycling/);
+        if (!total || !dry || !org) continue;
         const points = [];
-        for (const row of rows.slice(hi + 1)) {
-          let y = null;
-          if (yc >= 0) { const m = String(row[yc] ?? "").match(/20\d\d/); if (m) y = m[0]; }
-          if (!y) { for (const c of row) { const m = String(c ?? "").match(/^20\d\d$/); if (m) { y = m[0]; break; } } }
-          let v = typeof row[rc] === "number" ? row[rc] : parseFloat(String(row[rc] ?? "").replace(/[%,]/g, ""));
-          if (v > 0 && v <= 1) v *= 100;
-          if (y && Number.isFinite(v) && v >= 20 && v <= 70) points.push({ date: `${y}-01-01`, value: +v.toFixed(1) });
+        for (const [idx, label] of yearCols) {
+          const t = num(total[idx]), d = num(dry[idx]), o = num(org[idx]);
+          const y = (label.match(/20\d\d/) || [])[0];
+          if (t && d != null && o != null && y) {
+            const rate = ((d + o) / t) * 100;
+            if (rate >= 20 && rate <= 70) points.push({ date: `${y}-01-01`, value: +rate.toFixed(1) });
+          }
         }
-        if (points.length >= 5) { console.log(`  defra-recycling sheet="${sn}" ${points.length} pts`); return points.sort((a, b) => (a.date < b.date ? -1 : 1)); }
-      }
-      for (const sn of book.SheetNames.filter((n) => /calendar|financial/i.test(n)).slice(0, 2)) {
-        const rows = await sheetRows(book, sn);
-        console.log(`  defra-recycling dump ${sn}:`);
-        for (const r of rows.slice(0, 10)) console.log(`    ${JSON.stringify(r).slice(0, 220)}`);
+        if (points.length >= 5) { console.log(`  defra-recycling sheet="${sn}" ${points.length} pts (computed)`); return points.sort((a, b) => (a.date < b.date ? -1 : 1)); }
       }
       throw new Error("defra-recycling: series not found");
     },
