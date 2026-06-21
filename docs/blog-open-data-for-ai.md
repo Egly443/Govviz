@@ -142,6 +142,27 @@ This maps cleanly onto the official world rather than competing with it. The **M
 
 ---
 
+## From a maturity model to an adversarial conformance suite
+
+A maturity model you can't run is just a slide. So this post ships a companion artefact: a small, **adversarial conformance suite** built from the exact datasets above — the accountability tail, not the tractable average — with two-axis scores, explicit pass criteria, and a machine-checkable probe per case. It lives in the repository at [`docs/conformance/`](https://github.com/Egly443/Govviz/tree/main/docs/conformance) ([`test-cases.json`](https://github.com/Egly443/Govviz/blob/main/docs/conformance/test-cases.json)).
+
+It exists to change the question a producer or the National Data Library answers — from *"did we follow the guidance?"* (self-asserted, voluntary) to *"can a fifteen-line script read this specific, politically salient series today?"* (externally auditable). The cases are the ones a six-source prototype does not reach:
+
+- **Storm-overflow spill hours** — zip-of-workbooks, no published national total, 403-prone host — *T3/M1*.
+- **Bathing-water quality** — tabular data, PDF-only — *T3/M0*.
+- **NHS RTT waiting times** — national series discontinued; reconstruct from per-provider files — *T3/M1*.
+- **NHS workforce turnover** — 403 to scripts, otherwise public — *T3/M1*.
+- **Temporary accommodation** — TA1 quarterly carry-forward — *T3/M2*.
+- **Median house-price-to-earnings ratio** — median and lower-quartile both pass a sanity check, so a wrong-tab fetch is *semantically unsafe*, not merely awkward — *T3/M2*.
+- **Net additional dwellings** — transposed, with a "Source:" caption out-competing the real row — *T3/M2*.
+- Plus two **positive controls** — an ONS CDID series and a World Bank indicator — to prove the bar is reachable.
+
+Notice the spread: **every failing case is T3** — a trusted, badged statistic — stuck at low M. That is the argument in one column. The problem is not data quality or governance, which are excellent; it is the last mile to a machine, and it is worst exactly where scrutiny is highest. And one case (the affordability ratio) fails on **semantic safety**, not parseability — a reminder that "AI-ready" must mean *a consumer cannot silently pick the wrong measure*, not merely *the bytes parse*. Our current frameworks optimise findability and access; they under-weight that a perfectly accessible dataset can still be quietly, believably wrong.
+
+**And this is not theory.** A working harness that exercises every one of these against the live endpoints already exists, in the same repository, as the dashboard's data pipeline. Its source manifest already carries — as a consumer-side workaround — the very things government should publish upstream: a stable id per series, a machine-readable plausible-range guard, a provenance URL, and the safe default of a labelled placeholder rather than an invented number. The point of the suite is to make those workarounds unnecessary: when a producer publishes a version of a case that meets its pass criteria, the corresponding fetcher should collapse to *resolve id → GET tidy data*, and the M score has genuinely moved. That is a conformance gate you can hold a release to — the enforcement layer the voluntary guidance is missing.
+
+---
+
 ## The pan-national note, without the fantasy
 
 Cross-jurisdiction comparability is a decades-long methodological achievement, not a config setting — different statutory definitions, disclosure regimes, revision conventions and languages make it genuinely hard, and SDMX harmonisation across the OECD and Eurostat is still partial. I won't pretend a citizen's agent will soon ask one question across all countries. The realistic, valuable move is narrower: adopting CSVW/SDMX/DCAT in an internationally-aligned way means our outputs **slot into the existing international harmonisation machinery instead of being re-keyed by hand** — the same machinery the World Bank and OECD already run. We make ourselves *ingestible*, and let comparability accrete where the methodology genuinely supports it.
@@ -156,6 +177,7 @@ The trap is to commission a strategy and build nothing. The antidote is to ship 
 - Give each a stable identifier and a `latest` alias, and a DCAT record. (Weeks, not years.)
 - Publish one canonical tidy CSV per series with CSVW metadata, generated from the existing pipeline.
 - Add the machine-readability gate to assurance for those series, co-signed with accessibility.
+- Adopt the [conformance suite](https://github.com/Egly443/Govviz/tree/main/docs/conformance) as the acceptance test: a release passes when a fifteen-line script clears the case's probe — measured at the tail, not the mean.
 
 That is enough to prove the model, retire the worst of the archaeology where it hurts most, make the value-for-money case with evidence rather than slides — and give the GDS/DSIT self-assessment and the National Data Library something concrete and accountable to certify, starting with the series the public most needs to read.
 
@@ -177,6 +199,7 @@ I built the dashboard. The point was never that it was impossible. The point is 
 
 ## References
 
+- **This post's companion artefact:** an adversarial [conformance suite](https://github.com/Egly443/Govviz/tree/main/docs/conformance) ([`test-cases.json`](https://github.com/Egly443/Govviz/blob/main/docs/conformance/test-cases.json)) and a working reference harness ([`scripts/build-data.mjs`](https://github.com/Egly443/Govviz/blob/main/scripts/build-data.mjs)).
 - GDS & DSIT, *Guidelines and best practices for making government datasets ready for AI* (19 January 2026) — [gov.uk](https://www.gov.uk/government/publications/making-government-datasets-ready-for-ai/guidelines-and-best-practices-for-making-government-datasets-ready-for-ai); *Building AI-Ready Datasets for the UK* [(PDF)](https://assets.publishing.service.gov.uk/media/696e43965a37ab534a9e23ac/Building_AI-Ready_Datasets_for_the_UK.pdf).
 - *National Data Library: progress update, January 2026* — [gov.uk](https://www.gov.uk/government/publications/national-data-library-progress-update-january-2026).
 - Open Data Institute, *Prototyping an AI-ready National Data Library* (NDL-Lite) — [theodi.org](https://theodi.org/insights/reports/prototyping-an-ai-ready-national-data-library/).

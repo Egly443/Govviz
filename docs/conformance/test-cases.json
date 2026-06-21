@@ -1,0 +1,232 @@
+{
+  "name": "Agentic Open Data — Conformance Suite",
+  "version": "0.1",
+  "updated": "2026-06-21",
+  "summary": "An adversarial test set for 'AI-ready' public statistics, drawn from real datasets a downstream integrator (Govviz) had to consume. It deliberately targets the high-accountability tail — the cases a tractable six-source prototype does not reach — so that 'AI-ready' is measured at the tail, not the mean. Each case is scored on two axes and carries explicit pass criteria and a machine-checkable probe. A working reference harness that exercises every source live already exists in this repository at scripts/build-data.mjs.",
+  "axes": {
+    "T": {
+      "name": "Trust & governance",
+      "scale": "T0-T3",
+      "T0": "no named producer / no methodology",
+      "T1": "published, limited governance",
+      "T2": "governed (methodology, revisions)",
+      "T3": "badged National/Official Statistic with disclosure control and a named producer"
+    },
+    "M": {
+      "name": "Machine-readability",
+      "scale": "M0-M5",
+      "M0": "embargoed-by-format (PDF/HTML only)",
+      "M1": "scrape-only (file exists; discoverable only via unstable human links)",
+      "M2": "awkward machine file (stable-ish download, bespoke/transposed shape)",
+      "M3": "clean endpoint, semantics out-of-band",
+      "M4": "self-describing (stable id + canonical tidy data + in-band CSVW/SDMX + machine-readable suppression + provenance)",
+      "M5": "standards-native access (M4 + catalogued, automation-friendly serving, open agent interface)"
+    }
+  },
+  "enforcement": "A dataset is AI-ready when it reaches M4+ without lowering its T score. The proposal is to make passing this suite (for a prioritised set of high-T, low-M series) a release-assurance gate, co-owned with accessibility, with procurement teeth — i.e. enforcement above voluntary self-assessment.",
+  "gds_pillar_mapping": "M4-M5 corresponds to passing the GDS/DSIT (Jan 2026) four-pillar self-assessment: technical optimisation (interoperable format + reliable API), metadata, governance/stewardship, and access. The probes below are the externally-auditable form of that self-assessment.",
+  "cases": [
+    {
+      "id": "edm-storm-overflow-spill-hours",
+      "title": "Storm-overflow (sewage) spill hours, England, annual",
+      "domain": "Defra / Environment Agency",
+      "govviz_series_id": "defra-sewage-hours",
+      "source": "data.gov.uk — EDM Storm Overflows Annual Returns (package 19f6064d-7356-466f-844e-d20ea10ae9fd)",
+      "current": { "T": 3, "M": 1, "status": "intermittent" },
+      "guard": { "min": 500000, "max": 6000000, "unit": "hours" },
+      "failure_modes": [
+        "published as annual .zip archives, one workbook per water company",
+        "no published national total — must sum 'Total Duration (hours)' across thousands of per-asset rows in every workbook",
+        "duration column header also contains the word 'counting', defeating a naive keyword filter",
+        "environment.data.gov.uk download endpoint rate-limits / 403s automated clients non-deterministically"
+      ],
+      "pass_criteria": [
+        "a stable, resolvable series identifier with a 'latest' alias",
+        "the national annual total published as a value (unit = hours), not left to be re-derived",
+        "served HTTP 200 to a low-volume, well-behaved automated client",
+        "in-band unit, geographic coverage and provenance"
+      ],
+      "probe": "Resolve the series id; GET its data; assert one observation per year with a numeric national total within the guard range and an explicit unit; assert a scripted client receives HTTP 200, not 403."
+    },
+    {
+      "id": "bathing-water-quality",
+      "title": "Bathing-water quality — % rated Good or Excellent, England, annual",
+      "domain": "Defra / Environment Agency",
+      "govviz_series_id": "defra-bathing-water",
+      "source": "gov.uk — government/statistics/bathing-water-quality-statistics",
+      "current": { "T": 3, "M": 0, "status": "blocked" },
+      "guard": { "min": 40, "max": 100, "unit": "percent" },
+      "failure_modes": [
+        "tabular classification counts published only as PDF and HTML prose",
+        "no machine-readable classification table to compute % Good/Excellent",
+        "EA data-explorer API is on the same 403-prone host"
+      ],
+      "pass_criteria": [
+        "the per-year classification counts (Excellent/Good/Sufficient/Poor/total) published as a machine-readable table",
+        "or the derived % Good-or-Excellent published as a value with method noted",
+        "stable identifier + in-band unit, coverage, provenance"
+      ],
+      "probe": "Resolve the series id; GET a tabular dataset; assert per-year counts or a derived percentage within the guard range, with an explicit unit. Format must not be PDF/HTML-only."
+    },
+    {
+      "id": "nhs-rtt-incomplete-within-18-weeks",
+      "title": "NHS RTT — % of incomplete pathways within 18 weeks, England, monthly",
+      "domain": "DHSC / NHS England",
+      "govviz_series_id": "rtt-18-week",
+      "source": "england.nhs.uk — RTT waiting times (consolidated national series discontinued)",
+      "current": { "T": 3, "M": 1, "status": "reconstruction-required" },
+      "guard": { "min": 40, "max": 100, "unit": "percent" },
+      "failure_modes": [
+        "the consolidated national time series was discontinued",
+        "only ~9 MB monthly per-provider workbooks remain; the national figure must be reconstructed by summing hundreds of providers across waiting-time bands",
+        "a figure that used to be published is now merely derivable, at cost"
+      ],
+      "pass_criteria": [
+        "restore a published national time series as a value",
+        "stable identifier + monthly cadence declared + revision status flagged"
+      ],
+      "probe": "Resolve the series id; GET the national monthly series; assert a contiguous monthly history with values within the guard range — without the consumer aggregating provider files."
+    },
+    {
+      "id": "nhs-rtt-incomplete-total",
+      "title": "NHS RTT — total incomplete pathways (waiting list size), England, monthly",
+      "domain": "DHSC / NHS England",
+      "govviz_series_id": "waiting-list",
+      "source": "england.nhs.uk — RTT waiting times (per-provider Incomplete workbooks)",
+      "current": { "T": 3, "M": 1, "status": "reconstruction-required" },
+      "guard": { "min": 1, "max": 12, "unit": "millions" },
+      "failure_modes": [
+        "same per-provider workbook problem as the 18-week metric",
+        "national total must be summed from per-organisation files"
+      ],
+      "pass_criteria": [
+        "published national monthly total as a value",
+        "stable identifier + cadence + revision status"
+      ],
+      "probe": "Resolve the series id; GET the national monthly total; assert values within the guard range without provider-level aggregation by the consumer."
+    },
+    {
+      "id": "nhs-workforce-turnover",
+      "title": "NHS workforce turnover/leaver rate, England",
+      "domain": "DHSC / NHS",
+      "govviz_series_id": "turnover",
+      "source": "digital.nhs.uk / data.gov.uk (resources point back to digital.nhs.uk)",
+      "current": { "T": 3, "M": 1, "status": "blocked" },
+      "failure_modes": [
+        "digital.nhs.uk returns HTTP 403 to automated clients even with a browser-like user agent",
+        "otherwise-public statistics are unreachable by a citizen's agent"
+      ],
+      "pass_criteria": [
+        "served from infrastructure built for automated access, HTTP 200 to a well-behaved scripted client",
+        "published rate limits + identifying-header convention instead of blanket bot-blocking",
+        "stable identifier + tidy data + provenance"
+      ],
+      "probe": "Request the dataset with a scripted client and an identifying header; assert HTTP 200, not 403; assert a tidy machine-readable body."
+    },
+    {
+      "id": "homelessness-temporary-accommodation",
+      "title": "Households in temporary accommodation, England, quarterly",
+      "domain": "MHCLG",
+      "govviz_series_id": "mhclg-temp-accommodation",
+      "source": "gov.uk — statistical-data-sets/live-tables-on-homelessness (TA1 sheet, England time series)",
+      "current": { "T": 3, "M": 2, "status": "parseable-with-bespoke-logic" },
+      "guard": { "min": 30000, "max": 250000, "unit": "households" },
+      "failure_modes": [
+        "year appears in column 0 only on Q1 and is blank for Q2-Q4 (must be carried forward)",
+        "quarter is in a separate column; value in a third",
+        "ODS workbook layout requires bespoke per-sheet logic"
+      ],
+      "pass_criteria": [
+        "long-format one-observation-per-row dataset (date, value)",
+        "stable identifier + quarterly cadence + unit declared"
+      ],
+      "probe": "Resolve the series id; GET a long-format dataset; assert >= 8 quarterly observations within the guard range with explicit dates — no carry-forward inference required."
+    },
+    {
+      "id": "house-price-to-earnings-median",
+      "title": "Median house-price-to-earnings ratio, England, annual",
+      "domain": "MHCLG / ONS",
+      "govviz_series_id": "mhclg-affordability",
+      "source": "ONS dataset — ratioofhousepricetoworkplacebasedearningslowerquartileandmedian (table 1c = median)",
+      "current": { "T": 3, "M": 2, "status": "ambiguous" },
+      "guard": { "min": 3, "max": 15, "unit": "ratio" },
+      "failure_modes": [
+        "multi-sheet workbook contains both median and lower-quartile ratios on differently-named tabs",
+        "BOTH values pass a plausible sanity check — a wrong-tab fetch yields a credible but WRONG chart",
+        "disambiguation requires reading human-language descriptions on the Contents sheet"
+      ],
+      "pass_criteria": [
+        "each measure exposed as its own identified series with a machine-readable description (median vs lower quartile)",
+        "in-band unit + definition so a consumer cannot silently pick the wrong measure"
+      ],
+      "probe": "Resolve the median-ratio series id; assert its machine-readable description disambiguates it from the lower-quartile measure; assert values within the guard range. (This case tests semantic safety, not just parseability.)"
+    },
+    {
+      "id": "net-additional-dwellings",
+      "title": "Net additional dwellings, England, annual",
+      "domain": "MHCLG",
+      "govviz_series_id": "mhclg-net-dwellings",
+      "source": "gov.uk — statistical-data-sets/live-tables-on-net-supply-of-housing (Live Table 120, sheet LT120_rounded)",
+      "current": { "T": 3, "M": 2, "status": "parseable-with-bespoke-logic" },
+      "guard": { "min": 80000, "max": 400000, "unit": "dwellings" },
+      "failure_modes": [
+        "transposed layout: financial years run across columns, the metric is a row",
+        "the wanted row is 'Total net additional dwellings'; an unanchored match grabs the 'Source: ...net additional dwellings...' caption first"
+      ],
+      "pass_criteria": [
+        "long-format one-observation-per-row dataset",
+        "stable identifier + annual cadence + unit"
+      ],
+      "probe": "Resolve the series id; GET a long-format dataset; assert >= 5 annual observations within the guard range without transposition or row-label disambiguation by the consumer."
+    },
+    {
+      "id": "nhs-ae-four-hour-performance",
+      "title": "A&E four-hour performance, England, monthly (identity-decay example)",
+      "domain": "DHSC / NHS England",
+      "govviz_series_id": "ae-performance",
+      "source": "england.nhs.uk — Monthly A&E Time Series (random-suffix filename, e.g. ...-May-2026-wlgnE2.xls)",
+      "current": { "T": 3, "M": 1, "status": "works-but-unstable-identity" },
+      "guard": { "min": 40, "max": 100, "unit": "percent" },
+      "failure_modes": [
+        "asset URL has a random suffix regenerated each release; the landing page must be scraped every month to find the current link",
+        "no stable 'latest' alias for the series"
+      ],
+      "pass_criteria": [
+        "stable series identifier with a 'latest' alias that resolves to the current versioned asset (keep cache-busting on the file)",
+        "DCAT catalogue record"
+      ],
+      "probe": "Resolve the series 'latest' alias twice across releases; assert the same identifier resolves to the current data without scraping a human page."
+    },
+    {
+      "id": "ons-cdid-timeseries",
+      "title": "POSITIVE CONTROL — ONS time series via CDID (e.g. CPIH/inflation)",
+      "domain": "ONS",
+      "govviz_series_id": "hmt-cost-of-living",
+      "source": "ons.gov.uk timeseries API (CDID, e.g. D7G7)",
+      "current": { "T": 3, "M": 3, "status": "pass" },
+      "failure_modes": [],
+      "pass_criteria": [
+        "stable code, clean JSON endpoint, typed history — already met",
+        "to reach M4: in-band unit/coverage/revision metadata and a catalogue record"
+      ],
+      "probe": "Resolve the CDID; GET JSON; assert a typed time series. Positive control: the gold standard already inside government — proves the rest is achievable."
+    },
+    {
+      "id": "world-bank-indicator",
+      "title": "POSITIVE CONTROL — World Bank indicator (aggregator)",
+      "domain": "World Bank (aggregates national outputs, often ONS)",
+      "govviz_series_id": "life-expectancy",
+      "source": "api.worldbank.org indicator API",
+      "current": { "T": 2, "M": 3, "status": "pass" },
+      "failure_modes": [
+        "downstream aggregator: timely-but-stale and methodologically smoothed",
+        "usability is borrowed — the harmonisation work was done off the primary publisher's books"
+      ],
+      "pass_criteria": [
+        "clean uniform endpoint across indicators and countries — already met",
+        "lesson: a domestic harmonisation layer (National Data Library) should do this for UK primary outputs"
+      ],
+      "probe": "Resolve an indicator; GET JSON; assert a uniform typed series. Positive control for cross-country comparability and for what a domestic harmonisation layer should provide."
+    }
+  ]
+}
