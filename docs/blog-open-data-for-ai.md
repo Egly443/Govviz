@@ -120,6 +120,36 @@ A conformant series lets an agent — or a fifteen-line script — do this and n
 
 No HTML scraping. No hash-chasing. No zip-spelunking. No tab-guessing. No 403 roulette. The agent spends its cycles on analysis and caveats — what it is uniquely good at — not archaeology.
 
+Concretely — and this is the part a data scientist can build — the *worst* case in the suite (the sewage zip-of-workbooks, behind a 403-prone host, with no published national total) should collapse to one small record and one tidy file:
+
+```jsonc
+// GET https://data.gov.uk/series/defra/storm-overflow-spill-hours
+{
+  "id": "https://data.gov.uk/series/defra/storm-overflow-spill-hours",
+  "title": "Storm overflow spill duration, England",
+  "description": "Total annual duration of spills from all EDM-monitored storm overflows.",
+  "producer": "Environment Agency",
+  "statisticType": "Official Statistic",
+  "unit": "hours",
+  "geography": "E92000001",
+  "periodicity": "P1Y",
+  "validRange": { "min": 500000, "max": 6000000 },
+  "suppressionScheme": "https://data.gov.uk/def/sdc/v1",
+  "revisionStatus": "final",
+  "licence": "OGL-v3",
+  "provenance": { "source": "EA EDM annual returns", "derivation": "sum of per-asset 'Total Duration (hours)'" },
+  "nextRelease": "2027-03-31",
+  "latest": "…/data.csv"
+}
+```
+```csv
+period,value,unit,status
+2023,3610000,hours,final
+2024,3614000,hours,final
+```
+
+The required fields — stable id, unit, coverage, periodicity, revision status, a machine-readable suppression scheme, provenance, and a **published validation range** (`validRange`) a consumer can use to *reject a wrong-but-plausible value* — are written up as a thin, additive **[AI-ready series profile](https://github.com/Egly443/Govviz/blob/main/docs/conformance/ai-ready-series-profile.md)** that crosswalks to DCAT, CSVW, SDMX and the Code of Practice for Statistics. Adopting it is composition, not a rebuild — a producer adds a publish profile, not a new platform.
+
 ---
 
 ## A maturity model that rewards governance *and* readability
@@ -163,6 +193,21 @@ Notice the spread: **every failing case is T3** — a trusted, badged statistic 
 
 ---
 
+## Who owns it: a standard, not a central data lake
+
+The first objection a government data scientist raises is the right one: *there is no single owner.* ONS sits under the independent UK Statistics Authority; NHS England and the Environment Agency are arm's-length bodies; departments publish under their own legal bases. Any plan that needs one team to control everyone's pipelines is dead on arrival — and centralising the *data* into one lake is both unaffordable and constitutionally wrong for an independent statistical system.
+
+So the coordination is a **standard, not a server** — and it hooks into furniture that already exists rather than inventing new bureaucracy:
+
+- **A cross-government *AI-ready series* standard**, owned where data standards already live (the Data Standards Authority / GDS), versioned in the open, additive to DCAT/CSVW/SDMX. Producers keep their data, methodology and timeliness; they adopt a thin publish profile.
+- **The National Data Library as the harmonisation and serving layer** — the domestic equivalent of what the World Bank does for the world — that *indexes and resolves* conformant series rather than ingesting and owning them. Federation, not centralisation.
+- **The Code of Practice for Statistics as the assurance hook.** Machine-readability already sits inside the Code's *Value* and *Quality* pillars; make it explicit, so the Office for Statistics Regulation can assess it the way the system already assesses accessibility — a gate producers respect, not a parallel regime.
+- **Accessibility co-ownership.** Because the accessible rendering is generated from the same canonical source, the machine-readability gate and the existing PSBAR accessibility duty are discharged together, by the same team, from the same artifact.
+
+That is the model that makes this implementable *across independent owners*: one lightweight, shared obligation, enforced through assurance the producers already answer to, served through a library that resolves rather than centralises.
+
+---
+
 ## The pan-national note, without the fantasy
 
 Cross-jurisdiction comparability is a decades-long methodological achievement, not a config setting — different statutory definitions, disclosure regimes, revision conventions and languages make it genuinely hard, and SDMX harmonisation across the OECD and Eurostat is still partial. I won't pretend a citizen's agent will soon ask one question across all countries. The realistic, valuable move is narrower: adopting CSVW/SDMX/DCAT in an internationally-aligned way means our outputs **slot into the existing international harmonisation machinery instead of being re-keyed by hand** — the same machinery the World Bank and OECD already run. We make ourselves *ingestible*, and let comparability accrete where the methodology genuinely supports it.
@@ -183,6 +228,29 @@ That is enough to prove the model, retire the worst of the archaeology where it 
 
 ---
 
+## How we'd know it's working — and what could go wrong
+
+A programme without measurable outcomes is a press release. Track:
+
+- **Conformance pass-rate at the tail** — % of the top-200 most-used / most-scrutinised series at **M4+**, reported quarterly. Measure the tail, not the estate average — the average will flatter you.
+- **Time-to-first-chart** — median wall-clock for a standard agent to go from "name a series" to a correct, sourced value. The honest proxy for "does it just work."
+- **Fallback rate** — how often agents resort to news/commercial/training-data sources for a question an official series could answer. The ODI's NDL-Lite finding, turned into a metric.
+- **Semantic-safety incidents** — instances of a plausible *wrong* measure being served; target zero, with `validRange` and disambiguating descriptions as the controls.
+- **Cost avoided** — sampled rebuild cost across known public consumers, to keep the value-for-money case evidenced rather than asserted.
+
+And the risks worth naming up front, because a sceptical reviewer will:
+
+- **Over-suppression.** A clumsy disclosure-control encoding can hide more than the law requires; the suppression scheme must be signed off by the Head of Profession for Statistics, not engineers alone.
+- **Gaming the gate.** A producer can pass the M-checks with a clean-but-thin dataset; the two-axis model and the human-readable disambiguation descriptions are the guard against a tick-box pass.
+- **Under-resourced maintenance.** "Cheap prototype" must not become "unfunded production" — currency and refresh are the recurrent 80%, not a one-off.
+- **Standards churn.** Pin to *open data* standards (DCAT/CSVW/SDMX) underneath and treat the agent interface as swappable, so a protocol shift never strands the data.
+
+## Help build it
+
+This is a starting point, not a finished standard. The [conformance suite](https://github.com/Egly443/Govviz/tree/main/docs/conformance) and the [AI-ready series profile](https://github.com/Egly443/Govviz/blob/main/docs/conformance/ai-ready-series-profile.md) in this repository are deliberately small and forkable. The useful next moves are collective: a producer publishing one conformant series and watching the matching harness collapse to `resolve id → GET`; the NDL and ODI extending the suite with cases from their own onboarding; the Data Standards Authority hardening the profile. Issues and pull requests welcome — the fastest route to a standard is to test it against the graves the public most needs to read.
+
+---
+
 ## The bottom line
 
 We produce world-class public statistics through independent, accountable institutions discharging real duties — accessibility, privacy, methodological integrity. None of that should change. What is missing is a **thin, standard, machine-first publishing and harmonisation layer** over those outputs: governed like accessibility, sequenced cheapest-value-first, respecting disclosure control by making it machine-readable rather than ignoring it, and built on open standards end to end — open *data* standards (DCAT/CSVW/SDMX) as the foundation, with an open *agent* standard (MCP) as the access layer on top.
@@ -199,7 +267,7 @@ I built the dashboard. The point was never that it was impossible. The point is 
 
 ## References
 
-- **This post's companion artefact:** an adversarial [conformance suite](https://github.com/Egly443/Govviz/tree/main/docs/conformance) ([`test-cases.json`](https://github.com/Egly443/Govviz/blob/main/docs/conformance/test-cases.json)) and a working reference harness ([`scripts/build-data.mjs`](https://github.com/Egly443/Govviz/blob/main/scripts/build-data.mjs)).
+- **This post's companion artefacts:** an adversarial [conformance suite](https://github.com/Egly443/Govviz/tree/main/docs/conformance) ([`test-cases.json`](https://github.com/Egly443/Govviz/blob/main/docs/conformance/test-cases.json)), a normative [AI-ready series profile](https://github.com/Egly443/Govviz/blob/main/docs/conformance/ai-ready-series-profile.md), and a working reference harness ([`scripts/build-data.mjs`](https://github.com/Egly443/Govviz/blob/main/scripts/build-data.mjs)).
 - GDS & DSIT, *Guidelines and best practices for making government datasets ready for AI* (19 January 2026) — [gov.uk](https://www.gov.uk/government/publications/making-government-datasets-ready-for-ai/guidelines-and-best-practices-for-making-government-datasets-ready-for-ai); *Building AI-Ready Datasets for the UK* [(PDF)](https://assets.publishing.service.gov.uk/media/696e43965a37ab534a9e23ac/Building_AI-Ready_Datasets_for_the_UK.pdf).
 - *National Data Library: progress update, January 2026* — [gov.uk](https://www.gov.uk/government/publications/national-data-library-progress-update-january-2026).
 - Open Data Institute, *Prototyping an AI-ready National Data Library* (NDL-Lite) — [theodi.org](https://theodi.org/insights/reports/prototyping-an-ai-ready-national-data-library/).
