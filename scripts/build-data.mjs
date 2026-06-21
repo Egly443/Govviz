@@ -715,6 +715,151 @@ const SOURCES = [
     },
   },
 
+  // Defra storm-overflow spill hours (England, annual). EA Event Duration
+  // Monitoring annual returns — sum the total spill duration across every
+  // monitored storm overflow for each year's CSV/spreadsheet.
+  {
+    id: "defra-sewage-hours",
+    min: 500000,
+    max: 6000000,
+    get: async () => {
+      const path = await govukLatest("storm overflow spill data event duration monitoring", (r) => /storm overflow|event duration|edm/i.test(`${r.title || ""} ${r.link || ""}`))
+        .catch(() => "government/statistics/storm-overflow-spill-data");
+      console.log(`  sewage release: ${path}`);
+      const atts = await govukAttachments(path);
+      console.log(`  sewage atts: ${atts.map((a) => `${(a.title || "").slice(0, 30)}::${(a.url || "").split("/").pop()}`).slice(0, 25).join(" | ")}`);
+      const num = (c) => { const v = typeof c === "number" ? c : parseFloat(String(c ?? "").replace(/,/g, "")); return Number.isFinite(v) ? v : null; };
+      const points = [];
+      let dumped = false;
+      // Each annual file = one year of per-asset returns; sum the duration column.
+      for (const att of atts) {
+        const fn = (att.url || "").split("/").pop() || "";
+        if (!/\.(csv|xlsx?|ods)(\?|$)/i.test(fn)) continue;
+        const ym = `${att.title || ""} ${fn}`.match(/\b(20\d\d)\b/);
+        if (!ym) continue;
+        const year = ym[1];
+        try {
+          let rows;
+          if (/\.csv(\?|$)/i.test(fn)) {
+            const res = await fetch(att.url, fetchOpts({ accept: "text/csv,*/*" }));
+            if (!res.ok) { console.log(`  sewage ${fn} HTTP ${res.status}`); continue; }
+            rows = (await res.text()).trim().split(/\r?\n/).map((l) => parseCsvLine(l));
+            setSrc(att.url);
+          } else {
+            const book = await xlsxBook(att.url);
+            const sn = book.SheetNames.find((n) => /data|edm|spill|overflow/i.test(n)) || book.SheetNames[0];
+            rows = await sheetRows(book, sn);
+          }
+          const hdr = (rows[0] || []).map((c) => String(c ?? "").toLowerCase());
+          let durCol = hdr.findIndex((h) => /total duration.*(hr|hour)|spill.*duration|duration.*hour/.test(h));
+          if (durCol < 0) durCol = hdr.findIndex((h) => /duration/.test(h) && /hour|hrs/.test(h));
+          if (durCol < 0) {
+            if (!dumped) { dumped = true; console.log(`  sewage ${fn} headers: ${hdr.slice(0, 20).join(" | ")}`); }
+            continue;
+          }
+          let sum = 0, n = 0;
+          for (const r of rows.slice(1)) { const v = num(r[durCol]); if (v != null && v >= 0) { sum += v; n++; } }
+          if (n > 0 && sum >= 500000 && sum <= 6000000) { console.log(`  sewage ${year}: ${Math.round(sum)} hrs from ${n} assets`); points.push({ date: `${year}-01-01`, value: Math.round(sum) }); }
+          else console.log(`  sewage ${year}: sum=${Math.round(sum)} n=${n} (out of range)`);
+        } catch (e) { console.log(`  sewage ${fn} err ${e.message}`); }
+      }
+      if (points.length >= 3) return points.sort((a, b) => (a.date < b.date ? -1 : 1));
+      throw new Error(`defra-sewage: only ${points.length} annual totals`);
+    },
+  },
+
+  // Defra bathing water quality: % of designated bathing waters classified
+  // Good or Excellent (England, annual). EA classification counts.
+  {
+    id: "defra-bathing-water",
+    min: 40,
+    max: 100,
+    get: async () => {
+      const path = await govukLatest("bathing water quality classifications england", (r) => /bathing water/i.test(`${r.title || ""} ${r.link || ""}`))
+        .catch(() => "government/statistics/bathing-water-quality-statistics");
+      console.log(`  bathing release: ${path}`);
+      const atts = await govukAttachments(path);
+      console.log(`  bathing atts: ${atts.map((a) => `${(a.title || "").slice(0, 30)}::${(a.url || "").split("/").pop()}`).slice(0, 25).join(" | ")}`);
+      const file = atts.find((a) => /\.(ods|xlsx?|csv)(\?|$)/i.test(a.url || "") && /classif|quality|england/i.test(`${a.title || ""} ${a.url || ""}`)) || atts.find((a) => /\.(ods|xlsx?|csv)(\?|$)/i.test(a.url || ""));
+      if (!file) throw new Error("bathing: no data file");
+      console.log(`  bathing file: ${file.url}`);
+      const num = (c) => { const v = typeof c === "number" ? c : parseFloat(String(c ?? "").replace(/[,%]/g, "")); return Number.isFinite(v) ? v : null; };
+      const book = await xlsxBook(file.url);
+      console.log(`  bathing sheets: ${book.SheetNames.join("|")}`);
+      for (const sn of book.SheetNames) {
+        let rows;
+        try { rows = await sheetRows(book, sn); } catch { continue; }
+        // Find a year column header row and classification rows (Excellent/Good vs total).
+        let hi = -1, yearCols = [];
+        for (let i = 0; i < Math.min(rows.length, 14); i++) {
+          const yc = (rows[i] || []).map((c, idx) => [idx, String(c ?? "").trim()]).filter(([, s]) => /^20\d\d$/.test(s));
+          if (yc.length >= 4) { hi = i; yearCols = yc; break; }
+        }
+        if (hi < 0) continue;
+        const findRow = (re) => rows.find((r) => Array.isArray(r) && re.test(String(r[0] ?? "").toLowerCase()));
+        const exc = findRow(/^excellent/), good = findRow(/^good/), tot = findRow(/^total|all (sites|bathing|waters)|number (of|classified)/);
+        if (!exc || !good) { console.log(`  bathing sheet="${sn}" rows: ${rows.slice(hi + 1, hi + 8).map((r) => String(r?.[0] ?? "").slice(0, 24)).join(" | ")}`); continue; }
+        const points = [];
+        for (const [idx, label] of yearCols) {
+          const e = num(exc[idx]), g = num(good[idx]);
+          const t = tot ? num(tot[idx]) : null;
+          if (e == null || g == null) continue;
+          const denom = t ?? null;
+          if (!denom) continue;
+          const pct = ((e + g) / denom) * 100;
+          if (pct >= 40 && pct <= 100) points.push({ date: `${label}-01-01`, value: +pct.toFixed(1) });
+        }
+        if (points.length >= 4) { console.log(`  bathing sheet="${sn}" ${points.length} pts (computed)`); return points.sort((a, b) => (a.date < b.date ? -1 : 1)); }
+      }
+      throw new Error("bathing: classification series not found");
+    },
+  },
+
+  // MHCLG housing affordability: ONS median house-price-to-earnings ratio
+  // (England). ONS dataset workbook — scrape the landing page for the current
+  // spreadsheet, then read the England median-ratio row across year columns.
+  {
+    id: "mhclg-affordability",
+    min: 3,
+    max: 15,
+    get: async () => {
+      const landing = "https://www.ons.gov.uk/peoplepopulationandcommunity/housing/datasets/ratioofhousepricetoworkplacebasedearningslowerquartileandmedian";
+      const res = await fetch(landing, fetchOpts({ accept: "text/html,*/*" }));
+      if (!res.ok) throw new Error(`affordability landing HTTP ${res.status}`);
+      const html = await res.text();
+      const links = [...html.matchAll(/href="([^"]*\.xlsx?(?:\?[^"]*)?)"/gi)].map((m) => (m[1].startsWith("http") ? m[1] : `https://www.ons.gov.uk${m[1]}`));
+      const url = links.find((u) => /median/i.test(u)) || links[0];
+      if (!url) throw new Error("affordability: no spreadsheet link");
+      console.log(`  affordability xls: ${url}`);
+      const book = await xlsxBook(url);
+      console.log(`  affordability sheets: ${book.SheetNames.join("|")}`);
+      const num = (c) => { const v = typeof c === "number" ? c : parseFloat(String(c ?? "").replace(/,/g, "")); return Number.isFinite(v) ? v : null; };
+      // Median ratio table; rows = areas incl. England (code E92000001), cols = years.
+      const order = book.SheetNames.filter((n) => /median|5[a-z]?\b/i.test(n)).concat(book.SheetNames);
+      let dumped = false;
+      for (const sn of [...new Set(order)]) {
+        let rows;
+        try { rows = await sheetRows(book, sn); } catch { continue; }
+        let hi = -1, yearCols = [];
+        for (let i = 0; i < Math.min(rows.length, 12); i++) {
+          const yc = (rows[i] || []).map((c, idx) => [idx, String(c ?? "").trim()]).filter(([, s]) => /^(19|20)\d\d$/.test(s));
+          if (yc.length >= 10) { hi = i; yearCols = yc; break; }
+        }
+        if (hi < 0) continue;
+        const eng = rows.find((r) => Array.isArray(r) && r.some((c) => /e92000001/i.test(String(c ?? ""))))
+          || rows.find((r) => Array.isArray(r) && r.slice(0, 4).some((c) => /^england$/i.test(String(c ?? "").trim())));
+        if (!eng) { if (!dumped) { dumped = true; console.log(`  affordability sheet="${sn}" hdr=[${(rows[hi] || []).slice(0, 6).join("|")}] r1=[${(rows[hi + 1] || []).slice(0, 4).join("|")}]`); } continue; }
+        const points = [];
+        for (const [idx, label] of yearCols) {
+          const v = num(eng[idx]);
+          if (v != null && v >= 3 && v <= 15) points.push({ date: `${label}-01-01`, value: +v.toFixed(2) });
+        }
+        if (points.length >= 8) { console.log(`  affordability sheet="${sn}" ${points.length} pts`); return points.sort((a, b) => (a.date < b.date ? -1 : 1)); }
+      }
+      throw new Error("affordability: England median ratio not found");
+    },
+  },
+
   // --- Treasury derived / standalone ---
   // Tax revenue % of GDP (World Bank/IMF), matches hmt-tax-burden realPoints wrapper.
   // min covers the full 1972+ history (central-government basis runs low in early decades).
