@@ -526,48 +526,56 @@ const SOURCES = [
     max: 250000,
     get: async () => {
       const atts = await govukAttachments("government/statistical-data-sets/live-tables-on-homelessness");
-      console.log(`  mhclg-ta atts: ${atts.map((a) => `${(a.title || "").slice(0, 32)}::${(a.url || "").split("/").pop()}`).slice(0, 30).join(" | ")}`);
-      const ods =
-        atts.find((a) => /\.ods/i.test(a.url || "") && /time.?series|england/i.test(`${a.title || ""} ${a.url || ""}`)) ||
-        atts.find((a) => /\.ods/i.test(a.url || "") && /temporary|\bta\b|tables?_? ?a/i.test(`${a.title || ""} ${a.url || ""}`)) ||
-        atts.find((a) => /\.ods/i.test(a.url || ""));
-      if (!ods) throw new Error("mhclg-ta: no ODS attachment");
-      console.log(`  mhclg-ta ODS: ${ods.url}`);
-      const book = await xlsxBook(ods.url);
-      console.log(`  mhclg-ta sheets: ${book.SheetNames.join("|")}`);
+      console.log(`  mhclg-ta atts: ${atts.filter((a) => /\.ods/i.test(a.url || "")).map((a) => `${(a.title || "").slice(0, 40)}::${(a.url || "").split("/").pop()}`).slice(0, 30).join(" | ")}`);
+      const score = (a) => {
+        const t = `${a.title || ""} ${a.url || ""}`.toLowerCase();
+        if (!/\.ods/.test(t)) return -1;
+        let s = 0;
+        if (/temporary accommodation/.test(t)) s += 12;
+        if (/time series|england level/.test(t)) s += 5;
+        if (/\bta\b|_ta_|ta_/.test(t)) s += 3;
+        if (/reason|cause|duty|assessment|prevention|relief|support needs|^a[1-9]/.test(t)) s -= 8;
+        return s;
+      };
+      const odsAtts = atts.filter((a) => /\.ods/i.test(a.url || "")).sort((a, b) => score(b) - score(a));
+      const MON = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
       const toDate = (s) => {
         s = String(s ?? "").trim();
         let m = s.match(/^(\d{4})[ -]?Q([1-4])/i);
         if (m) return `${m[1]}-${String((+m[2] - 1) * 3 + 1).padStart(2, "0")}-01`;
-        m = s.match(/^([A-Za-z]{3,})[ -](\d{4})$/);
-        const MON = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
-        if (m && MON[m[1].toLowerCase().slice(0, 3)]) return `${m[2]}-${String(MON[m[1].toLowerCase().slice(0, 3)]).padStart(2, "0")}-01`;
+        m = s.match(/(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[ -]?(\d{4})/i);
+        if (m) return `${m[2]}-${String(MON[m[1].toLowerCase()]).padStart(2, "0")}-01`;
         if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
         return null;
       };
-      for (const sn of book.SheetNames) {
-        const rows = await sheetRows(book, sn);
-        // locate a header row, the date column, and a "total ... temporary accommodation" column
-        for (let hi = 0; hi < Math.min(rows.length, 12); hi++) {
-          const hdr = (rows[hi] || []).map((c) => String(c ?? "").toLowerCase());
-          const totCol = hdr.findIndex((h) => /total.*(temporary|ta)|households.*temporary|number of households/.test(h));
-          if (totCol < 0) continue;
-          const dateCol = (rows[hi] || []).findIndex((c, i) => i !== totCol && rows.slice(hi + 1, hi + 6).some((r) => toDate(r?.[i])));
-          if (dateCol < 0) continue;
-          const points = [];
-          for (const r of rows.slice(hi + 1)) {
-            const d = toDate(r?.[dateCol]); if (!d) continue;
-            const v = typeof r[totCol] === "number" ? r[totCol] : parseFloat(String(r[totCol] ?? "").replace(/,/g, ""));
-            if (Number.isFinite(v) && v >= 30000 && v <= 250000) points.push({ date: d, value: Math.round(v) });
+      let result = null, dumped = false;
+      for (const ods of odsAtts.slice(0, 3)) {
+        console.log(`  mhclg-ta try: ${ods.url.split("/").pop()}`);
+        const book = await xlsxBook(ods.url);
+        console.log(`  mhclg-ta sheets: ${book.SheetNames.join("|")}`);
+        const sheetOrder = book.SheetNames.filter((n) => /\bta\b|temporary|ta_?1|ta1/i.test(n)).concat(book.SheetNames);
+        for (const sn of [...new Set(sheetOrder)]) {
+          const rows = await sheetRows(book, sn);
+          for (let hi = 0; hi < Math.min(rows.length, 14); hi++) {
+            const hdr = (rows[hi] || []).map((c) => String(c ?? "").toLowerCase());
+            const totCol = hdr.findIndex((h) => /total.*(temporary|in ta)|households.*temporary accommodation|total number of households|^total$/.test(h));
+            if (totCol < 0) continue;
+            const dateCol = (rows[hi] || []).findIndex((c, i) => i !== totCol && rows.slice(hi + 1, hi + 8).some((r) => toDate(r?.[i])));
+            if (dateCol < 0) continue;
+            const points = [];
+            for (const r of rows.slice(hi + 1)) {
+              const d = toDate(r?.[dateCol]); if (!d) continue;
+              const v = typeof r[totCol] === "number" ? r[totCol] : parseFloat(String(r[totCol] ?? "").replace(/,/g, ""));
+              if (Number.isFinite(v) && v >= 30000 && v <= 250000) points.push({ date: d, value: Math.round(v) });
+            }
+            if (points.length >= 8) { console.log(`  mhclg-ta ${ods.url.split("/").pop()} sheet="${sn}" ${points.length} pts`); result = points.sort((a, b) => (a.date < b.date ? -1 : 1)); break; }
           }
-          if (points.length >= 8) { console.log(`  mhclg-ta sheet="${sn}" ${points.length} pts`); return points.sort((a, b) => (a.date < b.date ? -1 : 1)); }
+          if (result) break;
         }
+        if (result) break;
+        if (!dumped) { dumped = true; const r0 = await sheetRows(book, book.SheetNames[0]); console.log(`  mhclg-ta dump ${book.SheetNames[0]}:`); for (const r of r0.slice(0, 8)) console.log(`    ${JSON.stringify(r).slice(0, 220)}`); }
       }
-      for (const sn of book.SheetNames.slice(0, 4)) {
-        const rows = await sheetRows(book, sn);
-        console.log(`  mhclg-ta dump ${sn}:`);
-        for (const r of rows.slice(0, 8)) console.log(`    ${JSON.stringify(r).slice(0, 240)}`);
-      }
+      if (result) return result;
       throw new Error("mhclg-ta: TA total series not found");
     },
   },
@@ -578,43 +586,43 @@ const SOURCES = [
     min: 80000,
     max: 400000,
     get: async () => {
-      const path = await govukCollectionLatest("net-supply-of-housing", (d) => /net additional dwellings|housing supply/i.test(d.title || ""));
+      const path = await govukCollectionLatest("net-supply-of-housing", (d) => /net additional dwellings|housing supply/i.test(d.title || "")).catch(() => "government/statistical-data-sets/live-tables-on-net-supply-of-housing");
       console.log(`  mhclg-dwellings release: ${path}`);
       const atts = await govukAttachments(path);
       console.log(`  mhclg-dwellings atts: ${atts.map((a) => (a.url || "").split("/").pop()).slice(0, 20).join(" | ")}`);
-      const ods = atts.find((a) => /\.ods|\.xlsx?/i.test(a.url || "") && /live.?table|net|dwelling|supply/i.test(`${a.title || ""} ${a.url || ""}`)) || atts.find((a) => /\.ods|\.xlsx?/i.test(a.url || ""));
-      if (!ods) throw new Error("mhclg-dwellings: no spreadsheet");
-      console.log(`  mhclg-dwellings file: ${ods.url}`);
-      const book = await xlsxBook(ods.url);
-      console.log(`  mhclg-dwellings sheets: ${book.SheetNames.join("|")}`);
-      for (const sn of book.SheetNames) {
-        const rows = await sheetRows(book, sn);
-        const yi = rows.map((r, i) => [i, r]).filter(([, r]) => Array.isArray(r) && r.some((c) => /^20\d\d[ -]\d{2}$|^\d{4}-\d{2}$/.test(String(c ?? "").trim())));
-        // long format: a year/period column + a net-additions column
-        let hdr = -1, perCol = -1, valCol = -1;
-        for (let i = 0; i < Math.min(rows.length, 12); i++) {
-          const h = (rows[i] || []).map((c) => String(c ?? "").toLowerCase());
-          const vc = h.findIndex((x) => /net additional dwellings|net additions|total net/.test(x));
-          const pc = h.findIndex((x) => /year|period|financial/.test(x));
-          if (vc >= 0 && pc >= 0) { hdr = i; perCol = pc; valCol = vc; break; }
+      // England annual time series lives in a Live_Table ODS (try 122, 120, 118…), not the old regional .xls.
+      const odsAtts = atts.filter((a) => /live_table_\d+\.ods/i.test(a.url || ""));
+      const ord = ["122", "120", "118", "123", "124", "117"];
+      const tnum = (u) => (String(u).match(/live_table_(\d+)/i) || [])[1] || "999";
+      odsAtts.sort((a, b) => (ord.indexOf(tnum(a.url)) + 1 || 99) - (ord.indexOf(tnum(b.url)) + 1 || 99));
+      let dumped = "";
+      for (const att of odsAtts) {
+        const book = await xlsxBook(att.url);
+        for (const sn of book.SheetNames) {
+          const rows = await sheetRows(book, sn);
+          let hdr = -1, valCol = -1;
+          for (let i = 0; i < Math.min(rows.length, 14); i++) {
+            const h = (rows[i] || []).map((c) => String(c ?? "").toLowerCase());
+            const vc = h.findIndex((x) => /net additional dwellings/.test(x));
+            if (vc >= 0) { hdr = i; valCol = vc; break; }
+          }
+          if (hdr < 0) continue;
+          const points = [];
+          for (const r of rows.slice(hdr + 1)) {
+            const m = String(r?.[0] ?? "").match(/(20\d\d)[-/](\d{2})/) || String(r?.[0] ?? "").match(/^(20\d\d)$/);
+            if (!m) continue;
+            const v = typeof r[valCol] === "number" ? r[valCol] : parseFloat(String(r[valCol] ?? "").replace(/,/g, ""));
+            if (Number.isFinite(v) && v >= 80000 && v <= 400000) points.push({ date: `${m[1]}-01-01`, value: Math.round(v) });
+          }
+          if (points.length >= 5) { console.log(`  mhclg-dwellings ${att.url.split("/").pop()} sheet="${sn}" ${points.length} pts`); return points.sort((a, b) => (a.date < b.date ? -1 : 1)); }
+          if (!dumped && /net additional/i.test(JSON.stringify(rows.slice(0, 6)))) {
+            dumped = att.url.split("/").pop();
+            console.log(`  mhclg-dwellings dump ${dumped}/${sn}:`);
+            for (const r of rows.slice(0, 8)) console.log(`    ${JSON.stringify(r).slice(0, 220)}`);
+          }
         }
-        void yi;
-        if (hdr < 0) continue;
-        const points = [];
-        for (const r of rows.slice(hdr + 1)) {
-          const ym = String(r?.[perCol] ?? "").match(/20\d\d/g); if (!ym) continue;
-          const y = ym[ym.length - 1];
-          const v = typeof r[valCol] === "number" ? r[valCol] : parseFloat(String(r[valCol] ?? "").replace(/,/g, ""));
-          if (Number.isFinite(v) && v >= 80000 && v <= 400000) points.push({ date: `${y}-01-01`, value: Math.round(v) });
-        }
-        if (points.length >= 5) { console.log(`  mhclg-dwellings sheet="${sn}" ${points.length} pts`); return points.sort((a, b) => (a.date < b.date ? -1 : 1)); }
       }
-      for (const sn of book.SheetNames.slice(0, 3)) {
-        const rows = await sheetRows(book, sn);
-        console.log(`  mhclg-dwellings dump ${sn}:`);
-        for (const r of rows.slice(0, 8)) console.log(`    ${JSON.stringify(r).slice(0, 220)}`);
-      }
-      throw new Error("mhclg-dwellings: series not found");
+      throw new Error("mhclg-dwellings: England series not found");
     },
   },
 
@@ -634,27 +642,33 @@ const SOURCES = [
       console.log(`  defra-recycling file: ${file.url}`);
       const book = await xlsxBook(file.url);
       console.log(`  defra-recycling sheets: ${book.SheetNames.join("|")}`);
-      for (const sn of book.SheetNames) {
+      const order = book.SheetNames.filter((n) => /calendar/i.test(n))
+        .concat(book.SheetNames.filter((n) => /financial/i.test(n)))
+        .concat(book.SheetNames);
+      for (const sn of [...new Set(order)]) {
         const rows = await sheetRows(book, sn);
-        for (let i = 0; i < Math.min(rows.length, 14); i++) {
+        let hi = -1, rc = -1, yc = -1;
+        for (let i = 0; i < Math.min(rows.length, 16); i++) {
           const h = (rows[i] || []).map((c) => String(c ?? "").toLowerCase());
-          const vc = h.findIndex((x) => /recycl.*rate|rate.*recycl|% recycled|household.*recycling/.test(x));
-          const pc = h.findIndex((x) => /year|period/.test(x));
-          if (vc < 0 || pc < 0) continue;
-          const points = [];
-          for (const r of rows.slice(i + 1)) {
-            const ym = String(r?.[pc] ?? "").match(/20\d\d/g); if (!ym) continue;
-            let v = typeof r[vc] === "number" ? r[vc] : parseFloat(String(r[vc] ?? "").replace(/[%,]/g, ""));
-            if (v > 0 && v <= 1) v *= 100;
-            if (Number.isFinite(v) && v >= 20 && v <= 70) points.push({ date: `${ym[ym.length - 1]}-01-01`, value: +v.toFixed(1) });
-          }
-          if (points.length >= 5) { console.log(`  defra-recycling sheet="${sn}" ${points.length} pts`); return points.sort((a, b) => (a.date < b.date ? -1 : 1)); }
+          const r = h.findIndex((x) => /recycling rate/.test(x) && !/dry/.test(x));
+          if (r >= 0) { hi = i; rc = r; yc = h.findIndex((x) => /year|period/.test(x)); break; }
         }
+        if (hi < 0) continue;
+        const points = [];
+        for (const row of rows.slice(hi + 1)) {
+          let y = null;
+          if (yc >= 0) { const m = String(row[yc] ?? "").match(/20\d\d/); if (m) y = m[0]; }
+          if (!y) { for (const c of row) { const m = String(c ?? "").match(/^20\d\d$/); if (m) { y = m[0]; break; } } }
+          let v = typeof row[rc] === "number" ? row[rc] : parseFloat(String(row[rc] ?? "").replace(/[%,]/g, ""));
+          if (v > 0 && v <= 1) v *= 100;
+          if (y && Number.isFinite(v) && v >= 20 && v <= 70) points.push({ date: `${y}-01-01`, value: +v.toFixed(1) });
+        }
+        if (points.length >= 5) { console.log(`  defra-recycling sheet="${sn}" ${points.length} pts`); return points.sort((a, b) => (a.date < b.date ? -1 : 1)); }
       }
-      for (const sn of book.SheetNames.slice(0, 3)) {
+      for (const sn of book.SheetNames.filter((n) => /calendar|financial/i.test(n)).slice(0, 2)) {
         const rows = await sheetRows(book, sn);
         console.log(`  defra-recycling dump ${sn}:`);
-        for (const r of rows.slice(0, 8)) console.log(`    ${JSON.stringify(r).slice(0, 220)}`);
+        for (const r of rows.slice(0, 10)) console.log(`    ${JSON.stringify(r).slice(0, 220)}`);
       }
       throw new Error("defra-recycling: series not found");
     },
