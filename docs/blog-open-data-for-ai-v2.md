@@ -52,7 +52,9 @@ Right. Stat-Xplore's key is fine; basic API hygiene is good. I am not asking for
 
 ### "An 'official MCP server' is vendor lock-in to this year's fashion."
 
-The strongest strategic objection, and I accept it. Mandating government infrastructure around one AI vendor's 2024 protocol is exactly the moving-target lock-in I would warn anyone else against. So I am **dropping the MCP mandate.** The durable layer is **standards-based and protocol-neutral**: plain HTTP, with **DCAT** for the catalogue, **CSVW** for tabular semantics, and **SDMX** where the statistical model warrants it. An agent-protocol adapter (MCP today, whatever succeeds it tomorrow) should be a **thin, swappable shim over that standard layer**, ideally community-maintained — never the foundation.
+This was the objection I initially accepted — and it has *not* aged well, so I am withdrawing the concession rather than the proposal. When the first draft was written, the Model Context Protocol could be waved away as one vendor's 2024 convention. That is no longer true: **MCP has become an open, multi-vendor industry standard**, adopted across the major model and tooling providers and governed in the open, not controlled by a single company. Treating it as proprietary lock-in is out of date.
+
+So the corrected position is: an **official government MCP interface is a sound, durable choice**, not a fashion risk. The architecturally-correct point — the one worth keeping — is simply about *layering*: build the agent interface **over** an open *data-standards* foundation (plain HTTP, **DCAT** for the catalogue, **CSVW** for tabular semantics, **SDMX** where the statistical model warrants it), so that the data is independently usable and the agent protocol is an access layer, not the substrate. MCP as the agent layer over that foundation is exactly right; the rule is "standards under standards," not "avoid MCP."
 
 ---
 
@@ -88,9 +90,9 @@ This is the phase that eliminates the bespoke-parser tax — and it is exactly t
 
 Expose the DCAT catalogue and the canonical datasets through **one discoverable national endpoint**, served from infrastructure built for automated bulk access, with **published generous rate limits, an identifying-header convention, and abuse controls targeted at behaviour**. One free, estate-wide key for higher-volume use; no key for routine public aggregates; the single consistent gate reserved for restricted microdata.
 
-### Phase 4 — A thin, swappable agent adapter (low cost, community-friendly)
+### Phase 4 — An open-standard agent interface (low cost, community-friendly)
 
-A **protocol-neutral** adapter that lets an agent introspect the catalogue and pull typed data — delivered as a shim over the standard layer, replaceable as agent protocols evolve. Government owns the standards layer; the agent shim can be community-maintained. No lock-in.
+An agent interface — **MCP, now an open multi-vendor standard** — that lets an agent introspect the catalogue and pull typed data, delivered as a layer over the data-standards foundation from Phases 1–3. Because the data underneath is independently usable via open standards (DCAT/CSVW/SDMX), the agent layer carries no lock-in: if the protocol landscape shifts, you swap the interface, not the data. An official MCP endpoint can be government-run; complementary adapters can be community-maintained.
 
 ### The cost-benefit the critics rightly demanded
 
@@ -126,7 +128,7 @@ Cross-jurisdiction comparability is a decades-long methodological achievement, n
 
 The honest version of this argument is less dramatic and far harder to dismiss:
 
-We produce world-class public statistics through independent, accountable institutions discharging real duties — accessibility, privacy, methodological integrity. None of that should change. What is missing is a **thin, standard, machine-first publishing and harmonisation layer** over those outputs, governed like accessibility is, sequenced cheapest-value-first, respecting disclosure control by making it machine-readable rather than ignoring it, and protocol-neutral rather than chained to this year's agent framework.
+We produce world-class public statistics through independent, accountable institutions discharging real duties — accessibility, privacy, methodological integrity. None of that should change. What is missing is a **thin, standard, machine-first publishing and harmonisation layer** over those outputs, governed like accessibility is, sequenced cheapest-value-first, respecting disclosure control by making it machine-readable rather than ignoring it, and built on open standards end to end — open *data* standards (DCAT/CSVW/SDMX) as the foundation, with an open agent standard (MCP) as the access layer on top.
 
 Do that, and the disabled citizen, the citizen's AI, the local reporter and the funded engineer are all served from the same governed source. Fail to, and "open" data stays open only to those who can afford the archaeology — and the archaeology is deepest exactly where the public most needs to see.
 
