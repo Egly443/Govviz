@@ -53,6 +53,31 @@ node tools/loop/run.mjs tools/loop/tasks/cleanup-dead-generators.md --commit
 Env: `AGENT_CMD`, `MAX_STEPS` (6), `STUCK_AFTER` (2), `EVAL_ARGS`.
 Every step is logged to `tools/loop/runs/<ts>.jsonl` (gitignored).
 
+## Outer tier — the open-loop (CI) reward
+
+`eval.mjs` can certify a fetcher is *structurally* wired but **never** that it
+returns real data — that needs the internet, which only CI has. So data tasks
+have a second, slower reward minted where the internet + the min/max guard live,
+and which the agent **cannot run or forge from the sandbox**:
+
+1. inner loop converges (`eval.mjs` PASS: manifest has min/max, compiles, renders)
+2. push the branch → `data-check.yml` runs the fetcher against live sources
+3. `ci-reward.mjs` parses the `ok`/`SKIP` log into a reward table (job summary)
+4. the target series being `ok` (value passed the guard) is the real reward;
+   only that promotes toward `main`
+
+```bash
+# in CI (wired into data-check.yml): tee the fetch log, emit a reward table
+node tools/loop/ci-reward.mjs --summary --log=fetch.log >> "$GITHUB_STEP_SUMMARY"
+
+# locally, against a CI log pulled via the GitHub tools (mcp__github__get_job_logs):
+node tools/loop/ci-reward.mjs --series=defra-bathing-water < fetch.log   # exit 0 iff ok
+```
+
+The orchestration across the network boundary is driven from the Claude session
+(git push + `get_job_logs` on the "Fetch live data" step), because the sandbox
+has no GitHub API. `ci-reward.mjs` is the shared parser both sides use.
+
 ## Tasks
 
 A task is a markdown file whose **`Done =`** clause is the reward predicate. If

@@ -26,4 +26,9 @@ jobs:
       # --no-save keeps package-lock.json intact.
       - run: npm install --no-save xlsx fflate
       - name: Fetch live data (no deploy)
-        run: node scripts/build-data.mjs
+        run: node scripts/build-data.mjs 2>&1 | tee fetch.log
+      # Open-loop reward for the agentic loop: turn the ok/SKIP log into a
+      # reward table in the job summary. Read-only, never fails the job.
+      - name: Data fetch reward summary
+        if: always()
+        run: node tools/loop/ci-reward.mjs --summary --log=fetch.log >> "$GITHUB_STEP_SUMMARY"
