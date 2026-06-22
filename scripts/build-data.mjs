@@ -323,93 +323,140 @@ const UNEMP = "employmentandlabourmarket/peoplenotinwork/unemployment";
 // `min`/`max` guard the latest value; `scale` multiplies raw values.
 // CDIDs are best-effort and verified/corrected against CI fetch logs — wrong
 // codes 404 (skip) or fail the guard (skip), so the build never shows bad data.
-// --- NHS England RTT overview timeseries (non-zipped XLSX). The filename hash
-// changes monthly, so scrape the landing page for the current link; a stale
-// hardcoded fallback (the file is cumulative) keeps CI working if the scrape fails. ---
-async function rttOverviewUrl() {
-  // Year pages carry the CURRENT cumulative file; the landing page also links a
-  // stale 2007–2014 archive, so gather all candidates and prefer the current
-  // "Including Estimates for Missing Trusts" file.
+// --- NHS England RTT — national incomplete waiting list + % within 18 weeks.
+// NHS England discontinued the single national "Overview Timeseries" file (only a
+// stale 2007–2014 archive still links from the topic pages). The live figures now
+// exist only as per-month, per-provider "Incomplete-Provider-MmmYY" workbooks
+// (~9 MB each) on the financial-year pages. We rebuild the national series by
+// summing each provider's all-specialties ("Total" treatment-function) row across
+// every provider for each month; iterating the monthly files gives a real series.
+// First file each run logs the workbook structure so CI reveals exact columns.
+
+// Gather every spreadsheet/CSV link on the RTT year + landing pages as {name,url}.
+async function rttFileList() {
   const pages = [
     "https://www.england.nhs.uk/statistics/statistical-work-areas/rtt-waiting-times/rtt-data-2025-26/",
     "https://www.england.nhs.uk/statistics/statistical-work-areas/rtt-waiting-times/rtt-data-2024-25/",
     "https://www.england.nhs.uk/statistics/statistical-work-areas/rtt-waiting-times/",
   ];
-  const cands = [];
+  const seen = new Set(), files = [];
   for (const p of pages) {
     try {
       const res = await fetch(p, fetchOpts({ accept: "text/html,*/*" }));
-      if (!res.ok) continue;
+      if (!res.ok) { console.log(`  RTT page ${p} → HTTP ${res.status}`); continue; }
       const html = await res.text();
-      for (const x of html.matchAll(/href="([^"]*Overview[- ]?Time[- ]?series[^"]*\.xlsx?[^"]*)"/gi)) {
-        cands.push(x[1].startsWith("http") ? x[1] : `https://www.england.nhs.uk${x[1]}`);
+      for (const x of html.matchAll(/href="([^"]*\.(?:xlsx?|csv)[^"]*)"/gi)) {
+        const url = x[1].startsWith("http") ? x[1] : `https://www.england.nhs.uk${x[1]}`;
+        if (seen.has(url)) continue; seen.add(url);
+        files.push({ name: url.split("/").pop(), url });
       }
-    } catch { /* next */ }
+    } catch (e) { console.log(`  RTT page ${p} err ${e.message}`); }
   }
-  const pick = cands.find((u) => /[Ii]ncluding[- ][Ee]stimates/.test(u)) ?? cands[0];
-  if (pick) { console.log(`  RTT candidates=${cands.length}; picked=${pick}`); return pick; }
-  console.log("  RTT discovery: no Overview-Timeseries candidates found");
-  throw new Error("RTT: overview timeseries URL not found");
+  return files;
 }
-async function parseRttOverview() {
-  const url = await rttOverviewUrl();
-  console.log(`  RTT overview XLSX: ${url}`);
+
+// "Incomplete-Provider-Mar26-..." → "2026-03-01".
+function rttMonthFromName(name) {
+  const m = name.match(/Incomplete-Provider-([A-Za-z]{3})(\d{2})/i);
+  if (!m) return null;
+  const mon = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 }[m[1].toLowerCase()];
+  if (!mon) return null;
+  return `${2000 + Number(m[2])}-${String(mon).padStart(2, "0")}-01`;
+}
+
+// Parse one Incomplete-Provider workbook → { total, within18, withClock } England
+// sums, by adding each provider's all-specialties ("Total" treatment-function) row.
+// total = headline incomplete pathways; within18/withClock → % within 18 weeks.
+async function rttParseProvider(url, diag = false) {
   const book = await xlsxBook(url);
-  const sheetName = book.SheetNames.find((n) => /overview|incomplete|timeseries/i.test(n)) ?? book.SheetNames[0];
-  const rows = await sheetRows(book, sheetName);
-  let headerIdx = -1, totalCol = -1, pctCol = -1;
-  for (let i = 0; i < Math.min(rows.length, 15); i++) {
-    const r = rows[i].map((c) => String(c ?? "").toLowerCase().trim());
-    const c0 = r[0] ?? "";
-    const hasPeriod = c0.includes("period") || c0.includes("month") || c0.includes("date");
-    const hasTotal = r.some((c) => c.includes("total") || c.includes("incomplete"));
-    const hasPct = r.some((c) => c.includes("%") || c.includes("percent") || c.includes("within 18"));
-    if (hasPeriod || (hasTotal && hasPct)) {
-      headerIdx = i;
-      totalCol = r.findIndex((c) => c.includes("total") && (c.includes("number") || c.includes("incomplete")));
-      if (totalCol < 0) totalCol = r.findIndex((c) => c.includes("incomplete") || c.includes("total"));
-      pctCol = r.findIndex((c) => c.includes("within 18") || (c.includes("%") && c.includes("18")));
-      if (pctCol < 0) pctCol = r.findIndex((c) => c.includes("%") || c.includes("percent"));
-      break;
+  if (diag) console.log(`  RTT provider sheets=[${book.SheetNames.join("|")}]`);
+  const dataSheets = book.SheetNames.filter((n) => !/note|cover|contents|definition/i.test(n));
+  const ordered = [
+    ...dataSheets.filter((n) => /provider|data|incomplete/i.test(n)),
+    ...dataSheets.filter((n) => !/provider|data|incomplete/i.test(n)),
+  ];
+  for (const sn of (ordered.length ? ordered : book.SheetNames)) {
+    const rows = await sheetRows(book, sn);
+    let headerIdx = -1, tfCol = -1, totalCol = -1, w18Col = -1, clockCol = -1;
+    for (let i = 0; i < Math.min(rows.length, 25); i++) {
+      const r = rows[i].map((c) => String(c ?? "").toLowerCase().trim());
+      const tf = r.findIndex((c) => c === "treatment function" || c.includes("treatment function name") || c === "rtt part description");
+      const tot = r.findIndex((c) => /total.*incomplete pathways/.test(c) && !/clock start/.test(c) && !/within|over/.test(c));
+      if (tf >= 0 && tot >= 0) {
+        headerIdx = i; tfCol = tf; totalCol = tot;
+        w18Col = r.findIndex((c) => /total within 18 weeks/.test(c) || (c.includes("within 18") && c.includes("week")));
+        clockCol = r.findIndex((c) => /incomplete pathways.*clock start/.test(c) || /with a clock start/.test(c));
+        break;
+      }
     }
+    if (headerIdx < 0) {
+      if (diag) {
+        console.log(`  RTT provider sheet "${sn}": no header in first 25 rows; preview:`);
+        for (const r of rows.slice(0, 16)) console.log(`     ${JSON.stringify(r.slice(0, 24)).slice(0, 240)}`);
+      }
+      continue;
+    }
+    if (diag) {
+      console.log(`  RTT provider sheet="${sn}" headerIdx=${headerIdx} tfCol=${tfCol} totalCol=${totalCol} w18Col=${w18Col} clockCol=${clockCol}`);
+      console.log(`  RTT provider header=[${rows[headerIdx].map((c) => String(c ?? "").trim()).join("|").slice(0, 500)}]`);
+    }
+    let total = 0, within18 = 0, withClock = 0, nTotalRows = 0;
+    const tfSeen = new Set();
+    for (const r of rows.slice(headerIdx + 1)) {
+      const tf = String(r[tfCol] ?? "").trim();
+      if (diag && tfSeen.size < 24) tfSeen.add(tf);
+      if (!/^total$/i.test(tf)) continue;
+      const t = r[totalCol];
+      if (typeof t === "number" && Number.isFinite(t)) { total += t; nTotalRows++; }
+      const w = w18Col >= 0 ? r[w18Col] : null;
+      if (typeof w === "number" && Number.isFinite(w)) within18 += w;
+      const c = clockCol >= 0 ? r[clockCol] : null;
+      if (typeof c === "number" && Number.isFinite(c)) withClock += c;
+    }
+    if (diag) console.log(`  RTT provider TF-values=[${[...tfSeen].join("|").slice(0, 320)}] nTotalRows=${nTotalRows} total=${total} within18=${within18} withClock=${withClock}`);
+    if (nTotalRows > 0 && total > 0) return { total, within18, withClock };
+    if (diag) console.log(`  RTT provider: no "Total" treatment-function rows summed on sheet "${sn}"`);
   }
-  if (headerIdx < 0) {
-    console.log(`RTT no header. sheets=[${book.SheetNames.join("|")}] chosen="${sheetName}"`);
-    try {
-      const pg = await fetch("https://www.england.nhs.uk/statistics/statistical-work-areas/rtt-waiting-times/rtt-data-2025-26/", fetchOpts({ accept: "text/html,*/*" }));
-      if (pg.ok) { const h = await pg.text(); const csvs = [...h.matchAll(/href="([^"]*\.(?:csv|xlsx?)[^"]*)"/gi)].map((x) => x[1].split("/").pop()).slice(0, 25); console.log(`RTT 2025-26 files: ${csvs.join(" , ")}`); }
-    } catch (e) { console.log(`RTT page probe err ${e.message}`); }
-    try {
-      const ck = await fetch("https://data.england.nhs.uk/api/3/action/package_search?q=referral+to+treatment&rows=8", fetchOpts({ accept: "application/json" }));
-      if (ck.ok) { const j = await ck.json(); console.log(`CKAN RTT datasets: ${(j.result?.results || []).map((r) => r.name).join(" , ")}`); } else console.log(`CKAN RTT HTTP ${ck.status}`);
-    } catch (e) { console.log(`CKAN RTT probe err ${e.message}`); }
-    throw new Error("RTT: no header row");
+  throw new Error(`RTT provider aggregate failed for ${url.split("/").pop()}`);
+}
+
+async function parseRtt() {
+  const files = await rttFileList();
+  const nat = files.filter((f) => /overview|timeseries|estimat|national|full[-_ ]?(data|csv)/i.test(f.name));
+  console.log(`  RTT inventory: ${files.length} files; national-candidates: ${nat.map((f) => f.name).join(" , ").slice(0, 500) || "none"}`);
+  const byMonth = new Map();
+  for (const f of files) {
+    const date = rttMonthFromName(f.name);
+    if (date && !byMonth.has(date)) byMonth.set(date, { ...f, date });
   }
-  if (totalCol < 0 || pctCol < 0) throw new Error(`RTT: totalCol=${totalCol} pctCol=${pctCol} in [${rows[headerIdx].join("|")}]`);
-  const monMap = { january: 1, february: 2, march: 3, april: 4, may: 5, june: 6, july: 7, august: 8, september: 9, october: 10, november: 11, december: 12, jan: 1, feb: 2, mar: 3, apr: 4, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
-  const toDate = (raw) => {
-    if (raw == null) return null;
-    if (typeof raw === "number" && raw > 30000 && raw < 60000) { const d = new Date((raw - 25569) * 86400000); return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-01`; }
-    const s = String(raw).trim();
-    let m = s.match(/^([A-Za-z]+)\s+(\d{4})$/);
-    if (m && monMap[m[1].toLowerCase()]) return `${m[2]}-${String(monMap[m[1].toLowerCase()]).padStart(2, "0")}-01`;
-    m = s.match(/^([A-Za-z]{3})-(\d{2})$/);
-    if (m && monMap[m[1].toLowerCase()]) return `${2000 + Number(m[2])}-${String(monMap[m[1].toLowerCase()]).padStart(2, "0")}-01`;
-    return null;
-  };
+  const months = [...byMonth.values()].sort((a, b) => (a.date < b.date ? 1 : -1)); // newest first
+  console.log(`  RTT provider files: ${months.length} months ${months[months.length - 1]?.date}..${months[0]?.date}`);
+  if (!months.length) throw new Error("RTT: no Incomplete-Provider files found");
+  const cap = Number(process.env.RTT_MONTHS || 18);
+  const pick = months.slice(0, cap);
   const totalPts = [], pctPts = [];
-  for (const r of rows.slice(headerIdx + 1)) {
-    const date = toDate(r[0]); if (!date) continue;
-    const t = r[totalCol], p = r[pctCol];
-    if (typeof t === "number" && Number.isFinite(t) && t > 0) totalPts.push({ date, value: Math.round(t) });
-    if (typeof p === "number" && Number.isFinite(p) && p > 0) pctPts.push({ date, value: +((p > 1 ? p : p * 100)).toFixed(1) });
+  // First (newest) file fails fast with full diagnostics if the parser is wrong,
+  // so a broken round doesn't download every 9 MB workbook before giving up.
+  const first = await rttParseProvider(pick[0].url, true);
+  const pushMonth = (date, { total, within18, withClock }) => {
+    totalPts.push({ date, value: Math.round(total) });
+    const denom = withClock > 0 ? withClock : total;
+    if (within18 > 0) pctPts.push({ date, value: +((within18 / denom) * 100).toFixed(1) });
+  };
+  pushMonth(pick[0].date, first);
+  for (const f of pick.slice(1)) {
+    try { pushMonth(f.date, await rttParseProvider(f.url)); }
+    catch (e) { console.log(`  RTT ${f.date}: ${e.message}`); }
   }
-  if (!totalPts.length || !pctPts.length) throw new Error(`RTT: totalPts=${totalPts.length} pctPts=${pctPts.length}`);
-  totalPts.sort((a, b) => (a.date < b.date ? -1 : 1)); pctPts.sort((a, b) => (a.date < b.date ? -1 : 1));
+  totalPts.sort((a, b) => (a.date < b.date ? -1 : 1));
+  pctPts.sort((a, b) => (a.date < b.date ? -1 : 1));
+  setSrc("https://www.england.nhs.uk/statistics/statistical-work-areas/rtt-waiting-times/");
+  const lt = totalPts[totalPts.length - 1], lp = pctPts[pctPts.length - 1];
+  console.log(`  RTT aggregated: totalPts=${totalPts.length} (latest ${lt?.date}=${lt?.value}) pctPts=${pctPts.length} (latest ${lp?.date}=${lp?.value})`);
   return { totalPts, pctPts };
 }
 let _rttCache = null;
-function rttData() { if (!_rttCache) _rttCache = parseRttOverview(); return _rttCache; }
+function rttData() { if (!_rttCache) _rttCache = parseRtt(); return _rttCache; }
 
 // IPA/NISTA Government Major Projects Portfolio: mean in-year cost variance % for
 // one department across all published annual CSV editions. Hardcoded 2021–2024
