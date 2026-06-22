@@ -70,8 +70,8 @@ theme in `src/styles.css`), **Recharts**, **d3-hierarchy**, **lucide-react**.
 ## Real-data pipeline (status + how to extend)
 
 Goal: every chart shows **real data from a reputable source** (ONS, World Bank,
-gov.uk, NAO…), never fabricated. Charts with no real source yet fall back to
-clearly-labelled illustrative generators.
+gov.uk, NAO…), never fabricated. Charts with no real source yet render an
+explicit "no source yet" placeholder (illustrative generators removed 2026-06).
 
 ### Architecture
 - **`scripts/build-data.mjs`** fetches each series in CI and writes
@@ -79,10 +79,11 @@ clearly-labelled illustrative generators.
   step (before `vite build`). Per-source `try/catch`; **never fails the build**.
 - **`src/generated/seriesData.ts`** is committed as an **empty `{}`** (no datasets
   in git); CI overwrites it for the production build only.
-- **Data layer** (`src/components/data.ts`): `realPoints(id, fallback)` and
-  `realLine(id, lineId, fallback)` prefer baked data, else the illustrative
-  fallback. A chart becomes "real" by (a) wrapping its `points` in `realPoints`
-  and (b) adding a manifest entry in `build-data.mjs` keyed by the same `id`.
+- **Data layer** (`src/components/data.ts`): `realPoints(id)` and
+  `realLine(id, lineId)` return baked CI data or `[]` (single-arg since 2026-06;
+  the illustrative fallback args and generators were deleted). A chart becomes
+  "real" by (a) wrapping its `points` in `realPoints` and (b) adding a manifest
+  entry in `build-data.mjs` keyed by the same `id`.
 - **Guard:** every manifest entry has `min`/`max`; a fetched latest value outside
   the range is rejected → falls back. A wrong-but-resolving code can never show
   wrong data. `scale` multiplies raw values; fetchers retry transient errors.
@@ -145,11 +146,12 @@ undocumented weighting); department pages now show a per-indicator RAG snapshot,
 and un-targeted (own-range) RAG cells are desaturated and labelled "no external
 benchmark". Reference baselines are labelled with their basis/year.
 
-**TODO — source cleanup (cosmetic, low priority):** the inert anchor-literal
-arrays and the now-dead generators (`annual`/`trajectory`/`annualSeries`/`noise`
-in `data.ts` + `departments.ts`) still exist in source but produce nothing
-(their output is discarded by `realPoints`). Delete them when convenient;
-this needs changing `realPoints(id, fallback)` call sites to drop the 2nd arg.
+**DONE — source cleanup (2026-06):** the dead generators
+(`annual`/`trajectory`/`annualSeries`/`noise`) and their inert anchor-literal
+fallback args were deleted (1194 lines); `realPoints`/`realLine`/`wbLines` are
+single-arg. (Done via the agentic loop — see "Agentic coding loop" below.)
+`turnoverByGroup` keeps its pre-existing illustrative anchors as plain points
+(no longer interpolated) — still on the illustrative backlog, unchanged in substance.
 
 **TODO — indicators still needing a real source** (currently render placeholders;
 see the per-series notes in `docs/backlog-research/` and the rows below):
@@ -193,6 +195,44 @@ Per-series research notes (sources, drafted fetchers, dead-ends) live in `docs/b
 - Tax burden = receipts (ONS `ANBV`, £m) ÷ GDP — already wired via WB
   `GC.TAX.TOTL.GD.ZS` (tax % GDP). The explicit ONS ratio is not needed unless
   UK-domestic definition differs materially.
+
+## Agentic coding loop (`tools/loop/`)
+
+An experimental verifier-driven loop for letting a coding agent iterate against a
+machine-checked verdict. The lesson learned building it: **the loop is trivial;
+the verifier (eval) is the whole game** — see `tools/loop/README.md`.
+
+- **`eval.mjs`** — the verifier. Runs checks in trust × speed order,
+  short-circuiting: `scope` (diff stays in `--allow`), `manifest` (`--series` has
+  min/max), `typecheck`, `build`, `jsdom` smoke, `goal` (`--forbid`/`--require`
+  regex + `--shrink=N` lines-vs-HEAD). Emits a structured verdict (`--json`).
+- **`run.mjs`** — the loop. Pluggable `AGENT_CMD` (e.g.
+  `claude -p --permission-mode acceptEdits` — note `--dangerously-skip-permissions`
+  is blocked as root), feeds the verdict back, stuck-detector + step budget,
+  injects `LESSONS.md` and appends to it on bail. Logs each step to `runs/*.jsonl`.
+- **`ci-reward.mjs`** — the OUTER reward: parses build-data.mjs's `ok`/`SKIP` log
+  into a per-series verdict (`--series` gate, `--summary` for CI, `--freeze` /
+  `--check-fixtures` self-growing regression corpus). Wired into `data-check.yml`.
+- **`LESSONS.md`** — cross-episode memory, injected into every prompt.
+
+**Hard-won lessons (also encoded in `LESSONS.md`):** a generic eval proves "not
+broken", not "task done" — encode the goal predicate or the loop has no gradient.
+Name-forbids are gamed by renaming → pair with `--shrink`. A green verdict is
+necessary, never sufficient — **always human-review the diff before commit** (the
+loop reward-hacked twice before `--shrink` + review caught it). Start runs from a
+clean tree (scope guard treats any dirty file as the agent's). Don't run
+working-tree git ops while a loop is editing the tree.
+
+**Code-task example (proven):** removing the dead generators —
+`tools/loop/tasks/cleanup-dead-generators.md` (shipped 1194-line deletion).
+
+### NEXT STEP — real data series (ready for a new session)
+`tools/loop/tasks/data-waiting-list.md` tees up baking real data for
+`waiting-list` (NHS England RTT total incomplete pathways) — the first exercise
+of the **outer (CI) reward tier**. A data task can't be verified in-sandbox; the
+real reward is the `data-check.yml` fetch log read back via `ci-reward.mjs`
+(`SKIP→ok→freeze`). Research in `docs/backlog-research/nhs-rtt.md`. Once it lands,
+`rtt-18-week` reuses the same provider workbook.
 
 ## TODO / follow-ups
 - **Enable blog analytics (GoatCounter):** the `/blog` route + cookieless beacon
