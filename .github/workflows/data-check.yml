@@ -32,3 +32,9 @@ jobs:
       - name: Data fetch reward summary
         if: always()
         run: node tools/loop/ci-reward.mjs --summary --log=fetch.log >> "$GITHUB_STEP_SUMMARY"
+      # Regression gate: a series frozen into the corpus that stops fetching ok
+      # (or returns fewer points than its floor) fails the job. The safety net
+      # grows itself — `--freeze` adds a series after it first goes green.
+      - name: Fixture regression check
+        if: always()
+        run: node tools/loop/ci-reward.mjs --check-fixtures --summary --log=fetch.log >> "$GITHUB_STEP_SUMMARY"

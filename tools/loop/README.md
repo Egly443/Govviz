@@ -85,6 +85,32 @@ you can't write that clause, the task isn't loop-ready — keep it human-driven.
 Closed-loop-verifiable tasks (no internet) are the right first experiments; see
 `tasks/`.
 
+## Autonomous improvement (layer 3)
+
+Two mechanisms let the system get better across runs without a human in the inner
+loop. Neither touches model weights — the *environment* learns, not the policy.
+
+**Lessons memory — `LESSONS.md`.** `run.mjs` injects it into every prompt, and on
+a bail (stuck/budget) asks the agent to distil one actionable bullet back into it.
+The next run starts knowing the last dead-end. The corpus of lessons grows itself.
+
+**Self-growing fixture corpus — `fixtures/ok-series.json`.** Each `SKIP→ok` win can
+be frozen into a regression guard CI enforces forever:
+
+```bash
+# after a green data-check run, promote the now-ok series into the corpus:
+node tools/loop/ci-reward.mjs --freeze --log=fetch.log     # commit the updated json
+
+# CI enforces it every push (wired into data-check.yml): a frozen series that
+# stops fetching ok, or returns fewer points than its floor, fails the job.
+node tools/loop/ci-reward.mjs --check-fixtures --log=fetch.log   # exit 1 on regression
+```
+
+The floor never ratchets up automatically (a revised-away provisional point won't
+trip a false regression); the corpus only grows, never shrinks silently. The
+*enforcement* is fully autonomous — once frozen, a broken parser can't ship. The
+*freeze* is a deliberate promotion (you don't want to enshrine a fluke).
+
 ## Grade the grader
 
 Periodically read diffs from runs the eval marked PASS. You're measuring the

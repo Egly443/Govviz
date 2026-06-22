@@ -19,11 +19,12 @@
 //      EVAL_ARGS (extra flags forwarded to eval.mjs, e.g. "--series=foo --allow=...")
 
 import { spawnSync } from "node:child_process";
-import { appendFileSync, readFileSync, mkdirSync } from "node:fs";
+import { appendFileSync, readFileSync, existsSync, mkdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
+const LESSONS_PATH = `${ROOT}tools/loop/LESSONS.md`;
 const taskPath = process.argv[2];
 const flags = new Set(process.argv.slice(3));
 const DRY = flags.has("--dry-run");
@@ -38,6 +39,10 @@ if (!taskPath) {
   process.exit(2);
 }
 const task = readFileSync(taskPath, "utf8");
+// Cross-episode memory: lessons distilled from past failed runs. Injected into
+// every prompt so the loop doesn't re-learn the same dead-ends. This is the
+// cheapest real form of autonomous improvement — the environment remembering.
+const lessons = existsSync(LESSONS_PATH) ? readFileSync(LESSONS_PATH, "utf8").trim() : "";
 
 mkdirSync(`${ROOT}tools/loop/runs`, { recursive: true });
 const runId = new Date().toISOString().replace(/[:.]/g, "-");
@@ -75,9 +80,33 @@ function buildPrompt(task, verdict, step) {
     `## TASK`,
     task.trim(),
     ``,
+    ...(lessons ? [`## LESSONS FROM PAST RUNS (read before acting)`, lessons, ``] : []),
     `## CURRENT VERDICT: ${verdict.pass ? "PASS" : "FAIL"}`,
     ...fails.map((s) => `### FAILING: ${s.name}\n${s.detail}`),
   ].join("\n");
+}
+
+// On bail, ask the agent to distil ONE actionable lesson into LESSONS.md, so the
+// next run starts smarter. No human in this loop — the corpus of lessons grows
+// itself. Best-effort: never blocks the exit.
+function reflect(verdict) {
+  if (!AGENT_CMD) return;
+  const fails = verdict.signals.filter((s) => !s.pass && !s.skipped);
+  const prompt = [
+    `An automated loop on the Govviz repo just FAILED a task and is bailing to a human.`,
+    `Append exactly ONE concise, imperative lesson to tools/loop/LESSONS.md: a single "- " bullet,`,
+    `<=160 chars, specific and actionable, that would help a FUTURE run avoid this dead-end.`,
+    `Do not duplicate an existing bullet. Edit ONLY tools/loop/LESSONS.md — nothing else.`,
+    ``,
+    `## TASK`,
+    task.trim(),
+    ``,
+    `## FINAL FAILING SIGNALS`,
+    ...fails.map((s) => `### ${s.name}\n${s.detail}`),
+  ].join("\n");
+  console.log("reflecting → distilling a lesson into LESSONS.md…");
+  callAgent(prompt);
+  log({ event: "reflect" });
 }
 
 function callAgent(prompt) {
@@ -138,11 +167,13 @@ for (let step = 1; step <= MAX_STEPS; step++) {
   const recent = sigHistory.slice(-STUCK_AFTER);
   if (recent.length === STUCK_AFTER && recent.every((s) => s === recent[0])) {
     console.log(`\n✗ stuck: identical failure ${STUCK_AFTER}x (sig=${sig}). Bailing to human.`);
+    reflect(verdict);
     log({ event: "end", result: "stuck", steps: step, sig });
     process.exit(1);
   }
 }
 
 console.log(`\n✗ budget exhausted (${MAX_STEPS} steps) without PASS.`);
+reflect(verdict);
 log({ event: "end", result: "budget", steps: MAX_STEPS });
 process.exit(1);

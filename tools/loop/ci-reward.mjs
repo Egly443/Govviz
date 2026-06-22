@@ -19,8 +19,11 @@
 //   node tools/loop/ci-reward.mjs --series=defra-bathing-water < fetch.log   # gate: exit 0 iff ok
 //   node tools/loop/ci-reward.mjs --summary < fetch.log >> "$GITHUB_STEP_SUMMARY"
 
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname } from "node:path";
 
+const ROOT = fileURLToPath(new URL("../../", import.meta.url));
 const argv = process.argv.slice(2);
 const has = (f) => argv.includes(f);
 const opt = (n) => {
@@ -31,6 +34,25 @@ const logArg = argv.find((a) => a.startsWith("--log="))?.slice(6);
 const SERIES = opt("series");
 const JSON_OUT = has("--json");
 const SUMMARY = has("--summary");
+const FREEZE = has("--freeze");
+const CHECK = has("--check-fixtures");
+const FIX_PATH = opt("fixtures") || `${ROOT}tools/loop/fixtures/ok-series.json`;
+
+const loadFixtures = () => {
+  try {
+    return JSON.parse(readFileSync(FIX_PATH, "utf8"));
+  } catch {
+    return {
+      _note: "Auto-managed by ci-reward.mjs --freeze. Each series here must keep fetching ok with >= minPoints, or CI flags a regression. The corpus grows on success and never shrinks silently.",
+      series: {},
+    };
+  }
+};
+const saveFixtures = (fx) => {
+  mkdirSync(dirname(FIX_PATH), { recursive: true });
+  writeFileSync(FIX_PATH, JSON.stringify(fx, null, 2) + "\n");
+};
+const tagPoints = (s) => Math.max(0, ...Object.values(s.tags).map((t) => t.points || 0));
 
 const text = logArg ? readFileSync(logArg, "utf8") : readFileSync(0, "utf8");
 
@@ -67,6 +89,49 @@ const ids = Object.values(series);
 const okCount = ids.filter((s) => s.status === "ok").length;
 const skipCount = ids.length - okCount;
 const totals = { series: ids.length, ok: okCount, skip: skipCount };
+
+// --- FREEZE: promote currently-ok series into the regression corpus ---------
+// Run after a green CI confirms a series fetches real data. Adds new ok series
+// (floor = observed point count); never moves an existing floor up, so a later
+// revision dropping a provisional point won't trip a false regression.
+if (FREEZE) {
+  const fx = loadFixtures();
+  let added = 0;
+  for (const s of ids) {
+    if (s.status !== "ok" || fx.series[s.id]) continue;
+    fx.series[s.id] = { minPoints: tagPoints(s), frozenAt: new Date().toISOString().slice(0, 10) };
+    console.log(`freeze + ${s.id} (minPoints=${tagPoints(s)})`);
+    added++;
+  }
+  saveFixtures(fx);
+  console.log(`fixtures: ${Object.keys(fx.series).length} frozen series (${added} new) → ${FIX_PATH}`);
+  process.exit(0);
+}
+
+// --- CHECK: enforce the corpus. A frozen series that goes skip/absent, or ok
+// with fewer points than its floor, is a REGRESSION → non-zero exit (gates CI).
+if (CHECK) {
+  const fx = loadFixtures();
+  const frozen = Object.entries(fx.series);
+  const regressions = [];
+  for (const [id, meta] of frozen) {
+    const s = series[id];
+    if (!s || s.status !== "ok") regressions.push(`${id}: expected ok, got ${s ? s.status : "absent"}`);
+    else if (tagPoints(s) < meta.minPoints) regressions.push(`${id}: ${tagPoints(s)} pts < frozen floor ${meta.minPoints}`);
+  }
+  if (SUMMARY) {
+    process.stdout.write(
+      `### Fixture regression check — ${frozen.length} frozen, ${regressions.length} regression(s)\n\n` +
+        (regressions.length
+          ? regressions.map((r) => `- ❌ ${r}`).join("\n") + "\n"
+          : "All frozen series still fetch ok. ✅\n"),
+    );
+  } else {
+    regressions.forEach((r) => console.error(`REGRESSION ${r}`));
+    console.error(`fixtures check: ${frozen.length} frozen, ${regressions.length} regression(s)`);
+  }
+  process.exit(regressions.length ? 1 : 0);
+}
 
 if (SUMMARY) {
   const rows = ids

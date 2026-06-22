@@ -1,0 +1,4 @@
+{
+  "_note": "Auto-managed by ci-reward.mjs --freeze. Each series here must keep fetching ok with >= minPoints, or CI flags a regression. The corpus grows on success and never shrinks silently. Seed it after a green data-check run: node tools/loop/ci-reward.mjs --freeze --log=fetch.log",
+  "series": {}
+}
