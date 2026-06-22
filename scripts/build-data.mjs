@@ -369,18 +369,25 @@ function rttMonthFromName(name) {
 const denseRow = (row) => Array.from({ length: row?.length ?? 0 }, (_, i) => String(row[i] ?? "").toLowerCase().trim());
 
 // Sum one provider sheet's all-specialties ("Total" treatment-function) rows.
-// Returns null if the sheet has no recognisable header. total = headline
-// incomplete pathways; within18/withClock derive % within 18 weeks.
+// Returns null if the sheet has no recognisable header. `withClock` is the sum of
+// the week bands (pathways with a known clock start); `unknown` is the patients
+// with an unknown clock start. NHS's published list size = withClock + unknown,
+// and % within 18 weeks = within18 / (withClock + unknown).
 function rttSumSheet(rows, sn, diag) {
-  let headerIdx = -1, tfCol = -1, totalCol = -1, w18Col = -1, clockCol = -1;
+  let headerIdx = -1, tfCol = -1, totalCol = -1, w18Col = -1, unkCol = -1;
   for (let i = 0; i < Math.min(rows.length, 25); i++) {
     const r = denseRow(rows[i]);
     const tf = r.findIndex((c) => c === "treatment function" || c.includes("treatment function name") || c === "rtt part description");
-    const tot = r.findIndex((c) => /total.*incomplete pathways/.test(c) && !/clock start/.test(c) && !/within|over/.test(c));
+    const tot = r.findIndex((c) => /total.*incomplete pathways/.test(c) && !/unknown|clock start/.test(c) && !/within|over/.test(c));
     if (tf >= 0 && tot >= 0) {
       headerIdx = i; tfCol = tf; totalCol = tot;
       w18Col = r.findIndex((c) => /total within 18 weeks/.test(c) || (c.includes("within 18") && c.includes("week")));
-      clockCol = r.findIndex((c) => /incomplete pathways.*clock start/.test(c) || /with a clock start/.test(c));
+      unkCol = r.findIndex((c) => /unknown clock start/.test(c));
+      if (diag) {
+        const h = denseRow(rows[i]);
+        const around = [totalCol, w18Col, unkCol].filter((x) => x >= 0).flatMap((x) => [x - 1, x, x + 1]);
+        console.log(`  RTT "${sn}" cols ${[...new Set(around)].sort((a, b) => a - b).map((x) => `${x}:${h[x]}`).join(" | ")}`);
+      }
       break;
     }
   }
@@ -391,42 +398,36 @@ function rttSumSheet(rows, sn, diag) {
     }
     return null;
   }
-  if (diag) {
-    console.log(`  RTT sheet="${sn}" headerIdx=${headerIdx} tfCol=${tfCol} totalCol=${totalCol} w18Col=${w18Col} clockCol=${clockCol}`);
-    console.log(`  RTT header=[${denseRow(rows[headerIdx]).join("|").slice(0, 500)}]`);
-  }
-  let total = 0, within18 = 0, withClock = 0, nTotalRows = 0;
-  const tfSeen = new Set();
+  if (diag) console.log(`  RTT sheet="${sn}" headerIdx=${headerIdx} tfCol=${tfCol} totalCol=${totalCol} w18Col=${w18Col} unkCol=${unkCol}`);
+  let withClock = 0, within18 = 0, unknown = 0, nTotalRows = 0;
   for (const r of rows.slice(headerIdx + 1)) {
     if (!r) continue;
-    const tf = String(r[tfCol] ?? "").trim();
-    if (diag && tfSeen.size < 24) tfSeen.add(tf);
-    if (!/^total$/i.test(tf)) continue;
+    if (!/^total$/i.test(String(r[tfCol] ?? "").trim())) continue;
     const t = r[totalCol];
-    if (typeof t === "number" && Number.isFinite(t)) { total += t; nTotalRows++; }
+    if (typeof t === "number" && Number.isFinite(t)) { withClock += t; nTotalRows++; }
     const w = w18Col >= 0 ? r[w18Col] : null;
     if (typeof w === "number" && Number.isFinite(w)) within18 += w;
-    const c = clockCol >= 0 ? r[clockCol] : null;
-    if (typeof c === "number" && Number.isFinite(c)) withClock += c;
+    const u = unkCol >= 0 ? r[unkCol] : null;
+    if (typeof u === "number" && Number.isFinite(u)) unknown += u;
   }
-  if (diag) console.log(`  RTT sheet "${sn}" TF-values=[${[...tfSeen].join("|").slice(0, 300)}] nTotalRows=${nTotalRows} total=${total} within18=${within18} withClock=${withClock}`);
-  return nTotalRows > 0 && total > 0 ? { total, within18, withClock } : null;
+  if (diag) console.log(`  RTT sheet "${sn}" nTotalRows=${nTotalRows} withClock=${withClock} within18=${within18} unknown=${unknown}`);
+  return nTotalRows > 0 && withClock > 0 ? { withClock, within18, unknown } : null;
 }
 
-// Parse one Incomplete-Provider workbook → national { total, within18, withClock }
+// Parse one Incomplete-Provider workbook → national { withClock, within18, unknown }
 // by summing the NHS "Provider" and independent-sector "IS Provider" sheets (the
 // "with DTA" sheets are an alternative waiting-time measure — not additive).
 async function rttParseProvider(url, diag = false) {
   const book = await xlsxBook(url);
   if (diag) console.log(`  RTT provider sheets=[${book.SheetNames.join("|")}]`);
   const targets = book.SheetNames.filter((n) => /provider/i.test(n) && !/dta/i.test(n));
-  const acc = { total: 0, within18: 0, withClock: 0 };
+  const acc = { withClock: 0, within18: 0, unknown: 0 };
   let hits = 0;
   for (const sn of (targets.length ? targets : book.SheetNames)) {
     const sub = rttSumSheet(await sheetRows(book, sn), sn, diag);
-    if (sub) { acc.total += sub.total; acc.within18 += sub.within18; acc.withClock += sub.withClock; hits++; }
+    if (sub) { acc.withClock += sub.withClock; acc.within18 += sub.within18; acc.unknown += sub.unknown; hits++; }
   }
-  if (hits === 0 || acc.total <= 0) throw new Error(`RTT provider aggregate failed for ${url.split("/").pop()}`);
+  if (hits === 0 || acc.withClock <= 0) throw new Error(`RTT provider aggregate failed for ${url.split("/").pop()}`);
   return acc;
 }
 
@@ -445,17 +446,18 @@ async function parseRtt() {
   const cap = Number(process.env.RTT_MONTHS || 18);
   const pick = months.slice(0, cap);
   const totalPts = [], pctPts = [];
-  // First (newest) file fails fast with full diagnostics if the parser is wrong,
-  // so a broken round doesn't download every 9 MB workbook before giving up.
-  const first = await rttParseProvider(pick[0].url, true);
-  const pushMonth = (date, { total, within18, withClock }) => {
-    totalPts.push({ date, value: Math.round(total) });
-    const denom = withClock > 0 ? withClock : total;
-    if (within18 > 0) pctPts.push({ date, value: +((within18 / denom) * 100).toFixed(1) });
+  // List size = pathways with a known clock start + those with an unknown one
+  // (NHS's published headline); % within 18 weeks uses the same denominator.
+  const pushMonth = (date, { withClock, within18, unknown }) => {
+    const listSize = withClock + unknown;
+    totalPts.push({ date, value: Math.round(listSize) });
+    if (within18 > 0 && listSize > 0) pctPts.push({ date, value: +((within18 / listSize) * 100).toFixed(1) });
   };
-  pushMonth(pick[0].date, first);
-  for (const f of pick.slice(1)) {
-    try { pushMonth(f.date, await rttParseProvider(f.url)); }
+  // Diagnose the newest file's columns; every file is resilient so a transient
+  // 9 MB-download timeout drops only that month, never the whole series.
+  for (let i = 0; i < pick.length; i++) {
+    const f = pick[i];
+    try { pushMonth(f.date, await rttParseProvider(f.url, i === 0)); }
     catch (e) { console.log(`  RTT ${f.date}: ${e.message}`); }
   }
   totalPts.sort((a, b) => (a.date < b.date ? -1 : 1));
