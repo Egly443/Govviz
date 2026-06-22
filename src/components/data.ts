@@ -57,15 +57,13 @@ export type TrendSeries = {
   annotations: Annotation[];
 };
 
-// Real fetched data (baked in CI) is the ONLY data shown. Illustrative
-// fallbacks have been removed: a series with no baked data renders an explicit
-// "no source yet" placeholder rather than a fabricated trend. The `fallback`
-// argument is retained for call-site compatibility but is intentionally unused
-// (see docs/conformance + CLAUDE.md "Illustrative data removed" TODO).
-export function realPoints(id: string, _fallback?: Point[]): Point[] {
+// Real fetched data (baked in CI) is the ONLY data shown. A series with no
+// baked data renders an explicit "no source yet" placeholder rather than a
+// fabricated trend.
+export function realPoints(id: string): Point[] {
   return SERIES_DATA[id]?.points ?? [];
 }
-export function realLine(id: string, lineId: string, _fallback?: Point[]): Point[] {
+export function realLine(id: string, lineId: string): Point[] {
   return SERIES_DATA[id]?.lines?.find((x) => x.id === lineId)?.points ?? [];
 }
 /** True when CI baked real fetched data for this series id. */
@@ -102,19 +100,19 @@ export function realSourceUrl(id: string): string | undefined {
 
 // International peer set for World Bank comparator charts. Keep in sync with
 // WB_PEERS in scripts/build-data.mjs and src/components/departments.ts.
-// Comparator lines carry an empty fallback so the chart shows the UK line
-// alone until CI bakes per-country data (TrendPanel drops empty lines).
+// The chart shows the UK line alone until CI bakes per-country data
+// (TrendPanel drops empty lines).
 const WB_PEERS: { code: string; label: string }[] = [
   { code: "deu", label: "Germany" },
   { code: "fra", label: "France" },
 ];
-export function wbLines(id: string, ukFallback: Point[]): SeriesLine[] {
+export function wbLines(id: string): SeriesLine[] {
   return [
-    { id: "gbr", label: "UK", points: realLine(id, "gbr", ukFallback) },
+    { id: "gbr", label: "UK", points: realLine(id, "gbr") },
     ...WB_PEERS.map((p) => ({
       id: p.code,
       label: p.label,
-      points: realLine(id, p.code, [] as Point[]),
+      points: realLine(id, p.code),
     })),
   ];
 }
@@ -179,85 +177,6 @@ export function ratioSeries(o: {
   };
 }
 
-// Deterministic pseudo-noise
-export function noise(seed: number) {
-  let s = seed * 9301 + 49297;
-  return () => {
-    s = (s * 9301 + 49297) % 233280;
-    return s / 233280 - 0.5;
-  };
-}
-
-function monthsBetween(startISO: string, endISO: string): string[] {
-  const out: string[] = [];
-  const d = new Date(startISO);
-  const end = new Date(endISO);
-  while (d <= end) {
-    out.push(
-      `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-01`,
-    );
-    d.setUTCMonth(d.getUTCMonth() + 1);
-  }
-  return out;
-}
-
-export function trajectory(
-  anchors: [string, number][],
-  startISO: string,
-  endISO: string,
-  seed: number,
-  noiseAmp: number,
-  seasonalAmp = 0,
-): Point[] {
-  const months = monthsBetween(startISO, endISO);
-  const rnd = noise(seed);
-  const anchorTimes = anchors.map(([d, v]) => [new Date(d).getTime(), v] as const);
-
-  return months.map((iso) => {
-    const t = new Date(iso).getTime();
-    let v = anchorTimes[0][1];
-    for (let i = 0; i < anchorTimes.length - 1; i++) {
-      const [t0, v0] = anchorTimes[i];
-      const [t1, v1] = anchorTimes[i + 1];
-      if (t >= t0 && t <= t1) {
-        const k = (t - t0) / (t1 - t0);
-        v = v0 + (v1 - v0) * k;
-        break;
-      }
-      if (t > t1) v = v1;
-    }
-    const month = new Date(iso).getUTCMonth();
-    const seasonal = Math.sin((month / 12) * Math.PI * 2) * seasonalAmp;
-    return { date: iso, value: +(v + seasonal + rnd() * noiseAmp).toFixed(3) };
-  });
-}
-
-// Build an annual series from yearly anchors (used by data-light fallbacks).
-function annualSeries(
-  anchors: [number, number][],
-  start: number,
-  end: number,
-  seed: number,
-  amp: number,
-): Point[] {
-  const rnd = noise(seed);
-  const out: Point[] = [];
-  for (let y = start; y <= end; y++) {
-    let v = anchors[0][1];
-    for (let i = 0; i < anchors.length - 1; i++) {
-      const [y0, v0] = anchors[i];
-      const [y1, v1] = anchors[i + 1];
-      if (y >= y0 && y <= y1) {
-        v = v0 + ((v1 - v0) * (y - y0)) / (y1 - y0);
-        break;
-      }
-      if (y > y1) v = v1;
-    }
-    out.push({ date: `${y}-01-01`, value: +(v + rnd() * amp).toFixed(3) });
-  }
-  return out;
-}
-
 const fmtMillions = (v: number) => `${v.toFixed(2)}M`;
 const fmtMillionsShort = (v: number) => `${v.toFixed(1)}M`;
 const fmtPct = (v: number) => `${v.toFixed(1)}%`;
@@ -282,28 +201,7 @@ export const waitingList: TrendSeries = {
   sourceUrl:
     "https://www.england.nhs.uk/statistics/statistical-work-areas/rtt-waiting-times/",
   cadence: "monthly",
-  points: realPoints(
-    "waiting-list",
-    trajectory(
-    [
-      ["2007-08-01", 4.20],
-      ["2012-01-01", 2.50],
-      ["2015-01-01", 3.30],
-      ["2019-01-01", 4.43],
-      ["2020-03-01", 4.24],
-      ["2020-08-01", 4.05],
-      ["2022-01-01", 6.07],
-      ["2023-09-01", 7.77],
-      ["2024-04-01", 7.62],
-      ["2025-01-01", 7.49],
-      ["2026-04-01", 7.42],
-    ],
-    "2007-08-01",
-    "2026-04-01",
-    11,
-    0.04,
-    0.03,
-  )),
+  points: realPoints("waiting-list"),
   annotations: [
     { date: "2010-05-01", label: "Austerity" },
     { date: "2020-03-01", label: "Covid-19" },
@@ -329,27 +227,7 @@ export const rtt18Week: TrendSeries = {
   sourceUrl:
     "https://www.england.nhs.uk/statistics/statistical-work-areas/rtt-waiting-times/",
   cadence: "monthly",
-  points: realPoints(
-    "rtt-18-week",
-    trajectory(
-    [
-      ["2008-04-01", 84.0],
-      ["2012-01-01", 93.8],
-      ["2014-06-01", 93.1],
-      ["2016-12-01", 90.3],
-      ["2019-06-01", 86.4],
-      ["2020-02-01", 83.0],
-      ["2021-06-01", 67.0],
-      ["2023-06-01", 58.7],
-      ["2024-06-01", 59.5],
-      ["2026-04-01", 61.4],
-    ],
-    "2008-04-01",
-    "2026-04-01",
-    17,
-    0.6,
-    0.5,
-  )),
+  points: realPoints("rtt-18-week"),
   annotations: [
     { date: "2016-01-01", label: "Standard last met" },
     { date: "2020-03-01", label: "Covid-19" },
@@ -370,27 +248,7 @@ export const dischargeDelays: TrendSeries = {
   sourceUrl:
     "https://www.england.nhs.uk/statistics/statistical-work-areas/discharge-delays-acute-data/",
   cadence: "monthly",
-  points: realPoints(
-    "discharge-delays",
-    trajectory(
-    [
-      ["2011-01-01", 4200],
-      ["2014-06-01", 4900],
-      ["2016-12-01", 6400],
-      ["2018-06-01", 5100],
-      ["2020-02-01", 4700],
-      ["2020-06-01", 2500],
-      ["2022-06-01", 12800],
-      ["2023-04-01", 13900],
-      ["2024-06-01", 13200],
-      ["2026-04-01", 12100],
-    ],
-    "2011-01-01",
-    "2026-04-01",
-    29,
-    320,
-    420,
-  )),
+  points: realPoints("discharge-delays"),
   annotations: [
     { date: "2017-03-01", label: "Social-care funding crisis" },
     { date: "2020-03-01", label: "Covid-19" },
@@ -412,26 +270,7 @@ export const agencySpend: TrendSeries = {
   sourceUrl:
     "https://www.nao.org.uk/reports/nhs-financial-management-and-sustainability/",
   cadence: "monthly",
-  points: realPoints(
-    "agency-spend",
-    trajectory(
-      [
-        ["2013-04-01", 2.10],
-        ["2015-09-01", 3.65],
-        ["2018-03-01", 2.42],
-        ["2020-03-01", 2.55],
-        ["2022-09-01", 3.40],
-        ["2023-09-01", 4.62],
-        ["2024-09-01", 3.55],
-        ["2026-04-01", 2.95],
-      ],
-      "2013-04-01",
-      "2026-04-01",
-      31,
-      0.06,
-      0.05,
-    ),
-  ),
+  points: realPoints("agency-spend"),
   annotations: [
     { date: "2015-11-01", label: "Agency caps introduced" },
     { date: "2020-03-01", label: "Covid-19" },
@@ -454,34 +293,7 @@ export const capitalOverrun: TrendSeries = {
   sourceUrl:
     "https://www.gov.uk/government/collections/ipa-annual-report-on-major-projects",
   cadence: "annual",
-  points: (() => {
-    const out: Point[] = [];
-    const anchors: [number, number][] = [
-      [2012, 8.4],
-      [2014, 11.2],
-      [2016, 14.7],
-      [2018, 19.1],
-      [2020, 22.6],
-      [2022, 27.4],
-      [2024, 31.8],
-      [2025, 28.9],
-    ];
-    const rnd = noise(41);
-    for (let y = 2012; y <= 2025; y++) {
-      let v = anchors[0][1];
-      for (let i = 0; i < anchors.length - 1; i++) {
-        const [y0, v0] = anchors[i];
-        const [y1, v1] = anchors[i + 1];
-        if (y >= y0 && y <= y1) {
-          v = v0 + ((v1 - v0) * (y - y0)) / (y1 - y0);
-          break;
-        }
-        if (y > y1) v = v1;
-      }
-      out.push({ date: `${y}-01-01`, value: +(v + rnd() * 0.8).toFixed(2) });
-    }
-    return out;
-  })(),
+  points: realPoints("capital-overrun"),
   annotations: [
     { date: "2020-01-01", label: "New Hospital Programme" },
     { date: "2023-01-01", label: "RAAC remediation" },
@@ -505,28 +317,7 @@ export const aePerformance: TrendSeries = {
   sourceUrl:
     "https://www.england.nhs.uk/statistics/statistical-work-areas/ae-waiting-times-and-activity/",
   cadence: "monthly",
-  points: realPoints(
-    "ae-performance",
-    trajectory(
-    [
-      ["2004-04-01", 78.0],
-      ["2005-01-01", 95.0],
-      ["2010-06-01", 98.2],
-      ["2013-01-01", 95.7],
-      ["2015-06-01", 92.3],
-      ["2019-12-01", 79.8],
-      ["2020-05-01", 90.0],
-      ["2022-12-01", 65.0],
-      ["2024-01-01", 70.3],
-      ["2025-06-01", 73.5],
-      ["2026-04-01", 74.1],
-    ],
-    "2004-04-01",
-    "2026-04-01",
-    23,
-    0.9,
-    1.6,
-  )),
+  points: realPoints("ae-performance"),
   annotations: [
     { date: "2010-05-01", label: "Austerity" },
     { date: "2020-03-01", label: "Covid-19" },
@@ -551,25 +342,7 @@ export const ambulanceC2: TrendSeries = {
   sourceUrl:
     "https://www.england.nhs.uk/statistics/statistical-work-areas/ambulance-quality-indicators/",
   cadence: "monthly",
-  points: realPoints(
-    "dhsc-ambulance-c2",
-    trajectory(
-      [
-        ["2018-08-01", 19],
-        ["2020-06-01", 21],
-        ["2021-10-01", 40],
-        ["2022-12-01", 92],
-        ["2023-06-01", 38],
-        ["2024-06-01", 36],
-        ["2026-04-01", 31],
-      ],
-      "2018-08-01",
-      "2026-04-01",
-      37,
-      1.5,
-      1.0,
-    ),
-  ),
+  points: realPoints("dhsc-ambulance-c2"),
   annotations: [{ date: "2022-12-01", label: "Winter crisis" }],
 };
 
@@ -585,26 +358,7 @@ export const turnover: TrendSeries = {
   sourceUrl:
     "https://digital.nhs.uk/data-and-information/publications/statistical/nhs-workforce-statistics",
   cadence: "monthly",
-  points: realPoints(
-    "turnover",
-    trajectory(
-      [
-        ["2011-01-01", 9.1],
-        ["2014-01-01", 9.6],
-        ["2017-06-01", 10.7],
-        ["2019-06-01", 11.2],
-        ["2020-09-01", 9.8],
-        ["2022-09-01", 12.5],
-        ["2024-01-01", 11.6],
-        ["2026-04-01", 11.3],
-      ],
-      "2011-01-01",
-      "2026-04-01",
-      7,
-      0.15,
-      0.08,
-    ),
-  ),
+  points: realPoints("turnover"),
   annotations: [
     { date: "2016-06-01", label: "Brexit vote" },
     { date: "2020-03-01", label: "Covid-19" },
@@ -631,20 +385,6 @@ export const vacancyRate: TrendSeries = {
 };
 
 // Doctors vs nurses per 1,000 people — real data from the World Bank (OECD/WHO).
-const docsPer1000 = annualSeries(
-  [[1990, 1.6], [2000, 2.0], [2010, 2.7], [2018, 2.9], [2022, 3.2]],
-  1990,
-  2022,
-  301,
-  0.01,
-);
-const nursesPer1000 = annualSeries(
-  [[1990, 5.2], [2000, 8.1], [2010, 8.6], [2018, 8.2], [2022, 8.7]],
-  1990,
-  2022,
-  302,
-  0.02,
-);
 export const clinicalPer1000: TrendSeries = {
   id: "dhsc-clinical-per-1000",
   title: "Clinical workforce per 1,000 people",
@@ -657,22 +397,15 @@ export const clinicalPer1000: TrendSeries = {
   source: "World Bank (OECD/WHO)",
   sourceUrl: "https://data.worldbank.org/indicator/SH.MED.PHYS.ZS?locations=GB",
   cadence: "annual",
-  points: realLine("dhsc-clinical-per-1000", "doctors", docsPer1000),
+  points: realLine("dhsc-clinical-per-1000", "doctors"),
   lines: [
-    { id: "doctors", label: "Doctors", points: realLine("dhsc-clinical-per-1000", "doctors", docsPer1000) },
-    { id: "nurses", label: "Nurses & midwives", points: realLine("dhsc-clinical-per-1000", "nurses", nursesPer1000) },
+    { id: "doctors", label: "Doctors", points: realLine("dhsc-clinical-per-1000", "doctors") },
+    { id: "nurses", label: "Nurses & midwives", points: realLine("dhsc-clinical-per-1000", "nurses") },
   ],
   annotations: [],
 };
 
 // Hospital beds per 1,000 — real data from the World Bank (OECD/WHO/Eurostat).
-const bedsFallback = annualSeries(
-  [[1960, 10.0], [1980, 7.5], [2000, 4.1], [2010, 2.9], [2020, 2.4], [2022, 2.4]],
-  1960,
-  2022,
-  303,
-  0.02,
-);
 export const hospitalBeds: TrendSeries = {
   id: "dhsc-beds-per-1000",
   title: "Hospital beds per 1,000 people",
@@ -685,18 +418,11 @@ export const hospitalBeds: TrendSeries = {
   source: "World Bank (OECD/WHO/Eurostat)",
   sourceUrl: "https://data.worldbank.org/indicator/SH.MED.BEDS.ZS?locations=GB",
   cadence: "annual",
-  points: realLine("dhsc-beds-per-1000", "gbr", bedsFallback),
-  lines: wbLines("dhsc-beds-per-1000", bedsFallback),
+  points: realLine("dhsc-beds-per-1000", "gbr"),
+  lines: wbLines("dhsc-beds-per-1000"),
   annotations: [],
 };
 
-const healthSpendGdpFallback = annualSeries(
-  [[2000, 6.0], [2008, 8.4], [2012, 8.3], [2019, 10.0], [2021, 11.9], [2022, 11.3]],
-  2000,
-  2022,
-  310,
-  0.05,
-);
 export const healthSpendGdp: TrendSeries = {
   id: "dhsc-health-spend-gdp",
   title: "Health spending (% of GDP)",
@@ -708,8 +434,8 @@ export const healthSpendGdp: TrendSeries = {
   source: "World Bank (WHO/OECD)",
   sourceUrl: "https://data.worldbank.org/indicator/SH.XPD.CHEX.GD.ZS?locations=GB",
   cadence: "annual",
-  points: realLine("dhsc-health-spend-gdp", "gbr", healthSpendGdpFallback),
-  lines: wbLines("dhsc-health-spend-gdp", healthSpendGdpFallback),
+  points: realLine("dhsc-health-spend-gdp", "gbr"),
+  lines: wbLines("dhsc-health-spend-gdp"),
   annotations: [{ date: "2020-01-01", label: "Covid-19" }],
 };
 
@@ -725,16 +451,7 @@ export const infantMortality: TrendSeries = {
   source: "World Bank (UN IGME)",
   sourceUrl: "https://data.worldbank.org/indicator/SP.DYN.IMRT.IN?locations=GB",
   cadence: "annual",
-  points: realPoints(
-    "dhsc-infant-mortality",
-    annualSeries(
-      [[1960, 22], [1980, 12], [2000, 5.6], [2010, 4.3], [2018, 3.7], [2022, 3.6]],
-      1960,
-      2022,
-      311,
-      0.05,
-    ),
-  ),
+  points: realPoints("dhsc-infant-mortality"),
   annotations: [],
 };
 
@@ -750,33 +467,7 @@ export const lifeExpectancy: TrendSeries = {
   sourceUrl:
     "https://www.ons.gov.uk/peoplepopulationandcommunity/birthsdeathsandmarriages/lifeexpectancies",
   cadence: "annual",
-  points: realPoints("life-expectancy", (() => {
-    const out: Point[] = [];
-    const anchors: [number, number][] = [
-      [1981, 73.8],
-      [1990, 75.7],
-      [2000, 77.9],
-      [2011, 80.6],
-      [2019, 81.4],
-      [2020, 80.4],
-      [2022, 80.7],
-      [2024, 81.0],
-    ];
-    for (let y = 1981; y <= 2024; y++) {
-      let v = anchors[0][1];
-      for (let i = 0; i < anchors.length - 1; i++) {
-        const [y0, v0] = anchors[i];
-        const [y1, v1] = anchors[i + 1];
-        if (y >= y0 && y <= y1) {
-          v = v0 + ((v1 - v0) * (y - y0)) / (y1 - y0);
-          break;
-        }
-        if (y > y1) v = v1;
-      }
-      out.push({ date: `${y}-01-01`, value: +v.toFixed(2) });
-    }
-    return out;
-  })()),
+  points: realPoints("life-expectancy"),
   annotations: [
     { date: "2011-01-01", label: "Stalling" },
     { date: "2020-01-01", label: "Covid-19" },
@@ -890,9 +581,8 @@ function groupSeries(
   group: string,
   current: number,
   anchors: [string, number][],
-  seed: number,
 ): GroupSeries {
-  const points = trajectory(anchors, "2014-01-01", "2026-04-01", seed, 0.18, 0.06);
+  const points = anchors.map(([date, value]) => ({ date, value }));
   const first = points[0].value;
   const diff = current - first;
   return {
@@ -904,46 +594,26 @@ function groupSeries(
 }
 
 export const turnoverByGroup: GroupSeries[] = [
-  groupSeries(
-    "Nursing & midwifery",
-    11.8,
-    [
-      ["2014-01-01", 9.4],
-      ["2019-01-01", 11.5],
-      ["2022-06-01", 12.4],
-      ["2026-04-01", 11.8],
-    ],
-    3,
-  ),
-  groupSeries(
-    "Medical & dental",
-    7.9,
-    [
-      ["2014-01-01", 7.1],
-      ["2020-01-01", 7.6],
-      ["2026-04-01", 7.9],
-    ],
-    5,
-  ),
-  groupSeries(
-    "Allied health professionals",
-    10.2,
-    [
-      ["2014-01-01", 8.6],
-      ["2020-01-01", 9.5],
-      ["2023-01-01", 10.6],
-      ["2026-04-01", 10.2],
-    ],
-    8,
-  ),
-  groupSeries(
-    "Support to clinical staff",
-    14.6,
-    [
-      ["2014-01-01", 11.9],
-      ["2020-06-01", 13.2],
-      ["2026-04-01", 14.6],
-    ],
-    13,
-  ),
+  groupSeries("Nursing & midwifery", 11.8, [
+    ["2014-01-01", 9.4],
+    ["2019-01-01", 11.5],
+    ["2022-06-01", 12.4],
+    ["2026-04-01", 11.8],
+  ]),
+  groupSeries("Medical & dental", 7.9, [
+    ["2014-01-01", 7.1],
+    ["2020-01-01", 7.6],
+    ["2026-04-01", 7.9],
+  ]),
+  groupSeries("Allied health professionals", 10.2, [
+    ["2014-01-01", 8.6],
+    ["2020-01-01", 9.5],
+    ["2023-01-01", 10.6],
+    ["2026-04-01", 10.2],
+  ]),
+  groupSeries("Support to clinical staff", 14.6, [
+    ["2014-01-01", 11.9],
+    ["2020-06-01", 13.2],
+    ["2026-04-01", 14.6],
+  ]),
 ];

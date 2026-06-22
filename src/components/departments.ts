@@ -9,16 +9,13 @@ import {
   hospitalBeds,
   infantMortality,
   lifeExpectancy,
-  noise,
   ratioSeries,
   realLine,
   realPoints,
   rtt18Week,
-  trajectory,
   turnover,
   vacancyRate,
   waitingList,
-  type Point,
   type TrendSeries,
 } from "./data";
 
@@ -76,47 +73,20 @@ const fmtIndex = (v: number) => `${v.toFixed(0)} / 100`;
 const fmtIndexSigned = (v: number) =>
   `${v > 0 ? "+" : ""}${v.toFixed(1)} pts`;
 
-// Build an annual series from yearly anchors
-function annual(
-  anchors: [number, number][],
-  startYear: number,
-  endYear: number,
-  seed: number,
-  noiseAmp: number,
-): Point[] {
-  const rnd = noise(seed);
-  const out: Point[] = [];
-  for (let y = startYear; y <= endYear; y++) {
-    let v = anchors[0][1];
-    for (let i = 0; i < anchors.length - 1; i++) {
-      const [y0, v0] = anchors[i];
-      const [y1, v1] = anchors[i + 1];
-      if (y >= y0 && y <= y1) {
-        v = v0 + ((v1 - v0) * (y - y0)) / (y1 - y0);
-        break;
-      }
-      if (y > y1) v = v1;
-    }
-    out.push({ date: `${y}-01-01`, value: +(v + rnd() * noiseAmp).toFixed(2) });
-  }
-  return out;
-}
-
 // International peer set for World Bank comparator charts. Keep in sync with
-// WB_PEERS in scripts/build-data.mjs. Comparator lines carry an empty fallback
-// so that, until CI bakes the per-country data, the chart shows the UK line
-// alone (TrendPanel drops empty lines) rather than fabricated peer values.
+// WB_PEERS in scripts/build-data.mjs. The chart shows the UK line alone until
+// CI bakes the per-country data (TrendPanel drops empty lines).
 const WB_PEERS: { code: string; label: string }[] = [
   { code: "deu", label: "Germany" },
   { code: "fra", label: "France" },
 ];
-function wbLines(id: string, ukFallback: Point[]): TrendSeries["lines"] {
+function wbLines(id: string): TrendSeries["lines"] {
   return [
-    { id: "gbr", label: "UK", points: realLine(id, "gbr", ukFallback) },
+    { id: "gbr", label: "UK", points: realLine(id, "gbr") },
     ...WB_PEERS.map((p) => ({
       id: p.code,
       label: p.label,
-      points: realLine(id, p.code, [] as Point[]),
+      points: realLine(id, p.code),
     })),
   ];
 }
@@ -138,42 +108,12 @@ const dfeAttainmentGap: TrendSeries = {
   sourceUrl:
     "https://explore-education-statistics.service.gov.uk/find-statistics/key-stage-4-performance",
   cadence: "annual",
-  points: realPoints(
-    "dfe-attainment-gap",
-    annual(
-      [
-        [2011, 3.0],
-        [2017, 2.9],
-        [2019, 2.9],
-        [2021, 3.2],
-        [2023, 3.4],
-        [2025, 3.5],
-      ],
-      2011,
-      2025,
-      81,
-      0.02,
-    ),
-  ),
+  points: realPoints("dfe-attainment-gap"),
   annotations: [
     { date: "2020-01-01", label: "School closures" },
   ],
 };
 
-const dfeEctAttritionFallback = annual(
-  [
-    [2011, 23.5],
-    [2015, 27.0],
-    [2018, 31.4],
-    [2022, 38.6],
-    [2024, 37.2],
-    [2025, 35.9],
-  ],
-  2011,
-  2025,
-  82,
-  0.3,
-);
 const dfeEctAttrition: TrendSeries = {
   id: "dfe-ect-attrition",
   title: "Early-career teacher attrition",
@@ -186,7 +126,7 @@ const dfeEctAttrition: TrendSeries = {
   sourceUrl:
     "https://explore-education-statistics.service.gov.uk/find-statistics/school-workforce-in-england",
   cadence: "annual",
-  points: realPoints("dfe-ect-attrition", dfeEctAttritionFallback),
+  points: realPoints("dfe-ect-attrition"),
   annotations: [
     { date: "2020-01-01", label: "Pandemic" },
   ],
@@ -204,39 +144,12 @@ const dfeDsgDeficit: TrendSeries = {
   sourceUrl:
     "https://www.local.gov.uk/topics/children-and-young-people/dedicated-schools-grant-deficits",
   cadence: "annual",
-  points: annual(
-    [
-      [2018, 0.4],
-      [2020, 0.9],
-      [2022, 1.7],
-      [2024, 3.2],
-      [2026, 4.6],
-    ],
-    2018,
-    2026,
-    83,
-    0.04,
-  ),
+  points: realPoints("dfe-dsg-deficit"),
   annotations: [
     { date: "2023-01-01", label: "Statutory override extended" },
   ],
 };
 
-const dfeTeacherRecruitmentFallback = annual(
-  [
-    [2013, 95],
-    [2017, 102],
-    [2019, 85],
-    [2021, 109],
-    [2023, 71],
-    [2024, 62],
-    [2025, 68],
-  ],
-  2013,
-  2025,
-  84,
-  1.2,
-);
 const dfeTeacherRecruitment: TrendSeries = {
   id: "dfe-teacher-recruitment",
   title: "Teacher training recruitment",
@@ -250,7 +163,7 @@ const dfeTeacherRecruitment: TrendSeries = {
   sourceUrl:
     "https://explore-education-statistics.service.gov.uk/find-statistics/initial-teacher-training-census",
   cadence: "annual",
-  points: realPoints("dfe-teacher-recruitment", dfeTeacherRecruitmentFallback),
+  points: realPoints("dfe-teacher-recruitment"),
   annotations: [],
 };
 
@@ -270,25 +183,7 @@ const hoAsylumBacklog: TrendSeries = {
   source: "UNHCR Refugee Statistics",
   sourceUrl: "https://www.unhcr.org/refugee-statistics",
   cadence: "annual",
-  points: realPoints(
-    "ho-asylum-backlog",
-    trajectory(
-      [
-        ["2014-01-01", 16000],
-        ["2018-06-01", 28000],
-        ["2020-12-01", 50000],
-        ["2022-12-01", 132000],
-        ["2024-06-01", 87000],
-        ["2025-12-01", 71000],
-        ["2026-04-01", 64000],
-      ],
-      "2014-01-01",
-      "2026-04-01",
-      91,
-      1800,
-      0,
-    ),
-  ),
+  points: realPoints("ho-asylum-backlog"),
   annotations: [
     { date: "2022-04-01", label: "Streamlined process pause" },
     { date: "2023-12-01", label: "Legacy clearance push" },
@@ -307,21 +202,7 @@ const hoCaseworkerTurnover: TrendSeries = {
   sourceUrl:
     "https://www.nao.org.uk/reports/asylum-and-protection-transformation-programme/",
   cadence: "monthly",
-  points: trajectory(
-    [
-      ["2017-01-01", 22],
-      ["2019-06-01", 28],
-      ["2021-06-01", 46],
-      ["2022-12-01", 71],
-      ["2024-06-01", 49],
-      ["2026-04-01", 34],
-    ],
-    "2017-01-01",
-    "2026-04-01",
-    92,
-    1.2,
-    0.6,
-  ),
+  points: realPoints("ho-caseworker-turnover"),
   annotations: [
     { date: "2022-06-01", label: "Caseworker churn peak" },
   ],
@@ -341,21 +222,7 @@ const hoHotelSpend: TrendSeries = {
   sourceUrl:
     "https://www.nao.org.uk/reports/investigation-into-asylum-accommodation/",
   cadence: "monthly",
-  points: trajectory(
-    [
-      ["2019-01-01", 0.5],
-      ["2020-06-01", 1.2],
-      ["2022-06-01", 5.8],
-      ["2023-09-01", 8.2],
-      ["2024-09-01", 5.6],
-      ["2026-04-01", 3.4],
-    ],
-    "2019-01-01",
-    "2026-04-01",
-    93,
-    0.15,
-    0.05,
-  ),
+  points: realPoints("ho-hotel-spend"),
   annotations: [
     { date: "2023-09-01", label: "Peak hotel use" },
   ],
@@ -374,24 +241,7 @@ const hoVisaSla: TrendSeries = {
   sourceUrl:
     "https://www.gov.uk/government/collections/migration-transparency-data",
   cadence: "monthly",
-  points: realPoints(
-    "ho-visa-sla",
-    trajectory(
-      [
-        ["2016-01-01", 96],
-        ["2019-06-01", 93],
-        ["2020-06-01", 71],
-        ["2022-06-01", 65],
-        ["2024-06-01", 82],
-        ["2026-04-01", 88],
-      ],
-      "2016-01-01",
-      "2026-04-01",
-      94,
-      1.0,
-      0.6,
-    ),
-  ),
+  points: realPoints("ho-visa-sla"),
   annotations: [
     { date: "2022-03-01", label: "Ukraine schemes surge" },
   ],
@@ -411,22 +261,7 @@ const hoChargeRate: TrendSeries = {
   sourceUrl:
     "https://www.gov.uk/government/statistical-data-sets/police-recorded-crime-and-outcomes-open-data-tables",
   cadence: "annual",
-  points: realPoints(
-    "ho-charge-rate",
-    annual(
-      [
-        [2015, 15.5],
-        [2018, 9.1],
-        [2021, 6.3],
-        [2023, 5.7],
-        [2025, 7.0],
-      ],
-      2015,
-      2025,
-      141,
-      0.1,
-    ),
-  ),
+  points: realPoints("ho-charge-rate"),
   annotations: [],
 };
 
@@ -447,25 +282,7 @@ const mojCrownBacklog: TrendSeries = {
   sourceUrl:
     "https://www.gov.uk/government/collections/criminal-court-statistics",
   cadence: "monthly",
-  points: realPoints(
-    "moj-crown-backlog",
-    trajectory(
-      [
-        ["2014-01-01", 49000],
-        ["2018-12-01", 33000],
-        ["2020-03-01", 39000],
-        ["2021-06-01", 60000],
-        ["2023-12-01", 67000],
-        ["2025-06-01", 72000],
-        ["2026-04-01", 73500],
-      ],
-      "2014-01-01",
-      "2026-04-01",
-      101,
-      900,
-      0,
-    ),
-  ),
+  points: realPoints("moj-crown-backlog"),
   annotations: [
     { date: "2020-03-01", label: "Covid-19 court closures" },
     { date: "2022-09-01", label: "CBA action" },
@@ -484,24 +301,7 @@ const mojPrisonOfficerResign: TrendSeries = {
   sourceUrl:
     "https://www.gov.uk/government/collections/her-majestys-prison-and-probation-service-workforce-quarterly",
   cadence: "monthly",
-  points: realPoints(
-    "moj-officer-resignations",
-    trajectory(
-      [
-        ["2014-01-01", 5.1],
-        ["2017-06-01", 11.2],
-        ["2019-06-01", 9.6],
-        ["2022-06-01", 15.3],
-        ["2024-06-01", 13.1],
-        ["2026-04-01", 11.4],
-      ],
-      "2014-01-01",
-      "2026-04-01",
-      102,
-      0.25,
-      0.1,
-    ),
-  ),
+  points: realPoints("moj-officer-resignations"),
   annotations: [
     { date: "2017-09-01", label: "Pay & retention crisis" },
   ],
@@ -522,22 +322,7 @@ const mojCostPerPrisoner: TrendSeries = {
   sourceUrl:
     "https://www.gov.uk/government/collections/her-majestys-prison-service-annual-report-and-accounts",
   cadence: "annual",
-  points: realPoints(
-    "moj-cost-per-prisoner",
-    annual(
-      [
-        [2014, 35200],
-        [2017, 37900],
-        [2020, 42500],
-        [2023, 51700],
-        [2025, 54600],
-      ],
-      2014,
-      2025,
-      103,
-      300,
-    ),
-  ),
+  points: realPoints("moj-cost-per-prisoner"),
   annotations: [],
 };
 
@@ -554,23 +339,7 @@ const mojCompletionDays: TrendSeries = {
   sourceUrl:
     "https://www.gov.uk/government/collections/criminal-court-statistics",
   cadence: "quarterly",
-  points: realPoints(
-    "moj-completion-days",
-    trajectory(
-    [
-      ["2014-01-01", 391],
-      ["2018-01-01", 478],
-      ["2020-06-01", 525],
-      ["2022-06-01", 642],
-      ["2024-06-01", 689],
-      ["2026-04-01", 711],
-    ],
-    "2014-01-01",
-    "2026-04-01",
-    104,
-    6,
-    3,
-  )),
+  points: realPoints("moj-completion-days"),
   annotations: [
     { date: "2020-03-01", label: "Covid-19" },
   ],
@@ -592,24 +361,7 @@ const modPersonnelShortfall: TrendSeries = {
   sourceUrl:
     "https://www.gov.uk/government/collections/uk-armed-forces-monthly-service-personnel-statistics-index",
   cadence: "quarterly",
-  points: realPoints(
-    "mod-personnel-shortfall",
-    trajectory(
-      [
-        ["2014-01-01", 1.6],
-        ["2017-06-01", 4.1],
-        ["2020-06-01", 4.4],
-        ["2023-06-01", 6.8],
-        ["2025-06-01", 7.4],
-        ["2026-04-01", 6.9],
-      ],
-      "2014-01-01",
-      "2026-04-01",
-      111,
-      0.15,
-      0,
-    ),
-  ),
+  points: realPoints("mod-personnel-shortfall"),
   annotations: [
     { date: "2022-02-01", label: "Ukraine invasion" },
   ],
@@ -627,23 +379,7 @@ const modVoluntaryOutflow: TrendSeries = {
   sourceUrl:
     "https://www.gov.uk/government/collections/uk-armed-forces-quarterly-service-personnel-statistics-index",
   cadence: "quarterly",
-  points: realPoints(
-    "mod-voluntary-outflow",
-    trajectory(
-      [
-        ["2014-01-01", 5.1],
-        ["2018-06-01", 6.7],
-        ["2021-06-01", 6.3],
-        ["2023-12-01", 8.4],
-        ["2026-04-01", 7.6],
-      ],
-      "2014-01-01",
-      "2026-04-01",
-      112,
-      0.2,
-      0.05,
-    ),
-  ),
+  points: realPoints("mod-voluntary-outflow"),
   annotations: [],
 };
 
@@ -661,23 +397,7 @@ const modProcurement: TrendSeries = {
   sourceUrl:
     "https://www.gov.uk/government/collections/major-projects-data",
   cadence: "annual",
-  points: realPoints(
-    "mod-procurement",
-    annual(
-      [
-        [2012, 12],
-        [2015, 16],
-        [2018, 21],
-        [2021, 28],
-        [2024, 34],
-        [2025, 31],
-      ],
-      2012,
-      2025,
-      113,
-      1.0,
-    ),
-  ),
+  points: realPoints("mod-procurement"),
   annotations: [
     { date: "2023-01-01", label: "Equipment Plan unaffordable" },
   ],
@@ -696,19 +416,7 @@ const modReadiness: TrendSeries = {
   source: "NAO reports on force readiness (proxy)",
   sourceUrl: "https://www.nao.org.uk/reports/the-equipment-plan-2023-2033/",
   cadence: "annual",
-  points: annual(
-    [
-      [2014, 78],
-      [2017, 71],
-      [2020, 64],
-      [2023, 56],
-      [2025, 58],
-    ],
-    2014,
-    2025,
-    114,
-    1.4,
-  ),
+  points: realPoints("mod-readiness"),
   annotations: [],
 };
 
@@ -728,21 +436,7 @@ const dwpPipDays: TrendSeries = {
   sourceUrl:
     "https://www.gov.uk/government/collections/personal-independence-payment-statistics",
   cadence: "quarterly",
-  points: trajectory(
-    [
-      ["2014-06-01", 28],
-      ["2017-06-01", 52],
-      ["2019-06-01", 42],
-      ["2022-06-01", 105],
-      ["2024-06-01", 78],
-      ["2026-04-01", 72],
-    ],
-    "2014-06-01",
-    "2026-04-01",
-    121,
-    2,
-    1,
-  ),
+  points: realPoints("dwp-pip-clearance"),
   annotations: [
     { date: "2022-06-01", label: "Backlog peak" },
   ],
@@ -762,21 +456,7 @@ const dwpWorkCoach: TrendSeries = {
   sourceUrl:
     "https://www.nao.org.uk/reports/dwp-work-coaches/",
   cadence: "quarterly",
-  points: trajectory(
-    [
-      ["2015-01-01", 95],
-      ["2018-06-01", 110],
-      ["2020-06-01", 240],
-      ["2022-06-01", 175],
-      ["2024-06-01", 195],
-      ["2026-04-01", 188],
-    ],
-    "2015-01-01",
-    "2026-04-01",
-    122,
-    4,
-    1.5,
-  ),
+  points: realPoints("dwp-work-coach-ratio"),
   annotations: [
     { date: "2020-03-01", label: "UC surge" },
   ],
@@ -797,23 +477,7 @@ const dwpFraudError: TrendSeries = {
   sourceUrl:
     "https://www.gov.uk/government/collections/fraud-and-error-in-the-benefit-system",
   cadence: "annual",
-  points: realPoints(
-    "dwp-fraud-error",
-    annual(
-      [
-        [2011, 2.0],
-        [2015, 1.9],
-        [2019, 2.4],
-        [2021, 3.9],
-        [2023, 3.7],
-        [2025, 3.3],
-      ],
-      2011,
-      2025,
-      123,
-      0.05,
-    ),
-  ),
+  points: realPoints("dwp-fraud-error"),
   annotations: [
     { date: "2020-01-01", label: "Covid-19 easements" },
   ],
@@ -833,21 +497,7 @@ const dwpUcMr: TrendSeries = {
   sourceUrl:
     "https://www.gov.uk/government/collections/mandatory-reconsiderations",
   cadence: "monthly",
-  points: trajectory(
-    [
-      ["2017-01-01", 14000],
-      ["2019-06-01", 22000],
-      ["2021-06-01", 38000],
-      ["2023-06-01", 55000],
-      ["2025-06-01", 47000],
-      ["2026-04-01", 42000],
-    ],
-    "2017-01-01",
-    "2026-04-01",
-    124,
-    900,
-    300,
-  ),
+  points: realPoints("dwp-uc-mr"),
   annotations: [],
 };
 
@@ -867,23 +517,7 @@ const dftCancellations: TrendSeries = {
   source: "Office of Rail and Road, cancellation statistics",
   sourceUrl: "https://dataportal.orr.gov.uk/statistics/performance/passenger-rail-performance/",
   cadence: "monthly",
-  points: realPoints(
-    "dft-rail-cancellations",
-    trajectory(
-    [
-      ["2015-01-01", 2.8],
-      ["2018-06-01", 3.4],
-      ["2020-06-01", 3.1],
-      ["2022-06-01", 4.6],
-      ["2024-06-01", 4.2],
-      ["2026-04-01", 3.9],
-    ],
-    "2015-01-01",
-    "2026-04-01",
-    131,
-    0.15,
-    0.18,
-  )),
+  points: realPoints("dft-rail-cancellations"),
   annotations: [
     { date: "2018-05-01", label: "May 2018 timetable" },
     { date: "2022-06-01", label: "Industrial action" },
@@ -904,21 +538,7 @@ const dftDvlaBacklog: TrendSeries = {
   sourceUrl:
     "https://www.gov.uk/government/organisations/driver-and-vehicle-licensing-agency/about/statistics",
   cadence: "monthly",
-  points: trajectory(
-    [
-      ["2018-01-01", 110000],
-      ["2020-06-01", 380000],
-      ["2021-09-01", 1600000],
-      ["2023-06-01", 420000],
-      ["2025-06-01", 240000],
-      ["2026-04-01", 210000],
-    ],
-    "2018-01-01",
-    "2026-04-01",
-    132,
-    12000,
-    5000,
-  ),
+  points: realPoints("dft-dvla-backlog"),
   annotations: [
     { date: "2021-06-01", label: "Industrial action + Covid" },
   ],
@@ -938,23 +558,7 @@ const dftCapitalOverrun: TrendSeries = {
   sourceUrl:
     "https://www.gov.uk/government/collections/major-projects-data",
   cadence: "annual",
-  points: realPoints(
-    "dft-capital-overrun",
-    annual(
-      [
-        [2012, 14],
-        [2015, 19],
-        [2018, 26],
-        [2021, 38],
-        [2023, 52],
-        [2025, 47],
-      ],
-      2012,
-      2025,
-      133,
-      1.2,
-    ),
-  ),
+  points: realPoints("dft-capital-overrun"),
   annotations: [
     { date: "2023-10-01", label: "HS2 northern leg cancelled" },
   ],
@@ -972,19 +576,7 @@ const dftSrnDegradation: TrendSeries = {
   sourceUrl:
     "https://nationalhighways.co.uk/about-us/our-performance/our-performance-results/",
   cadence: "annual",
-  points: annual(
-    [
-      [2014, 3.6],
-      [2017, 3.9],
-      [2020, 4.2],
-      [2023, 5.1],
-      [2025, 5.4],
-    ],
-    2014,
-    2025,
-    134,
-    0.08,
-  ),
+  points: realPoints("dft-srn-degradation"),
   annotations: [],
 };
 
@@ -1004,69 +596,13 @@ const hmtGdpPerCapita: TrendSeries = {
   source: "ONS quarterly national accounts",
   sourceUrl: "https://www.ons.gov.uk/economy/grossdomesticproductgdp",
   cadence: "annual",
-  points: realPoints(
-    "hmt-gdp-per-capita",
-    annual(
-      [
-        [1990, 22000],
-        [2000, 26500],
-        [2007, 30600],
-        [2009, 28700],
-        [2014, 29400],
-        [2019, 31600],
-        [2020, 29400],
-        [2022, 31900],
-        [2025, 31700],
-      ],
-      1990,
-      2025,
-      201,
-      70,
-    ),
-  ),
+  points: realPoints("hmt-gdp-per-capita"),
   annotations: [
     { date: "2008-01-01", label: "Financial crisis" },
     { date: "2020-01-01", label: "Covid-19" },
   ],
 };
 
-const hmtCpiPts = annual(
-  [
-    [1990, 7.0],
-    [1993, 2.6],
-    [2000, 1.2],
-    [2008, 3.6],
-    [2009, 2.2],
-    [2015, 0.4],
-    [2017, 2.7],
-    [2020, 1.0],
-    [2022, 9.1],
-    [2023, 7.3],
-    [2025, 2.6],
-  ],
-  1990,
-  2025,
-  202,
-  0.2,
-);
-const hmtWagePts = annual(
-  [
-    [1990, 9.5],
-    [1993, 3.6],
-    [2000, 4.5],
-    [2008, 3.8],
-    [2009, 1.4],
-    [2015, 2.6],
-    [2020, 1.7],
-    [2022, 6.0],
-    [2023, 7.8],
-    [2025, 4.6],
-  ],
-  1990,
-  2025,
-  203,
-  0.2,
-);
 const hmtCostOfLiving: TrendSeries = {
   id: "hmt-cost-of-living",
   title: "Inflation vs pay growth",
@@ -1078,10 +614,10 @@ const hmtCostOfLiving: TrendSeries = {
   source: "ONS consumer prices & average weekly earnings",
   sourceUrl: "https://www.ons.gov.uk/economy/inflationandpriceindices",
   cadence: "annual",
-  points: realLine("hmt-cost-of-living", "cpi", hmtCpiPts),
+  points: realLine("hmt-cost-of-living", "cpi"),
   lines: [
-    { id: "cpi", label: "CPI inflation", points: realLine("hmt-cost-of-living", "cpi", hmtCpiPts) },
-    { id: "wages", label: "Pay growth", points: realLine("hmt-cost-of-living", "wages", hmtWagePts) },
+    { id: "cpi", label: "CPI inflation", points: realLine("hmt-cost-of-living", "cpi") },
+    { id: "wages", label: "Pay growth", points: realLine("hmt-cost-of-living", "wages") },
   ],
   annotations: [{ date: "2022-01-01", label: "Cost-of-living crisis" }],
 };
@@ -1099,58 +635,10 @@ const hmtRealIncome: TrendSeries = {
   source: "ONS real households' disposable income",
   sourceUrl: "https://www.ons.gov.uk/economy/nationalaccounts",
   cadence: "annual",
-  points: realPoints(
-    "hmt-real-income",
-    annual(
-      [
-        [1990, 14200],
-        [2000, 16800],
-        [2007, 19600],
-        [2009, 19100],
-        [2019, 21000],
-        [2022, 20400],
-        [2025, 20800],
-      ],
-      1990,
-      2025,
-      204,
-      60,
-    ),
-  ),
+  points: realPoints("hmt-real-income"),
   annotations: [],
 };
 
-const hmtProdPts = annual(
-  [
-    [1990, 80],
-    [2000, 92],
-    [2007, 100],
-    [2009, 99],
-    [2014, 101],
-    [2019, 104],
-    [2025, 106],
-  ],
-  1990,
-  2025,
-  205,
-  0.3,
-);
-const hmtRealWagePts = annual(
-  [
-    [1990, 72],
-    [2000, 88],
-    [2007, 100],
-    [2009, 99],
-    [2014, 92],
-    [2019, 97],
-    [2022, 99],
-    [2025, 98],
-  ],
-  1990,
-  2025,
-  206,
-  0.3,
-);
 const hmtProductivity: TrendSeries = {
   id: "hmt-productivity",
   title: "Productivity",
@@ -1164,10 +652,9 @@ const hmtProductivity: TrendSeries = {
   sourceUrl:
     "https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/labourproductivity",
   cadence: "annual",
-  points: realPoints("hmt-productivity", hmtProdPts),
+  points: realPoints("hmt-productivity"),
   annotations: [{ date: "2008-01-01", label: "Productivity stalls" }],
 };
-void hmtRealWagePts;
 
 const hmtDebt: TrendSeries = {
   id: "hmt-psnd",
@@ -1185,26 +672,7 @@ const hmtDebt: TrendSeries = {
   sourceUrl:
     "https://www.ons.gov.uk/economy/governmentpublicsectorandtaxes/publicsectorfinance",
   cadence: "annual",
-  points: realPoints(
-    "hmt-psnd",
-    annual(
-      [
-        [1990, 28],
-        [1993, 38],
-        [2001, 29],
-        [2008, 42],
-        [2012, 80],
-        [2016, 86],
-        [2020, 96],
-        [2021, 103],
-        [2025, 98],
-      ],
-      1990,
-      2025,
-      207,
-      0.5,
-    ),
-  ),
+  points: realPoints("hmt-psnd"),
   annotations: [
     { date: "2008-01-01", label: "Bank bailouts" },
     { date: "2020-01-01", label: "Covid-19" },
@@ -1228,29 +696,7 @@ const hmtDebtCash: TrendSeries = {
     "https://www.ons.gov.uk/economy/governmentpublicsectorandtaxes/publicsectorfinance",
   cadence: "annual",
   // Stored in £ billion; formatted as £ trillion.
-  points: realPoints(
-    "hmt-psnd-cash",
-    annual(
-      [
-        [1993, 300],
-        [2000, 350],
-        [2008, 520],
-        [2010, 1000],
-        [2012, 1190],
-        [2015, 1540],
-        [2018, 1740],
-        [2020, 1880],
-        [2021, 2230],
-        [2022, 2480],
-        [2024, 2690],
-        [2025, 2810],
-      ],
-      1993,
-      2025,
-      213,
-      6,
-    ),
-  ),
+  points: realPoints("hmt-psnd-cash"),
   annotations: [
     { date: "2008-01-01", label: "Financial crisis" },
     { date: "2020-01-01", label: "Covid-19" },
@@ -1269,31 +715,7 @@ const hmtUnemployment: TrendSeries = {
   sourceUrl:
     "https://www.ons.gov.uk/employmentandlabourmarket/peoplenotinwork/unemployment",
   cadence: "monthly",
-  points: realPoints(
-    "hmt-unemployment",
-    trajectory(
-      [
-        ["1971-01-01", 3.6],
-        ["1976-01-01", 5.5],
-        ["1984-06-01", 11.9],
-        ["1990-01-01", 6.9],
-        ["1993-01-01", 10.6],
-        ["2000-01-01", 5.4],
-        ["2008-06-01", 5.3],
-        ["2011-10-01", 8.4],
-        ["2016-01-01", 5.0],
-        ["2019-12-01", 3.8],
-        ["2020-10-01", 5.1],
-        ["2022-06-01", 3.7],
-        ["2025-06-01", 4.5],
-      ],
-      "1971-01-01",
-      "2025-06-01",
-      220,
-      0.12,
-      0,
-    ),
-  ),
+  points: realPoints("hmt-unemployment"),
   annotations: [
     { date: "1984-01-01", label: "Deindustrialisation" },
     { date: "2008-01-01", label: "Financial crisis" },
@@ -1313,25 +735,7 @@ const hmtDebtInterest: TrendSeries = {
   source: "World Bank (IMF GFS)",
   sourceUrl: "https://data.worldbank.org/indicator/GC.XPN.INTP.RV.ZS?locations=GB",
   cadence: "annual",
-  points: realPoints(
-    "hmt-debt-interest",
-    annual(
-      [
-        [1990, 10.5],
-        [2000, 7.5],
-        [2008, 5.0],
-        [2015, 6.0],
-        [2021, 4.6],
-        [2022, 9.2],
-        [2023, 10.4],
-        [2025, 8.1],
-      ],
-      1990,
-      2025,
-      208,
-      0.15,
-    ),
-  ),
+  points: realPoints("hmt-debt-interest"),
   annotations: [{ date: "2022-01-01", label: "Rates + RPI surge" }],
 };
 
@@ -1347,53 +751,10 @@ const hmtTaxBurden: TrendSeries = {
   source: "World Bank (IMF GFS)",
   sourceUrl: "https://data.worldbank.org/indicator/GC.TAX.TOTL.GD.ZS?locations=GB",
   cadence: "annual",
-  points: realPoints(
-    "hmt-tax-burden",
-    annual(
-      [
-        [1990, 33.5],
-        [2000, 33.0],
-        [2010, 32.0],
-        [2019, 33.0],
-        [2022, 35.0],
-        [2024, 36.5],
-        [2025, 37.1],
-      ],
-      1990,
-      2025,
-      209,
-      0.2,
-    ),
-  ),
+  points: realPoints("hmt-tax-burden"),
   annotations: [{ date: "2024-01-01", label: "Highest since 1948" }],
 };
 
-const hmtDirectPts = annual(
-  [
-    [1990, 18.0],
-    [2000, 18.6],
-    [2010, 17.4],
-    [2019, 18.6],
-    [2025, 20.2],
-  ],
-  1990,
-  2025,
-  210,
-  0.15,
-);
-const hmtIndirectPts = annual(
-  [
-    [1990, 13.2],
-    [2000, 12.6],
-    [2010, 12.4],
-    [2019, 11.6],
-    [2025, 11.0],
-  ],
-  1990,
-  2025,
-  211,
-  0.15,
-);
 const hmtTaxSplit: TrendSeries = {
   id: "hmt-tax-split",
   title: "Direct vs indirect tax",
@@ -1406,10 +767,10 @@ const hmtTaxSplit: TrendSeries = {
   sourceUrl:
     "https://data.worldbank.org/indicator/GC.TAX.YPKG.RV.ZS?locations=GB",
   cadence: "annual",
-  points: realLine("hmt-tax-split", "direct", hmtDirectPts),
+  points: realLine("hmt-tax-split", "direct"),
   lines: [
-    { id: "direct", label: "Direct (income tax + NI)", points: realLine("hmt-tax-split", "direct", hmtDirectPts) },
-    { id: "indirect", label: "Indirect (VAT + duties)", points: realLine("hmt-tax-split", "indirect", hmtIndirectPts) },
+    { id: "direct", label: "Direct (income tax + NI)", points: realLine("hmt-tax-split", "direct") },
+    { id: "indirect", label: "Indirect (VAT + duties)", points: realLine("hmt-tax-split", "indirect") },
   ],
   annotations: [],
 };
@@ -1427,27 +788,7 @@ const hmtDeficit: TrendSeries = {
   sourceUrl:
     "https://www.ons.gov.uk/economy/governmentpublicsectorandtaxes/publicsectorfinance",
   cadence: "annual",
-  points: realPoints(
-    "hmt-deficit",
-    annual(
-      [
-        [1990, 1.5],
-        [1993, 7.5],
-        [2001, -1.0],
-        [2008, 2.8],
-        [2010, 10.2],
-        [2016, 3.8],
-        [2019, 2.3],
-        [2020, 15.1],
-        [2023, 5.8],
-        [2025, 4.4],
-      ],
-      1990,
-      2025,
-      212,
-      0.2,
-    ),
-  ),
+  points: realPoints("hmt-deficit"),
   annotations: [
     { date: "2009-01-01", label: "Deficit peak" },
     { date: "2020-01-01", label: "Covid-19" },
@@ -1471,7 +812,7 @@ const dfeEduSpendGdp: TrendSeries = {
   source: "World Bank (UNESCO)",
   sourceUrl: "https://data.worldbank.org/indicator/SE.XPD.TOTL.GD.ZS?locations=GB",
   cadence: "annual",
-  points: realPoints("dfe-edu-spend-gdp", annual([[2000, 4.3], [2010, 5.5], [2015, 4.7], [2020, 5.2], [2021, 5.1]], 2000, 2021, 320, 0.05)),
+  points: realPoints("dfe-edu-spend-gdp"),
   annotations: [],
 };
 
@@ -1487,7 +828,7 @@ const dfePupilTeacher: TrendSeries = {
   source: "World Bank (UNESCO)",
   sourceUrl: "https://data.worldbank.org/indicator/SE.PRM.ENRL.TC.ZS?locations=GB",
   cadence: "annual",
-  points: realPoints("dfe-pupil-teacher", annual([[2000, 19.4], [2010, 19.8], [2015, 20.9], [2020, 20.2]], 2000, 2021, 321, 0.05)),
+  points: realPoints("dfe-pupil-teacher"),
   annotations: [],
 };
 
@@ -1503,8 +844,8 @@ const hoHomicideRate: TrendSeries = {
   sourceUrl: "https://data.worldbank.org/indicator/VC.IHR.PSRC.P5?locations=GB",
   subtitle: "Intentional homicides per 100,000 people — UK vs Germany & France",
   cadence: "annual",
-  points: realLine("ho-homicide-rate", "gbr", annual([[2000, 1.6], [2008, 1.3], [2014, 0.9], [2018, 1.2], [2021, 1.0]], 2000, 2021, 322, 0.03)),
-  lines: wbLines("ho-homicide-rate", annual([[2000, 1.6], [2008, 1.3], [2014, 0.9], [2018, 1.2], [2021, 1.0]], 2000, 2021, 322, 0.03)),
+  points: realLine("ho-homicide-rate", "gbr"),
+  lines: wbLines("ho-homicide-rate"),
   annotations: [],
 };
 
@@ -1520,7 +861,7 @@ const modDefenceSpendGdp: TrendSeries = {
   source: "World Bank (SIPRI)",
   sourceUrl: "https://data.worldbank.org/indicator/MS.MIL.XPND.GD.ZS?locations=GB",
   cadence: "annual",
-  points: realPoints("mod-defence-spend-gdp", annual([[1990, 3.6], [2000, 2.4], [2010, 2.4], [2019, 2.0], [2023, 2.3]], 1990, 2023, 323, 0.04)),
+  points: realPoints("mod-defence-spend-gdp"),
   annotations: [{ date: "2022-02-01", label: "Ukraine invasion" }],
 };
 
@@ -1535,7 +876,7 @@ const dwpPop65: TrendSeries = {
   source: "World Bank (UN Population)",
   sourceUrl: "https://data.worldbank.org/indicator/SP.POP.65UP.TO.ZS?locations=GB",
   cadence: "annual",
-  points: realPoints("dwp-pop-65", annual([[1990, 15.7], [2000, 15.8], [2010, 16.4], [2020, 18.6], [2022, 19.2]], 1990, 2022, 324, 0.03)),
+  points: realPoints("dwp-pop-65"),
   annotations: [],
 };
 
@@ -1551,8 +892,8 @@ const dftRoadDeathRate: TrendSeries = {
   source: "World Bank (WHO)",
   sourceUrl: "https://data.worldbank.org/indicator/SH.STA.TRAF.P5?locations=GB",
   cadence: "annual",
-  points: realLine("dft-road-death-rate", "gbr", annual([[2000, 6.1], [2010, 3.7], [2015, 2.9], [2019, 2.9], [2021, 2.6]], 2000, 2021, 325, 0.04)),
-  lines: wbLines("dft-road-death-rate", annual([[2000, 6.1], [2010, 3.7], [2015, 2.9], [2019, 2.9], [2021, 2.6]], 2000, 2021, 325, 0.04)),
+  points: realLine("dft-road-death-rate", "gbr"),
+  lines: wbLines("dft-road-death-rate"),
   annotations: [],
 };
 
@@ -1582,7 +923,6 @@ function wbS(o: {
   // multi-line series for this id via wbCompare in build-data.mjs).
   compare?: boolean;
 }): TrendSeries {
-  const ukFallback = annual(o.anchors, o.start, o.end, o.seed, o.amp);
   return {
     id: o.id,
     title: o.title,
@@ -1597,9 +937,9 @@ function wbS(o: {
     sourceUrl: `https://data.worldbank.org/indicator/${o.code}?locations=GB`,
     cadence: "annual",
     points: o.compare
-      ? realLine(o.id, "gbr", ukFallback)
-      : realPoints(o.id, ukFallback),
-    lines: o.compare ? wbLines(o.id, ukFallback) : undefined,
+      ? realLine(o.id, "gbr")
+      : realPoints(o.id),
+    lines: o.compare ? wbLines(o.id) : undefined,
     annotations: o.annotations ?? [],
   };
 }
@@ -1670,23 +1010,7 @@ const mhclgTempAccom: TrendSeries = {
   source: "MHCLG statutory homelessness live tables (TA1)",
   sourceUrl: "https://www.gov.uk/government/statistical-data-sets/live-tables-on-homelessness",
   cadence: "quarterly",
-  points: realPoints(
-    "mhclg-temp-accommodation",
-    trajectory(
-      [
-        ["2010-12-01", 48000],
-        ["2017-12-01", 79000],
-        ["2020-03-01", 93000],
-        ["2023-12-01", 112000],
-        ["2025-09-01", 131000],
-      ],
-      "2010-12-01",
-      "2025-09-01",
-      401,
-      700,
-      0,
-    ),
-  ),
+  points: realPoints("mhclg-temp-accommodation"),
   annotations: [{ date: "2020-01-01", label: "Covid-19" }],
 };
 
@@ -1704,23 +1028,7 @@ const mhclgNetDwellings: TrendSeries = {
   source: "MHCLG housing supply: net additional dwellings",
   sourceUrl: "https://www.gov.uk/government/collections/net-supply-of-housing",
   cadence: "annual",
-  points: realPoints(
-    "mhclg-net-dwellings",
-    annual(
-      [
-        [2010, 137000],
-        [2015, 171000],
-        [2019, 243000],
-        [2020, 216000],
-        [2023, 234000],
-        [2024, 221000],
-      ],
-      2010,
-      2024,
-      402,
-      1400,
-    ),
-  ),
+  points: realPoints("mhclg-net-dwellings"),
   annotations: [],
 };
 
@@ -1738,23 +1046,7 @@ const mhclgAffordability: TrendSeries = {
   sourceUrl:
     "https://www.ons.gov.uk/peoplepopulationandcommunity/housing/datasets/ratioofhousepricetoworkplacebasedearningslowerquartileandmedian",
   cadence: "annual",
-  points: realPoints(
-    "mhclg-affordability",
-    annual(
-      [
-        [1999, 4.4],
-        [2008, 7.2],
-        [2014, 7.1],
-        [2021, 9.1],
-        [2023, 8.3],
-        [2024, 7.8],
-      ],
-      1999,
-      2024,
-      403,
-      0.07,
-    ),
-  ),
+  points: realPoints("mhclg-affordability"),
   annotations: [],
 };
 
@@ -1774,22 +1066,7 @@ const defraSewage: TrendSeries = {
   source: "Environment Agency storm overflow EDM annual returns",
   sourceUrl: "https://www.gov.uk/government/statistics/storm-overflow-spill-data",
   cadence: "annual",
-  points: realPoints(
-    "defra-sewage-hours",
-    annual(
-      [
-        [2020, 3100000],
-        [2021, 2670000],
-        [2022, 1750000],
-        [2023, 3610000],
-        [2024, 3614000],
-      ],
-      2020,
-      2024,
-      411,
-      25000,
-    ),
-  ),
+  points: realPoints("defra-sewage-hours"),
   annotations: [],
 };
 
@@ -1804,21 +1081,7 @@ const defraBathingWater: TrendSeries = {
   source: "Defra / Environment Agency bathing water classifications",
   sourceUrl: "https://www.gov.uk/government/statistics/bathing-water-quality-statistics",
   cadence: "annual",
-  points: realPoints(
-    "defra-bathing-water",
-    annual(
-      [
-        [2015, 90],
-        [2019, 93],
-        [2022, 72],
-        [2024, 64],
-      ],
-      2015,
-      2024,
-      412,
-      0.5,
-    ),
-  ),
+  points: realPoints("defra-bathing-water"),
   annotations: [{ date: "2024-01-01", label: "Stricter classification" }],
 };
 
@@ -1834,22 +1097,7 @@ const defraRecycling: TrendSeries = {
   source: "Defra statistics on waste",
   sourceUrl: "https://www.gov.uk/government/statistics/uk-waste-data",
   cadence: "annual",
-  points: realPoints(
-    "defra-recycling",
-    annual(
-      [
-        [2010, 40],
-        [2015, 44.3],
-        [2019, 45.5],
-        [2022, 43.4],
-        [2023, 44.1],
-      ],
-      2010,
-      2023,
-      413,
-      0.25,
-    ),
-  ),
+  points: realPoints("defra-recycling"),
   annotations: [],
 };
 
