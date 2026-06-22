@@ -1,3 +1,12 @@
+> **STATUS: DONE (2026-06-22).** Both `waiting-list` and `rtt-18-week` fetch `ok`
+> in `data-check.yml` and are frozen in `tools/loop/fixtures/ok-series.json`. The
+> national overview file no longer exists, so the series are rebuilt from the 18
+> most-recent per-month `Incomplete-Provider` workbooks (sum the "Provider" +
+> "IS Provider" all-specialties "Total" rows; exclude the "with DTA" sheets). Latest
+> Mar-2026 = 7.01M list / 65.3% within 18 weeks. See `docs/backlog-research/nhs-rtt.md`
+> for the final approach and the implementation in `scripts/build-data.mjs` (`parseRtt`).
+> Kept as a worked example of the outer (CI) reward tier.
+
 # Bake real data for `waiting-list` (NHS England RTT — total incomplete pathways)
 
 A ready-to-run **data task** for a new session — the first real exercise of the

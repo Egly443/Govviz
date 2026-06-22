@@ -3,8 +3,36 @@
 **Series:** `waitingList` (id `waiting-list`) and `rtt18Week` (id `rtt-18-week`) in
 `src/components/data.ts`.
 
-**Status:** INITIAL DRAFT — source identified; fetcher code drafted pending column
-verification.
+**Status:** ✅ DONE (2026-06-22) — both series fetch `ok` in CI and are frozen.
+
+## FINAL APPROACH (what actually shipped)
+The national "Overview Timeseries" file is **gone** — a CI inventory of the RTT
+year/landing pages (198 files) found only stale archives (`...to-Dec-2014...`,
+`Annual-Report-2019-20-timeseries...`). The live data is only the per-month,
+per-provider `Incomplete-Provider-MmmYY` workbooks (~9 MB each; 24 months listed,
+2024-04..2026-03). `scripts/build-data.mjs` `parseRtt()` therefore:
+1. scrapes the year/landing pages for every `Incomplete-Provider-*.xlsx`, dedups by
+   month, takes the newest `RTT_MONTHS` (default 18);
+2. for each workbook sums the **"Provider"** (NHS) + **"IS Provider"**
+   (independent-sector) sheets — header row 10, treatment-function name col 4, "Total
+   number of incomplete pathways" col 110, "Total within 18 weeks" col 111 — over the
+   rows whose treatment function is `Total` (one per provider; excludes the
+   `with DTA` alternative-measure sheets, which are not additive);
+3. `waiting-list` = Σ total; `rtt-18-week` = Σ within18 / Σ total × 100.
+
+Latest Mar-2026 = **7.01M** list / **65.3%** within 18 weeks — consistent with NHS's
+published 7.4M (late-2025, falling) and the 65%-by-Mar-2026 interim target.
+
+**Gotchas that cost CI rounds:** (a) `sheet_to_json(header:1)` returns *sparse*
+arrays; `.map()` preserves the holes so header predicates crashed on `undefined` —
+build dense rows with `Array.from` first. (b) These files have **no** "unknown clock
+start" column, so the list size is simply col 110 (handled: the unknown term is 0).
+(c) Each monthly download is wrapped resilient so one timeout drops a month, not the
+series. The original draft below (assuming a single national overview file) is kept
+for history but is **superseded**.
+
+---
+**Original draft (superseded — national overview file no longer published):**
 
 ---
 

@@ -119,7 +119,7 @@ find ONS CDIDs/WB codes/EES dataset IDs/gov.uk collection slugs, then wire the f
 - **data.gov.uk CKAN `.zip`:** `package_show` → resource `.zip` URLs → `unzipUrl` → `xlsxBookFromBuffer` per entry; sum across per-entity sheets (defra-sewage EDM — works only when the EA endpoint isn't rate-limiting). Watch `\b` word boundaries on years flanked by underscores (`EDM_2020_…` needs digit boundaries, not `\b`).
 - **Branch CI harness:** `.github/workflows/data-check.yml` runs the fetcher on non-main pushes **without deploying** — validate parsers against live sources here (the sandbox has no internet), then promote to main. Production deploy (`deploy.yml`) runs only on `main`.
 
-### Coverage — current state (92 ok / 4 skipped as of 2026-06-21)
+### Coverage — current state (94 ok / 2 skipped as of 2026-06-22)
 Read the latest CI **"Fetch live data"** log (`mcp__github__get_job_logs`) for the authoritative
 `ok`/`SKIP` tally — the manifest is cumulative so one run shows everything (the skip count
 fluctuates by ±1–2 because the two Defra EA series fetch intermittently). ~90 series IDs now
@@ -134,6 +134,12 @@ dft-capital-overrun, ho-visa-sla, dft-rail-cancellations, ae-performance, agency
 discharge-delays. Plus the 2026-06 MHCLG/Defra launch: mhclg-temp-accommodation (TA1 quarterly),
 mhclg-net-dwellings (LT120 transposed), mhclg-affordability (ONS median HPE ratio, Contents-disambiguated),
 defra-recycling (computed dry+organic/total), defra-pm25 + defra-forest (World Bank).
+Plus the 2026-06-22 NHS RTT landing (first outer-tier/CI-reward data task): waiting-list +
+rtt-18-week, rebuilt by aggregating the per-provider monthly Incomplete workbooks (NHS dropped the
+national overview file) — sum the NHS "Provider" + independent-sector "IS Provider" all-specialties
+("Total" treatment-function) rows per month over the last 18 months; latest Mar-2026 = 7.01M list /
+65.3% within 18 weeks, on NHS's published 7.4M→falling, 65%-by-Mar-2026 trajectory. Both frozen in
+`tools/loop/fixtures/ok-series.json`.
 
 ### Illustrative data REMOVED from the app (2026-06)
 Fabricated/illustrative fallbacks no longer render anywhere. `SHOW_ILLUSTRATIVE`
@@ -155,15 +161,14 @@ single-arg. (Done via the agentic loop — see "Agentic coding loop" below.)
 
 **TODO — indicators still needing a real source** (currently render placeholders;
 see the per-series notes in `docs/backlog-research/` and the rows below):
-`waiting-list`, `rtt-18-week`, `turnover`, `defra-sewage-hours` (intermittent),
-`defra-bathing-water`, plus the hard-blocked DWP Stat-Xplore / PDF-only series.
+`turnover`, `defra-sewage-hours` (intermittent), `defra-bathing-water`, plus the
+hard-blocked DWP Stat-Xplore / PDF-only series. (`waiting-list` + `rtt-18-week`
+landed 2026-06-22 — see the coverage note above.)
 
 ### Remaining illustrative
 **Fetchers wired but currently SKIP (CI-verified blockers):**
 | Series | Blocker |
 |---|---|
-| `waiting-list` | NHS England discontinued the national RTT timeseries; only split per-org monthly XLSX (`Incomplete-Provider` ~9 MB, etc.). Needs summing providers × RTT week-bands. `data.england.nhs.uk` CKAN → 404. |
-| `rtt-18-week` | Same per-provider RTT workbook; % within 18 weeks must be aggregated from it. |
 | `turnover` | digital.nhs.uk Cloudflare-blocks automated access (403 even with a browser UA); data.gov.uk `nhs-workforce-turnover` resources point back to digital.nhs.uk. Needs a non-gated source. |
 | `defra-sewage-hours` | EA Event Duration Monitoring annual returns are `.zip`-of-xlsx on data.gov.uk (pkg `19f6064d…`); parser unzips (fflate) and sums "Total Duration (hours)" across per-company sheets, but the `environment.data.gov.uk/api/file/download` endpoint rate-limit/403s automated requests (first zip occasionally succeeds, rest 403). Needs a non-gated mirror. Defra hero is `defra-recycling` instead. |
 | `defra-bathing-water` | gov.uk "bathing-water-quality-statistics" editions are HTML/PDF only — no machine-readable classification table to compute % Good/Excellent. EA Bathing Water Data Explorer API is on the same 403-prone `environment.data.gov.uk` host. |
@@ -226,13 +231,25 @@ working-tree git ops while a loop is editing the tree.
 **Code-task example (proven):** removing the dead generators —
 `tools/loop/tasks/cleanup-dead-generators.md` (shipped 1194-line deletion).
 
-### NEXT STEP — real data series (ready for a new session)
-`tools/loop/tasks/data-waiting-list.md` tees up baking real data for
-`waiting-list` (NHS England RTT total incomplete pathways) — the first exercise
-of the **outer (CI) reward tier**. A data task can't be verified in-sandbox; the
-real reward is the `data-check.yml` fetch log read back via `ci-reward.mjs`
-(`SKIP→ok→freeze`). Research in `docs/backlog-research/nhs-rtt.md`. Once it lands,
-`rtt-18-week` reuses the same provider workbook.
+### DONE — first outer-tier data task: `waiting-list` + `rtt-18-week` (2026-06-22)
+The teed-up `tools/loop/tasks/data-waiting-list.md` task landed — the first full
+exercise of the **outer (CI) reward tier** (`SKIP→ok→freeze`), driven through
+`data-check.yml` + `ci-reward.mjs` from the session. NHS England has no national
+RTT overview/full-CSV file anymore (only stale 2014/2019-20 archives), so both
+series are rebuilt by aggregating the 18 most-recent per-month `Incomplete-Provider`
+workbooks: sum the NHS "Provider" + independent-sector "IS Provider" all-specialties
+("Total" treatment-function) rows (excluding the "with DTA" alternative-measure
+sheets) → national total-incomplete + % within 18 weeks. Both frozen in
+`tools/loop/fixtures/ok-series.json` (floor 12, observed 18). Research log:
+`docs/backlog-research/nhs-rtt.md`. **Lessons:** (a) `sheet_to_json(header:1)` yields
+sparse rows whose holes survive `.map()` → build dense rows with `Array.from` before
+running header predicates; (b) the fetch step costs ~+4.5 min on every build (18 ×
+9 MB downloads), so each monthly file is wrapped resilient and `RTT_MONTHS` caps it.
+
+**NEXT STEP — next real-data candidate:** `turnover` is hard-blocked (Cloudflare
+403); the most tractable remaining targets are `defra-bathing-water` /
+`defra-sewage-hours` (both on the 403-prone `environment.data.gov.uk` host — need a
+non-gated mirror). See `docs/backlog-research/` for per-series notes.
 
 ## TODO / follow-ups
 - **Enable blog analytics (GoatCounter):** the `/blog` route + cookieless beacon

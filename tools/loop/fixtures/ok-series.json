@@ -1,4 +1,15 @@
 {
   "_note": "Auto-managed by ci-reward.mjs --freeze. Each series here must keep fetching ok with >= minPoints, or CI flags a regression. The corpus grows on success and never shrinks silently. Seed it after a green data-check run: node tools/loop/ci-reward.mjs --freeze --log=fetch.log",
-  "series": {}
+  "series": {
+    "waiting-list": {
+      "minPoints": 12,
+      "frozenAt": "2026-06-22",
+      "note": "Observed 18/18 months; floor set below observed because the series is rebuilt from 18 separate ~9 MB Incomplete-Provider workbooks and a single transient download timeout would drop one month (still a valid series). 12 = a year of data guaranteed."
+    },
+    "rtt-18-week": {
+      "minPoints": 12,
+      "frozenAt": "2026-06-22",
+      "note": "Derived from the same per-provider Incomplete workbooks as waiting-list; same conservative floor."
+    }
+  }
 }
