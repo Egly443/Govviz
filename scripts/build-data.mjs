@@ -364,60 +364,70 @@ function rttMonthFromName(name) {
   return `${2000 + Number(m[2])}-${String(mon).padStart(2, "0")}-01`;
 }
 
-// Parse one Incomplete-Provider workbook → { total, within18, withClock } England
-// sums, by adding each provider's all-specialties ("Total" treatment-function) row.
-// total = headline incomplete pathways; within18/withClock → % within 18 weeks.
+// Dense lower-cased row (sheet_to_json header:1 yields sparse arrays; .map keeps
+// the holes, so predicate callbacks would get undefined — Array.from fills them).
+const denseRow = (row) => Array.from({ length: row?.length ?? 0 }, (_, i) => String(row[i] ?? "").toLowerCase().trim());
+
+// Sum one provider sheet's all-specialties ("Total" treatment-function) rows.
+// Returns null if the sheet has no recognisable header. total = headline
+// incomplete pathways; within18/withClock derive % within 18 weeks.
+function rttSumSheet(rows, sn, diag) {
+  let headerIdx = -1, tfCol = -1, totalCol = -1, w18Col = -1, clockCol = -1;
+  for (let i = 0; i < Math.min(rows.length, 25); i++) {
+    const r = denseRow(rows[i]);
+    const tf = r.findIndex((c) => c === "treatment function" || c.includes("treatment function name") || c === "rtt part description");
+    const tot = r.findIndex((c) => /total.*incomplete pathways/.test(c) && !/clock start/.test(c) && !/within|over/.test(c));
+    if (tf >= 0 && tot >= 0) {
+      headerIdx = i; tfCol = tf; totalCol = tot;
+      w18Col = r.findIndex((c) => /total within 18 weeks/.test(c) || (c.includes("within 18") && c.includes("week")));
+      clockCol = r.findIndex((c) => /incomplete pathways.*clock start/.test(c) || /with a clock start/.test(c));
+      break;
+    }
+  }
+  if (headerIdx < 0) {
+    if (diag) {
+      console.log(`  RTT sheet "${sn}": no header in first 25 rows; preview:`);
+      for (const r of rows.slice(0, 12)) console.log(`     ${JSON.stringify((r || []).slice(0, 22)).slice(0, 220)}`);
+    }
+    return null;
+  }
+  if (diag) {
+    console.log(`  RTT sheet="${sn}" headerIdx=${headerIdx} tfCol=${tfCol} totalCol=${totalCol} w18Col=${w18Col} clockCol=${clockCol}`);
+    console.log(`  RTT header=[${denseRow(rows[headerIdx]).join("|").slice(0, 500)}]`);
+  }
+  let total = 0, within18 = 0, withClock = 0, nTotalRows = 0;
+  const tfSeen = new Set();
+  for (const r of rows.slice(headerIdx + 1)) {
+    if (!r) continue;
+    const tf = String(r[tfCol] ?? "").trim();
+    if (diag && tfSeen.size < 24) tfSeen.add(tf);
+    if (!/^total$/i.test(tf)) continue;
+    const t = r[totalCol];
+    if (typeof t === "number" && Number.isFinite(t)) { total += t; nTotalRows++; }
+    const w = w18Col >= 0 ? r[w18Col] : null;
+    if (typeof w === "number" && Number.isFinite(w)) within18 += w;
+    const c = clockCol >= 0 ? r[clockCol] : null;
+    if (typeof c === "number" && Number.isFinite(c)) withClock += c;
+  }
+  if (diag) console.log(`  RTT sheet "${sn}" TF-values=[${[...tfSeen].join("|").slice(0, 300)}] nTotalRows=${nTotalRows} total=${total} within18=${within18} withClock=${withClock}`);
+  return nTotalRows > 0 && total > 0 ? { total, within18, withClock } : null;
+}
+
+// Parse one Incomplete-Provider workbook → national { total, within18, withClock }
+// by summing the NHS "Provider" and independent-sector "IS Provider" sheets (the
+// "with DTA" sheets are an alternative waiting-time measure — not additive).
 async function rttParseProvider(url, diag = false) {
   const book = await xlsxBook(url);
   if (diag) console.log(`  RTT provider sheets=[${book.SheetNames.join("|")}]`);
-  const dataSheets = book.SheetNames.filter((n) => !/note|cover|contents|definition/i.test(n));
-  const ordered = [
-    ...dataSheets.filter((n) => /provider|data|incomplete/i.test(n)),
-    ...dataSheets.filter((n) => !/provider|data|incomplete/i.test(n)),
-  ];
-  for (const sn of (ordered.length ? ordered : book.SheetNames)) {
-    const rows = await sheetRows(book, sn);
-    let headerIdx = -1, tfCol = -1, totalCol = -1, w18Col = -1, clockCol = -1;
-    for (let i = 0; i < Math.min(rows.length, 25); i++) {
-      const r = rows[i].map((c) => String(c ?? "").toLowerCase().trim());
-      const tf = r.findIndex((c) => c === "treatment function" || c.includes("treatment function name") || c === "rtt part description");
-      const tot = r.findIndex((c) => /total.*incomplete pathways/.test(c) && !/clock start/.test(c) && !/within|over/.test(c));
-      if (tf >= 0 && tot >= 0) {
-        headerIdx = i; tfCol = tf; totalCol = tot;
-        w18Col = r.findIndex((c) => /total within 18 weeks/.test(c) || (c.includes("within 18") && c.includes("week")));
-        clockCol = r.findIndex((c) => /incomplete pathways.*clock start/.test(c) || /with a clock start/.test(c));
-        break;
-      }
-    }
-    if (headerIdx < 0) {
-      if (diag) {
-        console.log(`  RTT provider sheet "${sn}": no header in first 25 rows; preview:`);
-        for (const r of rows.slice(0, 16)) console.log(`     ${JSON.stringify(r.slice(0, 24)).slice(0, 240)}`);
-      }
-      continue;
-    }
-    if (diag) {
-      console.log(`  RTT provider sheet="${sn}" headerIdx=${headerIdx} tfCol=${tfCol} totalCol=${totalCol} w18Col=${w18Col} clockCol=${clockCol}`);
-      console.log(`  RTT provider header=[${rows[headerIdx].map((c) => String(c ?? "").trim()).join("|").slice(0, 500)}]`);
-    }
-    let total = 0, within18 = 0, withClock = 0, nTotalRows = 0;
-    const tfSeen = new Set();
-    for (const r of rows.slice(headerIdx + 1)) {
-      const tf = String(r[tfCol] ?? "").trim();
-      if (diag && tfSeen.size < 24) tfSeen.add(tf);
-      if (!/^total$/i.test(tf)) continue;
-      const t = r[totalCol];
-      if (typeof t === "number" && Number.isFinite(t)) { total += t; nTotalRows++; }
-      const w = w18Col >= 0 ? r[w18Col] : null;
-      if (typeof w === "number" && Number.isFinite(w)) within18 += w;
-      const c = clockCol >= 0 ? r[clockCol] : null;
-      if (typeof c === "number" && Number.isFinite(c)) withClock += c;
-    }
-    if (diag) console.log(`  RTT provider TF-values=[${[...tfSeen].join("|").slice(0, 320)}] nTotalRows=${nTotalRows} total=${total} within18=${within18} withClock=${withClock}`);
-    if (nTotalRows > 0 && total > 0) return { total, within18, withClock };
-    if (diag) console.log(`  RTT provider: no "Total" treatment-function rows summed on sheet "${sn}"`);
+  const targets = book.SheetNames.filter((n) => /provider/i.test(n) && !/dta/i.test(n));
+  const acc = { total: 0, within18: 0, withClock: 0 };
+  let hits = 0;
+  for (const sn of (targets.length ? targets : book.SheetNames)) {
+    const sub = rttSumSheet(await sheetRows(book, sn), sn, diag);
+    if (sub) { acc.total += sub.total; acc.within18 += sub.within18; acc.withClock += sub.withClock; hits++; }
   }
-  throw new Error(`RTT provider aggregate failed for ${url.split("/").pop()}`);
+  if (hits === 0 || acc.total <= 0) throw new Error(`RTT provider aggregate failed for ${url.split("/").pop()}`);
+  return acc;
 }
 
 async function parseRtt() {
