@@ -911,7 +911,7 @@ const SOURCES = [
           const findRow = (re) => rows.find((r) => Array.isArray(r) && re.test(String(r[0] ?? "").toLowerCase()));
           const exc = findRow(/^excellent/), good = findRow(/^good/), tot = findRow(/^total|all (sites|bathing|waters)|number (of|classified)/);
           if (!exc || !good || !tot) {
-            console.log(`  bathing[${tag}] sheet="${sn}" labels: ${rows.slice(0, 12).map((r) => String(r?.[0] ?? "").slice(0, 30)).filter(Boolean).join(" | ")}`);
+            console.log(`  bathing[${tag}] sheet="${sn}" labels: ${rows.slice(0, 40).map((r) => String(r?.[0] ?? "").slice(0, 30)).filter(Boolean).join(" | ")}`);
             continue;
           }
           const firstNum = (r) => (r || []).slice(1).map(num).find((v) => v != null) ?? null;
