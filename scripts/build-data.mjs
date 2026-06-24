@@ -897,21 +897,53 @@ const SOURCES = [
         return null;
       };
 
+      // Single-year summary workbook: ENV17 publishes one file PER YEAR (not one
+      // multi-year timeseries), each with an aggregate Excellent/Good/Total row.
+      // Extract that file's one point (year taken from the filename).
+      const parseSingleYearPoint = async (url, tag) => {
+        const ym = url.match(/20\d\d/);
+        if (!ym) return null;
+        console.log(`  bathing[${tag}] year file: ${url}`);
+        const book = await xlsxBook(url);
+        for (const sn of book.SheetNames) {
+          let rows;
+          try { rows = await sheetRows(book, sn); } catch { continue; }
+          const findRow = (re) => rows.find((r) => Array.isArray(r) && re.test(String(r[0] ?? "").toLowerCase()));
+          const exc = findRow(/^excellent/), good = findRow(/^good/), tot = findRow(/^total|all (sites|bathing|waters)|number (of|classified)/);
+          if (!exc || !good || !tot) continue;
+          const firstNum = (r) => (r || []).slice(1).map(num).find((v) => v != null) ?? null;
+          const e = firstNum(exc), g = firstNum(good), t = firstNum(tot);
+          if (e == null || g == null || !t) continue;
+          const pct = ((e + g) / t) * 100;
+          if (pct >= 40 && pct <= 100) {
+            console.log(`  bathing[${tag}] sheet="${sn}" year=${ym[0]} pct=${pct.toFixed(1)} (e=${e} g=${g} t=${t})`);
+            return { date: `${ym[0]}-01-01`, value: +pct.toFixed(1) };
+          }
+        }
+        console.log(`  bathing[${tag}] ${url.split("/").pop()}: no excellent/good/total row`);
+        return null;
+      };
+
       // Attempt 1: ENV17 "Bathing water quality: additional datasets" — a gov.uk
       // *statistical-data-set* (not the PDF-only *statistics* collection tried
       // below), which CLAUDE.md's proven pattern says exposes attachments
       // directly via details.attachments (no per-edition HTML to chase).
       try {
         const env17 = await govukContent("government/statistical-data-sets/env17-bathing-water-quality-additional-datasets");
-        const atts = (env17?.details?.attachments || []);
-        console.log(`  bathing[env17] attachments: ${atts.map((a) => (a.url || "").split("/").pop()).filter((u) => /\.(ods|xlsx?|csv)/i.test(u)).join(", ") || "(none)"}`);
-        const cand = atts.filter((a) => /\.(ods|xlsx?|csv)(\?|$)/i.test(a.url || ""))
-          .find((a) => /classif|complian|quality|result|summary/i.test(`${a.title || ""} ${a.url || ""}`))
-          || atts.find((a) => /\.(ods|xlsx?|csv)(\?|$)/i.test(a.url || ""));
-        if (cand) {
-          const pts = await parseClassificationWorkbook(cand.url, "env17");
-          if (pts) return pts;
+        const atts = (env17?.details?.attachments || []).filter((a) => /\.(ods|xlsx?|csv)(\?|$)/i.test(a.url || ""));
+        console.log(`  bathing[env17] attachments: ${atts.map((a) => (a.url || "").split("/").pop()).join(", ") || "(none)"}`);
+        // ENV17 publishes one workbook per year, not a single multi-year file,
+        // so accumulate one point per "summary" edition (skip per-site "results"
+        // files — their layout doesn't have an aggregate Excellent/Good/Total row).
+        const summaryAtts = atts.filter((a) => /summary/i.test(`${a.title || ""} ${a.url || ""}`));
+        const points = [];
+        for (const a of summaryAtts) {
+          const pt = await parseSingleYearPoint(a.url, "env17").catch((e) => { console.log(`  bathing[env17] ${a.url} err ${e.message}`); return null; });
+          if (pt) points.push(pt);
         }
+        const byYear = new Map(points.map((p) => [p.date, p]));
+        if (byYear.size >= 3) return [...byYear.values()].sort((a, b) => (a.date < b.date ? -1 : 1));
+        console.log(`  bathing[env17] only ${byYear.size} usable year(s) from summary files`);
       } catch (e) { console.log(`  bathing[env17] err ${e.message}`); }
 
       // Attempt 2 (existing fallback): the PDF-only *statistics* collection
