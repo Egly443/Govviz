@@ -267,7 +267,14 @@ running header predicates; (b) the fetch step costs ~+4.5 min on every build (18
 **NEXT STEP — next real-data candidate:** `turnover` is hard-blocked (Cloudflare
 403); `defra-bathing-water` landed 2026-06-24 (see above). `defra-sewage-hours`
 remains blocked on the 403-prone `environment.data.gov.uk` host — needs a
-non-gated mirror. See `docs/backlog-research/` for per-series notes.
+non-gated mirror. The new NHS RTT interactive dashboard
+(`data.england.nhs.uk/dashboard/rtt`) was checked 2026-06-24 as a possible
+lighter-weight replacement for the per-provider aggregation — CI-verified
+HTTP 200 but zero static CSV/JSON/API links (likely a JS-rendered SPA,
+invisible to a plain HTML probe); closed as a documented no-op, see
+`docs/backlog-research/nhs-rtt.md`. `parseRtt()`'s per-provider aggregation
+remains the approach of record. See `docs/backlog-research/` for per-series
+notes.
 
 ## TODO / follow-ups
 - **Enable blog analytics (GoatCounter):** the `/blog` route + cookieless beacon
