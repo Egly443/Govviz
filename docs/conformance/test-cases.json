@@ -53,13 +53,12 @@
       "title": "Bathing-water quality — % rated Good or Excellent, England, annual",
       "domain": "Defra / Environment Agency",
       "govviz_series_id": "defra-bathing-water",
-      "source": "gov.uk — government/statistics/bathing-water-quality-statistics",
-      "current": { "T": 3, "M": 0, "status": "blocked" },
+      "source": "gov.uk — government/statistical-data-sets/env17-bathing-water-quality-additional-datasets",
+      "current": { "T": 3, "M": 2, "status": "parseable-with-bespoke-logic" },
       "guard": { "min": 40, "max": 100, "unit": "percent" },
       "failure_modes": [
-        "tabular classification counts published only as PDF and HTML prose",
-        "no machine-readable classification table to compute % Good/Excellent",
-        "EA data-explorer API is on the same 403-prone host"
+        "the government/statistics/bathing-water-quality-statistics collection is PDF/HTML-only, but the ENV17 statistical-data-set publishes one ODS workbook per year (2015-2025) on assets.publishing.service.gov.uk, not the 403-prone environment.data.gov.uk host",
+        "Class_Summary sheets are a region-by-classification matrix (rows = EA areas, columns = Excellent/Good/Sufficient/Poor), with the national total in a row labelled 'England', not 'Total'"
       ],
       "pass_criteria": [
         "the per-year classification counts (Excellent/Good/Sufficient/Poor/total) published as a machine-readable table",

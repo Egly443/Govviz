@@ -36,7 +36,7 @@ The friction is real, and worth seeing in detail, because the detail is what tel
 
 **The national headline that exists nowhere as a number.** The Environment Agency's storm-overflow (sewage) data is published as annual `.zip` archives, each containing one workbook per water company, each with thousands of per-asset rows. To get the single figure that makes the news — total spill hours — you download the zip, unpack it, open every workbook, find the "Total Duration (hours)" column (whose header *also* mentions counting, defeating a careless filter), and sum across all of it. The headline number is real, public, quoted by ministers — and not published anywhere a machine can simply read it.
 
-**Format as embargo.** Bathing-water classifications — the "% of beaches rated Good or Excellent" that is a live public concern — are published as PDFs and HTML prose. There is no machine-readable classification table at all. The data exists; the *format* fences it off.
+**Discoverable, not embargoed — but only if you already know where to look.** Bathing-water classifications — the "% of beaches rated Good or Excellent" that is a live public concern — are PDF/HTML-only in the headline `bathing-water-quality-statistics` collection. But the underlying classification counts *are* published, as a separate, harder-to-find Environment Agency statistical-data-set (ENV17): one ODS workbook per year, each with a different ad hoc layout — a transposed five-year table one year, a region-by-classification matrix the next, with the national total in a row labelled "England" rather than "Total". The data exists and is machine-readable; finding it, and writing a parser that survives next year's reshuffle, is the cost.
 
 **The number that used to be published.** NHS England discontinued the consolidated national RTT (referral-to-treatment) waiting-times series. What remains is ~9 MB monthly per-organisation workbooks; the national "% within 18 weeks" must now be *reconstructed* by summing hundreds of providers across waiting-time bands. A figure that used to be free is now merely derivable, at cost.
 
@@ -80,7 +80,7 @@ When I started, the argument above was mine to make alone. It no longer is — a
 So the diagnosis here is no longer contested; it is government-and-ODI consensus, with the National Data Library the institutional home for the "domestic harmonisation layer" this post calls for. That changes what the argument is *for*. The open question is no longer **"is this real?"** but **"what makes it stick?"** — and that is where the field evidence in this post earns its keep:
 
 1. **Mandate, not guidance.** The new framework is best-practice plus a *voluntary self-assessment*. Data-quality initiatives published as guidance have historically under-delivered, because adoption is uneven without a gate. The missing layer is the one this post argues for: **machine-readability as an assurance gate, co-owned with accessibility, with procurement teeth** — the enforcement above the advice.
-2. **The accountability tail, not the tractable average.** NDL-Lite aggregated six relatively tractable sources. The war stories above — sewage ZIPs, PDF-only bathing water, reconstructed NHS waiting times, 403-blocked workforce data — are precisely the cases a first prototype does not reach, and they are where public scrutiny concentrates. "AI-ready" must be measured at the tail, not the mean.
+2. **The accountability tail, not the tractable average.** NDL-Lite aggregated six relatively tractable sources. The war stories above — sewage ZIPs, undocumented per-year bathing-water workbooks, reconstructed NHS waiting times, 403-blocked workforce data — are precisely the cases a first prototype does not reach, and they are where public scrutiny concentrates. "AI-ready" must be measured at the tail, not the mean.
 3. **Production and maintenance, not just the prototype.** "Built in four months, cheaply" proves feasibility and invites under-resourcing of the hard 80%: currency, provenance at source, refresh, and coverage of the awkward sources. The value-for-money case below should be read as *prototype cost is not production-and-maintenance cost*.
 
 In short: the strategy that follows is no longer a proposal into a vacuum. It is the **execution and accountability-tail companion** to a live government framework and a working ODI prototype — the part that turns an AI-readiness *aspiration* into an AI-readiness *guarantee*.
@@ -165,7 +165,7 @@ Convenience is not quality, so score on **two independent axes** — and never l
 **Trust & governance (T0–T3):** badged status, methodology, revisions policy, disclosure control, a named producer. A National Statistic is T3 regardless of format.
 
 **Machine-readability (M0–M5):**
-- **M0** Embargoed-by-format (PDF/HTML only) — *bathing water today.*
+- **M0** Embargoed-by-format (PDF/HTML only) — *Home Office asylum-hotel spend today (answered only via written parliamentary question, never as a structured release).*
 - **M1** Scrape-only (file exists; discoverable only via unstable human links) — *NHS A&E/RTT today.*
 - **M2** Awkward machine file (stable download, bespoke/transposed shape) — *most "accessible" ODS today.*
 - **M3** Clean endpoint, semantics out-of-band — *many ONS/World Bank series; already a big step up.*
@@ -185,7 +185,7 @@ A maturity model you can't run is just a slide. So this post ships a companion a
 It exists to change the question a producer or the National Data Library answers — from *"did we follow the guidance?"* (self-asserted, voluntary) to *"can a fifteen-line script read this specific, politically salient series today?"* (externally auditable). The cases are the ones a six-source prototype does not reach:
 
 - **Storm-overflow spill hours** — zip-of-workbooks, no published national total, 403-prone host — *T3/M1*.
-- **Bathing-water quality** — tabular data, PDF-only — *T3/M0*.
+- **Bathing-water quality** — real classification counts exist, but only in a separate, undocumented per-year ODS series with a layout that changes annually — *T3/M2*.
 - **NHS RTT waiting times** — national series discontinued; reconstruct from per-provider files — *T3/M1*.
 - **NHS workforce turnover** — 403 to scripts, otherwise public — *T3/M1*.
 - **Temporary accommodation** — TA1 quarterly carry-forward — *T3/M2*.

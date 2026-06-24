@@ -161,17 +161,35 @@ single-arg. (Done via the agentic loop — see "Agentic coding loop" below.)
 
 **TODO — indicators still needing a real source** (currently render placeholders;
 see the per-series notes in `docs/backlog-research/` and the rows below):
-`turnover`, `defra-sewage-hours` (intermittent), `defra-bathing-water`, plus the
-hard-blocked DWP Stat-Xplore / PDF-only series. (`waiting-list` + `rtt-18-week`
-landed 2026-06-22 — see the coverage note above.)
+`turnover`, `defra-sewage-hours` (intermittent), plus the hard-blocked DWP
+Stat-Xplore / PDF-only series. (`waiting-list` + `rtt-18-week` landed
+2026-06-22; `defra-bathing-water` landed 2026-06-24 — see below.)
 
-### Remaining illustrative
+### DONE — `defra-bathing-water` (2026-06-24)
+The CLAUDE.md blocker claim ("HTML/PDF only, EA API on the same 403-prone
+host") was **wrong** and never live-tested — disproved by an actual CI fetch.
+The headline `government/statistics/bathing-water-quality-statistics`
+collection genuinely is PDF/HTML-only, but the underlying classification
+counts are published separately as the EA `env17-bathing-water-quality-
+additional-datasets` statistical-data-set, on `assets.publishing.service.gov.uk`
+(not the 403-prone `environment.data.gov.uk` host) — one ODS workbook per
+year (2015–2025), not a consolidated timeseries. Layout varies year to year:
+some are a transposed 5-year table, most are a region-by-classification
+matrix (rows = EA areas, columns = Excellent/Good/Sufficient/Poor) with the
+national total in a row labelled **"England"**, not "Total" — that's why a
+plain row-label scan for "total" never matched. Parser in `build-data.mjs`
+finds the header row containing "Excellent" and the "England" row, sums the
+classification columns for the total, and computes %Good-or-Excellent.
+10 points, 2015–2025, frozen in `tools/loop/fixtures/ok-series.json` (floor
+10). `docs/conformance/test-cases.json`'s `bathing-water-quality` case
+re-scored T3/M2 (was T3/M0) — discoverable-but-undocumented-and-bespoke, not
+embargoed. Essay corrected to match (`docs/blog-open-data-for-ai.md`).
+
 **Fetchers wired but currently SKIP (CI-verified blockers):**
 | Series | Blocker |
 |---|---|
 | `turnover` | digital.nhs.uk Cloudflare-blocks automated access (403 even with a browser UA); data.gov.uk `nhs-workforce-turnover` resources point back to digital.nhs.uk. Needs a non-gated source. |
 | `defra-sewage-hours` | EA Event Duration Monitoring annual returns are `.zip`-of-xlsx on data.gov.uk (pkg `19f6064d…`); parser unzips (fflate) and sums "Total Duration (hours)" across per-company sheets, but the `environment.data.gov.uk/api/file/download` endpoint rate-limit/403s automated requests (first zip occasionally succeeds, rest 403). Needs a non-gated mirror. Defra hero is `defra-recycling` instead. |
-| `defra-bathing-water` | gov.uk "bathing-water-quality-statistics" editions are HTML/PDF only — no machine-readable classification table to compute % Good/Excellent. EA Bathing Water Data Explorer API is on the same 403-prone `environment.data.gov.uk` host. |
 
 **Hard-blocked (no fetcher; charts intentionally illustrative):** DWP Stat-Xplore series
 (`dwp-pip-clearance`, `dwp-work-coach-ratio`, `dwp-uc-mr`) need a free API key as CI secret
@@ -247,9 +265,9 @@ running header predicates; (b) the fetch step costs ~+4.5 min on every build (18
 9 MB downloads), so each monthly file is wrapped resilient and `RTT_MONTHS` caps it.
 
 **NEXT STEP — next real-data candidate:** `turnover` is hard-blocked (Cloudflare
-403); the most tractable remaining targets are `defra-bathing-water` /
-`defra-sewage-hours` (both on the 403-prone `environment.data.gov.uk` host — need a
-non-gated mirror). See `docs/backlog-research/` for per-series notes.
+403); `defra-bathing-water` landed 2026-06-24 (see above). `defra-sewage-hours`
+remains blocked on the 403-prone `environment.data.gov.uk` host — needs a
+non-gated mirror. See `docs/backlog-research/` for per-series notes.
 
 ## TODO / follow-ups
 - **Enable blog analytics (GoatCounter):** the `/blog` route + cookieless beacon
