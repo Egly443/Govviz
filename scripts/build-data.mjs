@@ -900,6 +900,10 @@ const SOURCES = [
       // Single-year summary workbook: ENV17 publishes one file PER YEAR (not one
       // multi-year timeseries), each with an aggregate Excellent/Good/Total row.
       // Extract that file's one point (year taken from the filename).
+      // Class_Summary sheets are a region-by-classification matrix: rows are EA
+      // regions, columns are classification categories (header row has
+      // "Excellent"/"Good"/... as column labels), and the last row is the
+      // national total, labelled "England" (not "Total").
       const parseSingleYearPoint = async (url, tag) => {
         const ym = url.match(/20\d\d/);
         if (!ym) return null;
@@ -908,22 +912,30 @@ const SOURCES = [
         for (const sn of book.SheetNames) {
           let rows;
           try { rows = await sheetRows(book, sn); } catch { continue; }
-          const findRow = (re) => rows.find((r) => Array.isArray(r) && re.test(String(r[0] ?? "").toLowerCase()));
-          const exc = findRow(/^excellent/), good = findRow(/^good/), tot = findRow(/^total|all (sites|bathing|waters)|number (of|classified)/);
-          if (!exc || !good || !tot) {
+          const norm = (v) => String(v ?? "").trim().toLowerCase();
+          const headerRow = rows.find((r) => Array.isArray(r) && r.some((c) => norm(c) === "excellent"));
+          const englandRow = rows.find((r) => Array.isArray(r) && norm(r[0]) === "england");
+          if (!headerRow || !englandRow) {
             console.log(`  bathing[${tag}] sheet="${sn}" labels: ${rows.slice(0, 40).map((r) => String(r?.[0] ?? "").slice(0, 30)).filter(Boolean).join(" | ")}`);
             continue;
           }
-          const firstNum = (r) => (r || []).slice(1).map(num).find((v) => v != null) ?? null;
-          const e = firstNum(exc), g = firstNum(good), t = firstNum(tot);
-          if (e == null || g == null || !t) continue;
+          const colIdx = (re) => headerRow.findIndex((c) => re.test(norm(c)));
+          const excI = colIdx(/^excellent$/), goodI = colIdx(/^good$/);
+          const sumCols = headerRow.map((c, i) => (/^(excellent|good|sufficient|poor|not classified)$/.test(norm(c)) ? i : -1)).filter((i) => i >= 0);
+          const e = num(englandRow[excI]), g = num(englandRow[goodI]);
+          const t = sumCols.reduce((a, i) => a + (num(englandRow[i]) ?? 0), 0);
+          if (e == null || g == null || !t) {
+            console.log(`  bathing[${tag}] sheet="${sn}" header: ${headerRow.map((c) => String(c ?? "").slice(0, 20)).join(" | ")} :: england: ${englandRow.map((c) => String(c ?? "").slice(0, 20)).join(" | ")}`);
+            continue;
+          }
           const pct = ((e + g) / t) * 100;
           if (pct >= 40 && pct <= 100) {
             console.log(`  bathing[${tag}] sheet="${sn}" year=${ym[0]} pct=${pct.toFixed(1)} (e=${e} g=${g} t=${t})`);
             return { date: `${ym[0]}-01-01`, value: +pct.toFixed(1) };
           }
+          console.log(`  bathing[${tag}] sheet="${sn}" pct=${pct.toFixed(1)} out of range (e=${e} g=${g} t=${t})`);
         }
-        console.log(`  bathing[${tag}] ${url.split("/").pop()}: sheets=${book.SheetNames.join("|")} no excellent/good/total row`);
+        console.log(`  bathing[${tag}] ${url.split("/").pop()}: sheets=${book.SheetNames.join("|")} no excellent/good/england match`);
         return null;
       };
 
