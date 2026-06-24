@@ -431,7 +431,28 @@ async function rttParseProvider(url, diag = false) {
   return acc;
 }
 
+// Diagnostic only (no behaviour change): probe the RTT dashboard that
+// launched 20 Nov 2025 for a CSV/JSON API that could replace the per-provider
+// aggregation below. Purely additive — failures here never affect parseRtt().
+async function rttProbeDashboard() {
+  for (const p of [
+    "https://data.england.nhs.uk/dashboard/rtt",
+    "https://digital.nhs.uk/data-and-information/data-collections-and-data-sets/data-collections/consultant-led-referral-to-treatment-waiting-times-rtt",
+  ]) {
+    try {
+      const res = await fetch(p, fetchOpts({ accept: "text/html,*/*" }));
+      console.log(`  RTT probe ${p} → HTTP ${res.status}`);
+      if (!res.ok) continue;
+      const html = await res.text();
+      const apiLinks = [...html.matchAll(/href="([^"]*(?:\.csv|\.json|\/api\/|download)[^"]*)"/gi)].map((m) => m[1]);
+      const uniq = [...new Set(apiLinks)].slice(0, 15);
+      console.log(`  RTT probe ${p} candidate links (${uniq.length}): ${uniq.join(" , ").slice(0, 800)}`);
+    } catch (e) { console.log(`  RTT probe ${p} err ${e.message}`); }
+  }
+}
+
 async function parseRtt() {
+  await rttProbeDashboard().catch((e) => console.log(`  RTT probe err ${e.message}`));
   const files = await rttFileList();
   const nat = files.filter((f) => /overview|timeseries|estimat|national|full[-_ ]?(data|csv)/i.test(f.name));
   console.log(`  RTT inventory: ${files.length} files; national-candidates: ${nat.map((f) => f.name).join(" , ").slice(0, 500) || "none"}`);
