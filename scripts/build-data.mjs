@@ -910,7 +910,10 @@ const SOURCES = [
           try { rows = await sheetRows(book, sn); } catch { continue; }
           const findRow = (re) => rows.find((r) => Array.isArray(r) && re.test(String(r[0] ?? "").toLowerCase()));
           const exc = findRow(/^excellent/), good = findRow(/^good/), tot = findRow(/^total|all (sites|bathing|waters)|number (of|classified)/);
-          if (!exc || !good || !tot) continue;
+          if (!exc || !good || !tot) {
+            console.log(`  bathing[${tag}] sheet="${sn}" labels: ${rows.slice(0, 12).map((r) => String(r?.[0] ?? "").slice(0, 30)).filter(Boolean).join(" | ")}`);
+            continue;
+          }
           const firstNum = (r) => (r || []).slice(1).map(num).find((v) => v != null) ?? null;
           const e = firstNum(exc), g = firstNum(good), t = firstNum(tot);
           if (e == null || g == null || !t) continue;
@@ -920,7 +923,7 @@ const SOURCES = [
             return { date: `${ym[0]}-01-01`, value: +pct.toFixed(1) };
           }
         }
-        console.log(`  bathing[${tag}] ${url.split("/").pop()}: no excellent/good/total row`);
+        console.log(`  bathing[${tag}] ${url.split("/").pop()}: sheets=${book.SheetNames.join("|")} no excellent/good/total row`);
         return null;
       };
 
@@ -932,6 +935,13 @@ const SOURCES = [
         const env17 = await govukContent("government/statistical-data-sets/env17-bathing-water-quality-additional-datasets");
         const atts = (env17?.details?.attachments || []).filter((a) => /\.(ods|xlsx?|csv)(\?|$)/i.test(a.url || ""));
         console.log(`  bathing[env17] attachments: ${atts.map((a) => (a.url || "").split("/").pop()).join(", ") || "(none)"}`);
+        // A handful of editions (e.g. the 2015 file) carry a multi-year rollup
+        // sheet (named like "5_year_UK") alongside the single-year one — try
+        // that cheap path on every attachment before falling back per-year.
+        for (const a of atts) {
+          const pts = await parseClassificationWorkbook(a.url, "env17").catch((e) => { console.log(`  bathing[env17] ${a.url} err ${e.message}`); return null; });
+          if (pts) return pts;
+        }
         // ENV17 publishes one workbook per year, not a single multi-year file,
         // so accumulate one point per "summary" edition (skip per-site "results"
         // files — their layout doesn't have an aggregate Excellent/Good/Total row).
