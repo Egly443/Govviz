@@ -862,9 +862,60 @@ const SOURCES = [
     min: 40,
     max: 100,
     get: async () => {
-      // The parent statistics page lists only PDFs; the machine-readable
-      // classification dataset lives on each yearly edition page, which appear
-      // as HTML attachments (links.documents is empty for this collection).
+      const num = (c) => { const v = typeof c === "number" ? c : parseFloat(String(c ?? "").replace(/[,%]/g, "")); return Number.isFinite(v) ? v : null; };
+      // Shared parser: find a year-header row and Excellent/Good/Total rows in
+      // any sheet of a classification-counts workbook, compute % Good-or-Excellent
+      // per year. Used by both candidate sources below.
+      const parseClassificationWorkbook = async (url, tag) => {
+        console.log(`  bathing[${tag}] file: ${url}`);
+        const book = await xlsxBook(url);
+        console.log(`  bathing[${tag}] sheets: ${book.SheetNames.join("|")}`);
+        for (const sn of book.SheetNames) {
+          let rows;
+          try { rows = await sheetRows(book, sn); } catch { continue; }
+          let hi = -1, yearCols = [];
+          for (let i = 0; i < Math.min(rows.length, 14); i++) {
+            const yc = (rows[i] || []).map((c, idx) => [idx, String(c ?? "").trim()]).filter(([, s]) => /^20\d\d$/.test(s));
+            if (yc.length >= 4) { hi = i; yearCols = yc; break; }
+          }
+          if (hi < 0) continue;
+          const findRow = (re) => rows.find((r) => Array.isArray(r) && re.test(String(r[0] ?? "").toLowerCase()));
+          const exc = findRow(/^excellent/), good = findRow(/^good/), tot = findRow(/^total|all (sites|bathing|waters)|number (of|classified)/);
+          if (!exc || !good) { console.log(`  bathing[${tag}] sheet="${sn}" rows: ${rows.slice(hi + 1, hi + 8).map((r) => String(r?.[0] ?? "").slice(0, 24)).join(" | ")}`); continue; }
+          const points = [];
+          for (const [idx, label] of yearCols) {
+            const e = num(exc[idx]), g = num(good[idx]);
+            const t = tot ? num(tot[idx]) : null;
+            if (e == null || g == null) continue;
+            const denom = t ?? null;
+            if (!denom) continue;
+            const pct = ((e + g) / denom) * 100;
+            if (pct >= 40 && pct <= 100) points.push({ date: `${label}-01-01`, value: +pct.toFixed(1) });
+          }
+          if (points.length >= 4) { console.log(`  bathing[${tag}] sheet="${sn}" ${points.length} pts (computed)`); return points.sort((a, b) => (a.date < b.date ? -1 : 1)); }
+        }
+        return null;
+      };
+
+      // Attempt 1: ENV17 "Bathing water quality: additional datasets" — a gov.uk
+      // *statistical-data-set* (not the PDF-only *statistics* collection tried
+      // below), which CLAUDE.md's proven pattern says exposes attachments
+      // directly via details.attachments (no per-edition HTML to chase).
+      try {
+        const env17 = await govukContent("government/statistical-data-sets/env17-bathing-water-quality-additional-datasets");
+        const atts = (env17?.details?.attachments || []);
+        console.log(`  bathing[env17] attachments: ${atts.map((a) => (a.url || "").split("/").pop()).filter((u) => /\.(ods|xlsx?|csv)/i.test(u)).join(", ") || "(none)"}`);
+        const cand = atts.filter((a) => /\.(ods|xlsx?|csv)(\?|$)/i.test(a.url || ""))
+          .find((a) => /classif|complian|quality|result|summary/i.test(`${a.title || ""} ${a.url || ""}`))
+          || atts.find((a) => /\.(ods|xlsx?|csv)(\?|$)/i.test(a.url || ""));
+        if (cand) {
+          const pts = await parseClassificationWorkbook(cand.url, "env17");
+          if (pts) return pts;
+        }
+      } catch (e) { console.log(`  bathing[env17] err ${e.message}`); }
+
+      // Attempt 2 (existing fallback): the PDF-only *statistics* collection
+      // sometimes still carries a per-edition ODS/XLSX/CSV attachment.
       const parent = await govukContent("government/statistics/bathing-water-quality-statistics");
       const editions = [
         ...(parent?.links?.documents || []).map((d) => String(d.base_path || "")),
@@ -872,46 +923,20 @@ const SOURCES = [
       ].map((u) => u.replace(/^https?:\/\/www\.gov\.uk\//, "").replace(/^\//, "")).filter(Boolean);
       const seen = new Set();
       const docs = editions.filter((p) => (seen.has(p) ? false : (seen.add(p), true))).sort((a, b) => b.localeCompare(a));
-      console.log(`  bathing editions: ${docs.slice(0, 6).join(" | ")}`);
+      console.log(`  bathing[stats] editions: ${docs.slice(0, 6).join(" | ")}`);
       let file = null;
       for (const p of docs.slice(0, 5)) {
         let eatts;
         try { eatts = await govukAttachments(p); } catch { continue; }
         const cand = eatts.find((a) => /\.(ods|xlsx?|csv)(\?|$)/i.test(a.url || "") && /classif|complian|quality|result/i.test(`${a.title || ""} ${a.url || ""}`)) || eatts.find((a) => /\.(ods|xlsx?|csv)(\?|$)/i.test(a.url || ""));
-        console.log(`  bathing edition ${p.split("/").pop()}: ${eatts.map((a) => (a.url || "").split("/").pop()).filter((u) => /\.(ods|xlsx?|csv)/i.test(u)).slice(0, 6).join(", ") || "(no data file)"}`);
+        console.log(`  bathing[stats] edition ${p.split("/").pop()}: ${eatts.map((a) => (a.url || "").split("/").pop()).filter((u) => /\.(ods|xlsx?|csv)/i.test(u)).slice(0, 6).join(", ") || "(no data file)"}`);
         if (cand) { file = cand; break; }
       }
-      if (!file) throw new Error("bathing: no data file in editions");
-      console.log(`  bathing file: ${file.url}`);
-      const num = (c) => { const v = typeof c === "number" ? c : parseFloat(String(c ?? "").replace(/[,%]/g, "")); return Number.isFinite(v) ? v : null; };
-      const book = await xlsxBook(file.url);
-      console.log(`  bathing sheets: ${book.SheetNames.join("|")}`);
-      for (const sn of book.SheetNames) {
-        let rows;
-        try { rows = await sheetRows(book, sn); } catch { continue; }
-        // Find a year column header row and classification rows (Excellent/Good vs total).
-        let hi = -1, yearCols = [];
-        for (let i = 0; i < Math.min(rows.length, 14); i++) {
-          const yc = (rows[i] || []).map((c, idx) => [idx, String(c ?? "").trim()]).filter(([, s]) => /^20\d\d$/.test(s));
-          if (yc.length >= 4) { hi = i; yearCols = yc; break; }
-        }
-        if (hi < 0) continue;
-        const findRow = (re) => rows.find((r) => Array.isArray(r) && re.test(String(r[0] ?? "").toLowerCase()));
-        const exc = findRow(/^excellent/), good = findRow(/^good/), tot = findRow(/^total|all (sites|bathing|waters)|number (of|classified)/);
-        if (!exc || !good) { console.log(`  bathing sheet="${sn}" rows: ${rows.slice(hi + 1, hi + 8).map((r) => String(r?.[0] ?? "").slice(0, 24)).join(" | ")}`); continue; }
-        const points = [];
-        for (const [idx, label] of yearCols) {
-          const e = num(exc[idx]), g = num(good[idx]);
-          const t = tot ? num(tot[idx]) : null;
-          if (e == null || g == null) continue;
-          const denom = t ?? null;
-          if (!denom) continue;
-          const pct = ((e + g) / denom) * 100;
-          if (pct >= 40 && pct <= 100) points.push({ date: `${label}-01-01`, value: +pct.toFixed(1) });
-        }
-        if (points.length >= 4) { console.log(`  bathing sheet="${sn}" ${points.length} pts (computed)`); return points.sort((a, b) => (a.date < b.date ? -1 : 1)); }
+      if (file) {
+        const pts = await parseClassificationWorkbook(file.url, "stats");
+        if (pts) return pts;
       }
-      throw new Error("bathing: classification series not found");
+      throw new Error("bathing: classification series not found in env17 or stats sources");
     },
   },
 
