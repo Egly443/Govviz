@@ -954,12 +954,12 @@ const SOURCES = [
           const pts = await parseClassificationWorkbook(a.url, "env17").catch((e) => { console.log(`  bathing[env17] ${a.url} err ${e.message}`); return null; });
           if (pts) return pts;
         }
-        // ENV17 publishes one workbook per year, not a single multi-year file,
-        // so accumulate one point per "summary" edition (skip per-site "results"
-        // files — their layout doesn't have an aggregate Excellent/Good/Total row).
-        const summaryAtts = atts.filter((a) => /summary/i.test(`${a.title || ""} ${a.url || ""}`));
+        // ENV17 publishes one workbook per year, not a single multi-year file.
+        // Some editions' "results" filenames still contain a Class_Summary sheet
+        // (e.g. the 2022-2025 Classification_Results workbooks), so try every
+        // attachment rather than filtering by filename.
         const points = [];
-        for (const a of summaryAtts) {
+        for (const a of atts) {
           const pt = await parseSingleYearPoint(a.url, "env17").catch((e) => { console.log(`  bathing[env17] ${a.url} err ${e.message}`); return null; });
           if (pt) points.push(pt);
         }
