@@ -24,7 +24,7 @@
     }
   },
   "enforcement": "A dataset is AI-ready when it reaches M4+ without lowering its T score. The proposal is to make passing this suite (for a prioritised set of high-T, low-M series) a release-assurance gate, co-owned with accessibility, with procurement teeth — i.e. enforcement above voluntary self-assessment.",
-  "gds_pillar_mapping": "M4-M5 corresponds to passing the GDS/DSIT (Jan 2026) four-pillar self-assessment: technical optimisation (interoperable format + reliable API), metadata, governance/stewardship, and access. The probes below are the externally-auditable form of that self-assessment.",
+  "gds_pillar_mapping": "M4-M5 corresponds to passing two of the GDS/DSIT (Jan 2026) framework's four pillars: technical optimisation (interoperable format + reliable API) and data & metadata quality. The other two pillars — organisational & infrastructure context (governance/stewardship/funding) and legal/security/ethical compliance — map onto the T-axis instead. The probes below are the externally-auditable form of the M-axis half of that self-assessment.",
   "cases": [
     {
       "id": "edm-storm-overflow-spill-hours",

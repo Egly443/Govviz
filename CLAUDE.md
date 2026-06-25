@@ -193,7 +193,7 @@ embargoed. Essay corrected to match (`docs/blog-open-data-for-ai.md`).
 
 **Hard-blocked (no fetcher; charts intentionally illustrative):** DWP Stat-Xplore series
 (`dwp-pip-clearance`, `dwp-work-coach-ratio`, `dwp-uc-mr`) need a free API key as CI secret
-`DWP_STATXPLORE_KEY` (`POST https://stat-xplore.dwp.gov.uk/webapi/rest/v1/table`, `Authorization: Bearer {key}`);
+`DWP_STATXPLORE_KEY` (`POST https://stat-xplore.dwp.gov.uk/webapi/rest/v1/table`, key sent in an `APIKey: {key}` header — not `Authorization: Bearer`);
 `mod-readiness` (classified); `ho-caseworker-turnover`, `ho-hotel-spend`, `dfe-dsg-deficit`,
 `dft-dvla-backlog`, `dft-srn-degradation` (PDF / parliamentary-answer / LA-return only).
 
