@@ -119,13 +119,14 @@ find ONS CDIDs/WB codes/EES dataset IDs/gov.uk collection slugs, then wire the f
 - **data.gov.uk CKAN `.zip`:** `package_show` → resource `.zip` URLs → `unzipUrl` → `xlsxBookFromBuffer` per entry; sum across per-entity sheets (defra-sewage EDM — works only when the EA endpoint isn't rate-limiting). Watch `\b` word boundaries on years flanked by underscores (`EDM_2020_…` needs digit boundaries, not `\b`).
 - **Branch CI harness:** `.github/workflows/data-check.yml` runs the fetcher on non-main pushes **without deploying** — validate parsers against live sources here (the sandbox has no internet), then promote to main. Production deploy (`deploy.yml`) runs only on `main`.
 
-### Coverage — current state (94 ok / 2 skipped as of 2026-06-22)
+### Coverage — current state (95 ok / 1 skip as of 2026-06-25)
 Read the latest CI **"Fetch live data"** log (`mcp__github__get_job_logs`) for the authoritative
-`ok`/`SKIP` tally — the manifest is cumulative so one run shows everything (the skip count
-fluctuates by ±1–2 because the two Defra EA series fetch intermittently). ~90 series IDs now
-bake real data across all ten departments (HMT/DHSC via ONS+World Bank; DfE via EES; DWP via World
-Bank; MHCLG/Defra via gov.uk-ODS + ONS + World Bank; plus the gov.uk-ODS / statistical-data-set /
-england.nhs.uk operational series listed below).
+`ok`/`SKIP` tally — the manifest is cumulative so one run shows everything. Only `turnover` is a
+consistent `SKIP` (digital.nhs.uk 403); `defra-sewage-hours` fetches intermittently (`ok` with a
+partial year-range, or `SKIP`, depending on whether the EA host rate-limits that run). ~90 series
+IDs now bake real data across all ten departments (HMT/DHSC via ONS+World Bank; DfE via EES; DWP via
+World Bank; MHCLG/Defra via gov.uk-ODS + ONS + World Bank; plus the gov.uk-ODS / statistical-data-set
+/ england.nhs.uk operational series listed below).
 
 Converted illustrative→real in the 2026-06 campaign: dwp-fraud-error, dfe-teacher-recruitment,
 dfe-attainment-gap, moj-crown-backlog, moj-cost-per-prisoner, moj-officer-resignations,
@@ -161,21 +162,56 @@ single-arg. (Done via the agentic loop — see "Agentic coding loop" below.)
 
 **TODO — indicators still needing a real source** (currently render placeholders;
 see the per-series notes in `docs/backlog-research/` and the rows below):
-`turnover`, `defra-sewage-hours` (intermittent), `defra-bathing-water`, plus the
-hard-blocked DWP Stat-Xplore / PDF-only series. (`waiting-list` + `rtt-18-week`
-landed 2026-06-22 — see the coverage note above.)
+`turnover`, `defra-sewage-hours` (intermittent), plus the hard-blocked DWP
+Stat-Xplore / PDF-only series. (`waiting-list` + `rtt-18-week` landed
+2026-06-22; `defra-bathing-water` landed 2026-06-24 — see below.)
 
-### Remaining illustrative
+### DONE — `defra-bathing-water` (2026-06-24)
+The CLAUDE.md blocker claim ("HTML/PDF only, EA API on the same 403-prone
+host") was **wrong** and never live-tested — disproved by an actual CI fetch.
+The headline `government/statistics/bathing-water-quality-statistics`
+collection genuinely is PDF/HTML-only, but the underlying classification
+counts are published separately as the EA `env17-bathing-water-quality-
+additional-datasets` statistical-data-set, on `assets.publishing.service.gov.uk`
+(not the 403-prone `environment.data.gov.uk` host) — one ODS workbook per
+year (2015–2025), not a consolidated timeseries. Layout varies year to year:
+some are a transposed 5-year table, most are a region-by-classification
+matrix (rows = EA areas, columns = Excellent/Good/Sufficient/Poor) with the
+national total in a row labelled **"England"**, not "Total" — that's why a
+plain row-label scan for "total" never matched. Parser in `build-data.mjs`
+finds the header row containing "Excellent" and the "England" row, sums the
+classification columns for the total, and computes %Good-or-Excellent.
+10 points, 2015–2025, frozen in `tools/loop/fixtures/ok-series.json` (floor
+10). `docs/conformance/test-cases.json`'s `bathing-water-quality` case
+re-scored T3/M2 (was T3/M0) — discoverable-but-undocumented-and-bespoke, not
+embargoed. Essay corrected to match (`docs/blog-open-data-for-ai.md`).
+
+### DONE — essay fact-check pass (2026-06-25)
+Live-verified every checkable claim in `docs/blog-open-data-for-ai.md` against
+a fresh CI run (fetcher logs + source code) and against external sources via
+WebSearch. `turnover` (digital.nhs.uk 403) and `defra-sewage-hours` (EA
+rate-limiting) claims confirmed accurate; ONS/World Bank/MHCLG parsing-quirk
+claims (net-dwellings transposition, TA1 carry-forward, affordability
+Contents-sheet disambiguation) all matched the live fetcher behaviour, no
+changes needed. One real inaccuracy found and fixed: the essay and
+`docs/conformance/test-cases.json` misnamed the GDS/DSIT (20 Jan 2026)
+four-pillar framework — invented an "access" pillar and omitted "legal,
+security & ethical compliance". Corrected to the real four pillars (technical
+optimisation; data & metadata quality; organisational & infrastructure
+context; legal/security/ethical compliance) in both files, and tightened the
+T/M-axis-to-pillar mapping to two pillars per axis. Also fixed a stale
+`CLAUDE.md` claim that DWP Stat-Xplore authenticates via `Authorization:
+Bearer` — it's actually an `APIKey` header (see below).
+
 **Fetchers wired but currently SKIP (CI-verified blockers):**
 | Series | Blocker |
 |---|---|
 | `turnover` | digital.nhs.uk Cloudflare-blocks automated access (403 even with a browser UA); data.gov.uk `nhs-workforce-turnover` resources point back to digital.nhs.uk. Needs a non-gated source. |
 | `defra-sewage-hours` | EA Event Duration Monitoring annual returns are `.zip`-of-xlsx on data.gov.uk (pkg `19f6064d…`); parser unzips (fflate) and sums "Total Duration (hours)" across per-company sheets, but the `environment.data.gov.uk/api/file/download` endpoint rate-limit/403s automated requests (first zip occasionally succeeds, rest 403). Needs a non-gated mirror. Defra hero is `defra-recycling` instead. |
-| `defra-bathing-water` | gov.uk "bathing-water-quality-statistics" editions are HTML/PDF only — no machine-readable classification table to compute % Good/Excellent. EA Bathing Water Data Explorer API is on the same 403-prone `environment.data.gov.uk` host. |
 
 **Hard-blocked (no fetcher; charts intentionally illustrative):** DWP Stat-Xplore series
 (`dwp-pip-clearance`, `dwp-work-coach-ratio`, `dwp-uc-mr`) need a free API key as CI secret
-`DWP_STATXPLORE_KEY` (`POST https://stat-xplore.dwp.gov.uk/webapi/rest/v1/table`, `Authorization: Bearer {key}`);
+`DWP_STATXPLORE_KEY` (`POST https://stat-xplore.dwp.gov.uk/webapi/rest/v1/table`, key sent in an `APIKey: {key}` header — not `Authorization: Bearer`);
 `mod-readiness` (classified); `ho-caseworker-turnover`, `ho-hotel-spend`, `dfe-dsg-deficit`,
 `dft-dvla-backlog`, `dft-srn-degradation` (PDF / parliamentary-answer / LA-return only).
 
@@ -187,7 +223,9 @@ Per-series research notes (sources, drafted fetchers, dead-ends) live in `docs/b
   `git push origin HEAD:main && git push origin <working-branch>`.
 - Commit as `Claude <noreply@anthropic.com>` (`git config user.email
   noreply@anthropic.com && git config user.name Claude`) so commits verify.
-- Working branch: `claude/govviz-review-improvements-ktuwwh`.
+- Working branch: varies per session/task — check `git branch --show-current`
+  rather than relying on a name hardcoded here (most recently
+  `claude/essay-factual-review-flwbgt`).
 - **WebSearch reaches the internet** (curl/WebFetch don't). Use it to find stable
   CSV/Excel URLs or dataset IDs, then wire in CI — the actual fetch happens in CI.
 - `eesCsv(datasetId)` helper already in `build-data.mjs` — reuse for any new EES
@@ -247,9 +285,16 @@ running header predicates; (b) the fetch step costs ~+4.5 min on every build (18
 9 MB downloads), so each monthly file is wrapped resilient and `RTT_MONTHS` caps it.
 
 **NEXT STEP — next real-data candidate:** `turnover` is hard-blocked (Cloudflare
-403); the most tractable remaining targets are `defra-bathing-water` /
-`defra-sewage-hours` (both on the 403-prone `environment.data.gov.uk` host — need a
-non-gated mirror). See `docs/backlog-research/` for per-series notes.
+403); `defra-bathing-water` landed 2026-06-24 (see above). `defra-sewage-hours`
+remains blocked on the 403-prone `environment.data.gov.uk` host — needs a
+non-gated mirror. The new NHS RTT interactive dashboard
+(`data.england.nhs.uk/dashboard/rtt`) was checked 2026-06-24 as a possible
+lighter-weight replacement for the per-provider aggregation — CI-verified
+HTTP 200 but zero static CSV/JSON/API links (likely a JS-rendered SPA,
+invisible to a plain HTML probe); closed as a documented no-op, see
+`docs/backlog-research/nhs-rtt.md`. `parseRtt()`'s per-provider aggregation
+remains the approach of record. See `docs/backlog-research/` for per-series
+notes.
 
 ## TODO / follow-ups
 - **Enable blog analytics (GoatCounter):** the `/blog` route + cookieless beacon

@@ -10,6 +10,10 @@
       "minPoints": 12,
       "frozenAt": "2026-06-22",
       "note": "Derived from the same per-provider Incomplete workbooks as waiting-list; same conservative floor."
+    },
+    "defra-bathing-water": {
+      "minPoints": 10,
+      "frozenAt": "2026-06-24"
     }
   }
 }

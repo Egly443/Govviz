@@ -378,3 +378,24 @@ To land `waiting-list` + `rtt-18-week` you must download the per-provider Incomp
 file each month and SUM across all providers × RTT week-bands (0-1…18+), then derive
 total incomplete pathways and % within 18 weeks. Heavy (multi-MB × many months) and
 multi-round; deferred.
+
+## UPDATE (CI-verified 2026-06-24) — new RTT dashboard checked, no API found
+The NHS England RTT interactive dashboard at `https://data.england.nhs.uk/dashboard/rtt`
+(per NHS England's statistics page, "first released 20 November 2025" — after the
+work above) was checked as a possible lighter-weight replacement for the 18-month
+per-provider aggregation. A CI probe (plain `fetch` + HTML regex for `.csv`/`.json`/
+`/api/`/`download` links, no JS execution) got:
+- `data.england.nhs.uk/dashboard/rtt` → **HTTP 200, zero candidate links** in the
+  static HTML. The dashboard is almost certainly a client-side-rendered SPA whose
+  data loads via JS after page load — invisible to a plain HTML scrape — so there's
+  no evidence either way of an underlying API without a real browser/headless probe,
+  which this sandbox/CI environment doesn't have.
+- `digital.nhs.uk`'s RTT data-collection page → **HTTP 403** (consistent with other
+  digital.nhs.uk endpoints being Cloudflare-gated to automated clients, same as the
+  `turnover` blocker).
+
+No usable national endpoint was found. `parseRtt()`'s per-provider aggregation
+remains the approach of record; `waiting-list`/`rtt-18-week` are unaffected (still
+`ok`, 18 pts each, in `tools/loop/fixtures/ok-series.json`). Closing as a documented
+no-op — re-open only if a future contributor has headless-browser access to inspect
+the dashboard's actual network requests.
