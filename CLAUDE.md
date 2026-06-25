@@ -119,13 +119,14 @@ find ONS CDIDs/WB codes/EES dataset IDs/gov.uk collection slugs, then wire the f
 - **data.gov.uk CKAN `.zip`:** `package_show` → resource `.zip` URLs → `unzipUrl` → `xlsxBookFromBuffer` per entry; sum across per-entity sheets (defra-sewage EDM — works only when the EA endpoint isn't rate-limiting). Watch `\b` word boundaries on years flanked by underscores (`EDM_2020_…` needs digit boundaries, not `\b`).
 - **Branch CI harness:** `.github/workflows/data-check.yml` runs the fetcher on non-main pushes **without deploying** — validate parsers against live sources here (the sandbox has no internet), then promote to main. Production deploy (`deploy.yml`) runs only on `main`.
 
-### Coverage — current state (94 ok / 2 skipped as of 2026-06-22)
+### Coverage — current state (95 ok / 1 skip as of 2026-06-25)
 Read the latest CI **"Fetch live data"** log (`mcp__github__get_job_logs`) for the authoritative
-`ok`/`SKIP` tally — the manifest is cumulative so one run shows everything (the skip count
-fluctuates by ±1–2 because the two Defra EA series fetch intermittently). ~90 series IDs now
-bake real data across all ten departments (HMT/DHSC via ONS+World Bank; DfE via EES; DWP via World
-Bank; MHCLG/Defra via gov.uk-ODS + ONS + World Bank; plus the gov.uk-ODS / statistical-data-set /
-england.nhs.uk operational series listed below).
+`ok`/`SKIP` tally — the manifest is cumulative so one run shows everything. Only `turnover` is a
+consistent `SKIP` (digital.nhs.uk 403); `defra-sewage-hours` fetches intermittently (`ok` with a
+partial year-range, or `SKIP`, depending on whether the EA host rate-limits that run). ~90 series
+IDs now bake real data across all ten departments (HMT/DHSC via ONS+World Bank; DfE via EES; DWP via
+World Bank; MHCLG/Defra via gov.uk-ODS + ONS + World Bank; plus the gov.uk-ODS / statistical-data-set
+/ england.nhs.uk operational series listed below).
 
 Converted illustrative→real in the 2026-06 campaign: dwp-fraud-error, dfe-teacher-recruitment,
 dfe-attainment-gap, moj-crown-backlog, moj-cost-per-prisoner, moj-officer-resignations,
@@ -185,6 +186,23 @@ classification columns for the total, and computes %Good-or-Excellent.
 re-scored T3/M2 (was T3/M0) — discoverable-but-undocumented-and-bespoke, not
 embargoed. Essay corrected to match (`docs/blog-open-data-for-ai.md`).
 
+### DONE — essay fact-check pass (2026-06-25)
+Live-verified every checkable claim in `docs/blog-open-data-for-ai.md` against
+a fresh CI run (fetcher logs + source code) and against external sources via
+WebSearch. `turnover` (digital.nhs.uk 403) and `defra-sewage-hours` (EA
+rate-limiting) claims confirmed accurate; ONS/World Bank/MHCLG parsing-quirk
+claims (net-dwellings transposition, TA1 carry-forward, affordability
+Contents-sheet disambiguation) all matched the live fetcher behaviour, no
+changes needed. One real inaccuracy found and fixed: the essay and
+`docs/conformance/test-cases.json` misnamed the GDS/DSIT (20 Jan 2026)
+four-pillar framework — invented an "access" pillar and omitted "legal,
+security & ethical compliance". Corrected to the real four pillars (technical
+optimisation; data & metadata quality; organisational & infrastructure
+context; legal/security/ethical compliance) in both files, and tightened the
+T/M-axis-to-pillar mapping to two pillars per axis. Also fixed a stale
+`CLAUDE.md` claim that DWP Stat-Xplore authenticates via `Authorization:
+Bearer` — it's actually an `APIKey` header (see below).
+
 **Fetchers wired but currently SKIP (CI-verified blockers):**
 | Series | Blocker |
 |---|---|
@@ -205,7 +223,9 @@ Per-series research notes (sources, drafted fetchers, dead-ends) live in `docs/b
   `git push origin HEAD:main && git push origin <working-branch>`.
 - Commit as `Claude <noreply@anthropic.com>` (`git config user.email
   noreply@anthropic.com && git config user.name Claude`) so commits verify.
-- Working branch: `claude/govviz-review-improvements-ktuwwh`.
+- Working branch: varies per session/task — check `git branch --show-current`
+  rather than relying on a name hardcoded here (most recently
+  `claude/essay-factual-review-flwbgt`).
 - **WebSearch reaches the internet** (curl/WebFetch don't). Use it to find stable
   CSV/Excel URLs or dataset IDs, then wire in CI — the actual fetch happens in CI.
 - `eesCsv(datasetId)` helper already in `build-data.mjs` — reuse for any new EES
