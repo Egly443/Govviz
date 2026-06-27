@@ -734,7 +734,7 @@ async function creativeGva() {
       try {
         const a = await govukAttachments(cand);
         if (a.some((x) => /\.(ods|xlsx?|csv)$/i.test(x.url || ""))) { path = cand; atts = a; break; }
-      } catch { /* wrong slug/year — try next */ }
+      } catch { /* wrong slug/year — try the next */ }
     }
   }
   if (!path) {
@@ -748,34 +748,73 @@ async function creativeGva() {
   if (!file) throw new Error(`dcms-gva: no spreadsheet at ${path}`);
   const book = await xlsxBook(file.url);
   console.log(`  dcms-gva file=${(file.url || "").split("/").pop()} sheets=[${book.SheetNames.join("|")}]`);
+
   const num = (c) => { const v = typeof c === "number" ? c : parseFloat(String(c ?? "").replace(/,/g, "")); return Number.isFinite(v) ? v : null; };
   const yearRe = /^(19|20)\d{2}$/;
-  const order = book.SheetNames.filter((n) => /current price/i.test(n))
-    .concat(book.SheetNames.filter((n) => /gva/i.test(n) && !/constant|chained|real|employment/i.test(n)))
-    .concat(book.SheetNames);
-  let dumped = false;
+
+  // The "All sectors" workbook's data sheets are just numbered ("1a","1b","1c",
+  // "2a"…) — the names don't say which is current-price £m vs constant-price/
+  // chained-volume/index, so we can't pick by name. Skip the cover/contents/
+  // notes pages (no year-by-sector table there) and scan every remaining sheet,
+  // disambiguating current-price £m by the value landing in the plausible
+  // £30,000m–£250,000m range for Creative Industries (an index sheet — base
+  // 100 or similar — or a small chained-volume-rebased table will fall outside
+  // that range and get skipped).
+  const isMeta = (n) => /^cover|^contents|^notes/i.test(n.trim());
+  const candidates = book.SheetNames.filter((n) => !isMeta(n));
+  // Still prefer obviously-named current-price/GVA sheets first when present;
+  // falls through to all remaining numbered sheets otherwise.
+  const order = candidates.filter((n) => /current price/i.test(n))
+    .concat(candidates.filter((n) => /gva/i.test(n) && !/constant|chained|real|employment/i.test(n)))
+    .concat(candidates);
+  let dumpCount = 0;
+  const found = [];
   for (const sn of [...new Set(order)]) {
     let rows;
     try { rows = await sheetRows(book, sn); } catch { continue; }
     if (!rows.length) continue;
     const dense = rows.map((r) => Array.from(r ?? []));
+    let matchedThisSheet = false;
+
+    // Orientation A — years across a header row, "Creative Industries" row.
+    // Tolerate a sparser header (>=4 year cells) since these workbooks
+    // sometimes carry a short back series on some tables.
     let hdr = -1;
     for (let i = 0; i < Math.min(dense.length, 20); i++) {
-      if (dense[i].filter((c) => yearRe.test(String(c).trim())).length >= 5) { hdr = i; break; }
+      if (dense[i].filter((c) => yearRe.test(String(c).trim())).length >= 4) { hdr = i; break; }
     }
     if (hdr >= 0) {
       const yearCols = dense[hdr].map((c, j) => [j, String(c).trim()]).filter(([, c]) => yearRe.test(c));
-      const ciRow = dense.find((r) => /^creative industries$/i.test(String(r[0] ?? "").trim()))
-        ?? dense.find((r) => /creative industries/i.test(String(r[0] ?? "").trim()) && !/of which|sub[- ]?sector/i.test(String(r[0] ?? "")));
-      console.log(`  dcms-gva[A] sheet="${sn}" hdr=${hdr} years=${yearCols.length} ciRowLabel="${ciRow ? String(ciRow[0]).slice(0, 40) : null}"`);
+      // Match in the first ~3 columns (label may be offset by a code/index
+      // column) and tolerate footnote markers, e.g. "Creative Industries [note 2]".
+      const ciRow = dense.find((r) => {
+        const label = [r[0], r[1], r[2]].map((c) => String(c ?? "").trim()).find((s) => s) || "";
+        return /creative industries/i.test(label) && !/of which|sub[- ]?sector/i.test(label);
+      });
+      const ciLabel = ciRow ? ([ciRow[0], ciRow[1], ciRow[2]].map((c) => String(c ?? "").trim()).find((s) => s) || "") : null;
+      console.log(`  dcms-gva[A] sheet="${sn}" hdr=${hdr} years=${yearCols.length} ciRowLabel="${ciLabel ? ciLabel.slice(0, 40) : null}"`);
       if (ciRow) {
         const points = [];
-        for (const [j, yr] of yearCols) { const v = num(ciRow[j]); if (v != null && v >= 30000 && v <= 250000) points.push({ date: `${yr}-01-01`, value: v }); }
-        if (points.length >= 5) return points.sort((a, b) => (a.date < b.date ? -1 : 1));
+        for (const [j, yr] of yearCols) {
+          const v = num(ciRow[j]);
+          // Raw values are £m; scale:0.001 in the SOURCES entry converts to £bn —
+          // guard here in raw £m terms (30..250 £bn → 30000..250000 £m). This
+          // range check is also what disambiguates the current-price sheet from
+          // an index/chained-volume-rebased sheet sharing the same row label.
+          if (v != null && v >= 30000 && v <= 250000) points.push({ date: `${yr}-01-01`, value: v });
+        }
+        if (points.length >= 5) { matchedThisSheet = true; found.push({ sheet: sn, points: points.sort((a, b) => (a.date < b.date ? -1 : 1)) }); }
       }
     }
+
+    // Orientation B — years down a column, "Creative Industries" in a labelled
+    // column (tidy/long layout: one row per year×sector).
     let yearCol = -1;
-    for (let j = 0; j < 4; j++) { let n = 0; for (const r of dense) if (yearRe.test(String(r[j] ?? "").trim())) n++; if (n >= 5) { yearCol = j; break; } }
+    for (let j = 0; j < 4; j++) {
+      let n = 0;
+      for (const r of dense) if (yearRe.test(String(r[j] ?? "").trim())) n++;
+      if (n >= 5) { yearCol = j; break; }
+    }
     if (yearCol >= 0) {
       const firstYearRow = dense.findIndex((r) => yearRe.test(String(r[yearCol] ?? "").trim()));
       const hdrB = firstYearRow > 0 ? firstYearRow - 1 : 0;
@@ -785,90 +824,224 @@ async function creativeGva() {
       console.log(`  dcms-gva[B] sheet="${sn}" yearCol=${yearCol} hdrB=${hdrB} sectorCol=${sectorCol} valCol=${valCol} hdr=[${hdrRow.slice(0, 10).join("|")}]`);
       if (sectorCol >= 0 && valCol >= 0) {
         const points = [];
-        for (const r of dense) { const y = String(r[yearCol] ?? "").trim(); if (!yearRe.test(y)) continue; if (!/^creative industries$/i.test(String(r[sectorCol] ?? "").trim())) continue; const v = num(r[valCol]); if (v != null && v >= 30000 && v <= 250000) points.push({ date: `${y}-01-01`, value: v }); }
-        if (points.length >= 5) return points.sort((a, b) => (a.date < b.date ? -1 : 1));
+        for (const r of dense) {
+          const y = String(r[yearCol] ?? "").trim();
+          if (!yearRe.test(y)) continue;
+          const label = String(r[sectorCol] ?? "").trim();
+          if (!/creative industries/i.test(label) || /of which|sub[- ]?sector/i.test(label)) continue;
+          const v = num(r[valCol]);
+          if (v != null && v >= 30000 && v <= 250000) points.push({ date: `${y}-01-01`, value: v });
+        }
+        if (points.length >= 5) { matchedThisSheet = true; found.push({ sheet: sn, points: points.sort((a, b) => (a.date < b.date ? -1 : 1)) }); }
       }
     }
-    if (!dumped) { dumped = true; console.log(`  dcms-gva sheet="${sn}" no match; first 10 rows:`); for (const r of dense.slice(0, 10)) console.log(`    ${JSON.stringify(r.slice(0, 14)).slice(0, 220)}`); }
+
+    // Dump up to 3 non-matching candidate sheets (not just the first) so a
+    // future failed run actually shows the layout of 1a/1b/1c/… instead of
+    // burning the only dump on Cover_sheet/Contents/Notes.
+    if (!matchedThisSheet && dumpCount < 3) {
+      dumpCount++;
+      console.log(`  dcms-gva sheet="${sn}" no in-range match; first 8 rows:`);
+      for (const r of dense.slice(0, 8)) console.log(`    ${JSON.stringify(r.slice(0, 14)).slice(0, 220)}`);
+    }
+  }
+  if (found.length) {
+    // If multiple sheets produced an in-range match (e.g. a near-duplicate
+    // table), prefer the longest series.
+    found.sort((a, b) => b.points.length - a.points.length);
+    return found[0].points;
   }
   throw new Error("dcms-gva: Creative Industries GVA series not found across sheets (see diagnostics)");
 }
 
-// FCDO — Statistics on International Development: locate the newest "final UK
-// ODA spend {year}" release's ODS data tables (stable yearly slug). The SID
-// headline is PDF-first but each final edition publishes a companion ODS.
-async function fcdoOdaTables() {
+// FCDO — Statistics on International Development: each annual "final UK ODA
+// spend {year}" release publishes a companion ODS, but the ODS is a 2-3 year
+// SNAPSHOT (current + 1-2 prior years for comparison), not a back-series —
+// e.g. the 2024 edition's Table_1 only carries 2023 and 2024. So a single
+// edition can never yield a multi-year series. Instead we walk every
+// available annual edition (like gmppVariance walks GMPP CSV editions) and
+// take just the HEADLINE (latest) year's value from each, merging one point
+// per edition into a proper series. Slug changed naming partway through:
+// "final-uk-aid-spend-{Y}" (~2018-2021) vs "final-uk-oda-spend-{Y}"
+// (~2022 onwards) — try both forms per year.
+async function fcdoOdaEditions(maxEditions = 8) {
   const thisYear = new Date().getFullYear();
-  let path, atts, year;
-  for (let y = thisYear - 1; y >= thisYear - 6; y--) {
-    const cand = `government/statistics/statistics-on-international-development-final-uk-oda-spend-${y}`;
-    try {
-      const a = await govukAttachments(cand);
-      if (a.some((x) => /\.ods$/i.test(x.url || ""))) { path = cand; atts = a; year = y; break; }
-    } catch { /* 404 — try previous year */ }
+  const editions = [];
+  for (let y = thisYear - 1; y >= 2016 && editions.length < maxEditions; y--) {
+    const slugs = [
+      `government/statistics/statistics-on-international-development-final-uk-oda-spend-${y}`,
+      `government/statistics/statistics-on-international-development-final-uk-aid-spend-${y}`,
+    ];
+    let found = null;
+    for (const cand of slugs) {
+      try {
+        const atts = await govukAttachments(cand);
+        const ods = atts.find((a) => /\.ods$/i.test(a.url || "") && /table/i.test(a.title || ""))
+          || atts.find((a) => /\.ods$/i.test(a.url || ""));
+        if (ods) { found = { year: y, path: cand, odsUrl: ods.url }; break; }
+      } catch { /* 404 or no ODS — try the other slug form / older year */ }
+    }
+    if (found) editions.push(found);
+    else console.log(`  fcdo-oda ${y}: no release/ODS at either slug form — skipping`);
   }
-  if (!path) throw new Error("fcdo-oda: no final-uk-oda-spend release page resolved for recent years");
-  const ods = atts.find((a) => /\.ods$/i.test(a.url || "") && /table/i.test(a.title || "")) || atts.find((a) => /\.ods$/i.test(a.url || ""));
-  if (!ods) throw new Error(`fcdo-oda: no ODS at ${path}`);
-  const book = await xlsxBook(ods.url);
-  console.log(`  fcdo-oda release=${path} year=${year} ods=${(ods.url || "").split("/").pop()} sheets=[${book.SheetNames.join("|")}]`);
-  return { book, path, year };
+  if (!editions.length) throw new Error("fcdo-oda: no final-uk-oda/aid-spend editions resolved");
+  return editions;
 }
 
-// Dual-orientation scan (same shape as ghgEmissions): match `labelRe` against a
-// year axis, years-across-columns (A) or years-down-a-column (B).
-async function fcdoScanSeries(book, labelRe, diagTag) {
-  const yearRe = /^(19|20)\d{2}$/;
-  const num = (c) => { const v = typeof c === "number" ? c : parseFloat(String(c ?? "").replace(/[,%]/g, "")); return Number.isFinite(v) ? v : null; };
-  for (const sn of book.SheetNames) {
+const fcdoYearRe = /^(19|20)\d{2}$/;
+const fcdoNum = (c) => {
+  const v = typeof c === "number" ? c : parseFloat(String(c ?? "").replace(/[,%]/g, ""));
+  return Number.isFinite(v) ? v : null;
+};
+
+// Table_1 (or nearest match): "GNI estimates and ODA:GNI ratios" — years DOWN
+// col0, ratio in a column whose header matches /oda.*gni|gni.*ratio|ratio/.
+// Returns the value for the LATEST year row present in this edition (the
+// edition's own headline figure), plus diagnostics.
+async function fcdoReadGniRatio(book, edition) {
+  const sheetNames = book.SheetNames.filter((sn) => /^table[ _]?1$/i.test(sn))
+    .concat(book.SheetNames.filter((sn) => !/^table[ _]?1$/i.test(sn)));
+  for (const sn of sheetNames) {
     let rows;
     try { rows = (await sheetRows(book, sn)).map((r) => Array.from(r ?? [])); } catch { continue; }
     if (!rows.length) continue;
-    let hdr = -1;
-    for (let i = 0; i < Math.min(rows.length, 30); i++) { if (rows[i].filter((c) => yearRe.test(String(c).trim())).length >= 4) { hdr = i; break; } }
-    if (hdr >= 0) {
-      const yearCols = rows[hdr].map((c, j) => [j, String(c).trim()]).filter(([, c]) => yearRe.test(c));
-      const labelRow = rows.find((r) => labelRe.test(String(r[0] ?? "").trim().toLowerCase()));
-      if (labelRow) {
-        console.log(`  fcdo-oda[A:${diagTag}] sheet="${sn}" hdr=${hdr} years=${yearCols.length} label="${String(labelRow[0]).slice(0, 60)}"`);
-        const pts = [];
-        for (const [j, yr] of yearCols) { const v = num(labelRow[j]); if (v != null) pts.push({ date: `${yr}-01-01`, value: v }); }
-        if (pts.length >= 3) return pts;
-      }
+    // Only attempt sheets that look like the GNI/ratio table by title row.
+    const titleBlob = rows.slice(0, 3).map((r) => String(r[0] ?? "")).join(" | ").toLowerCase();
+    if (sn.toLowerCase() !== "table_1" && !/gni/.test(titleBlob)) continue;
+
+    // Find the header row carrying a year axis down col0 (years in col0 cells).
+    const yearRowIdxs = rows.map((r, i) => [i, String(r[0] ?? "").trim()]).filter(([, c]) => fcdoYearRe.test(c));
+    if (!yearRowIdxs.length) {
+      console.log(`  fcdo-oda-gni[${edition.year}] sheet="${sn}": no year rows in col0`);
+      continue;
     }
-    let yearCol = -1;
-    for (let j = 0; j < 6; j++) { let n = 0; for (const r of rows) if (yearRe.test(String(r[j] ?? "").trim())) n++; if (n >= 4) { yearCol = j; break; } }
-    if (yearCol >= 0) {
-      const firstYearRow = rows.findIndex((r) => yearRe.test(String(r[yearCol] ?? "").trim()));
-      const hdrB = firstYearRow > 0 ? firstYearRow - 1 : 0;
-      const header = denseRow(rows[hdrB]);
-      const labelCol = header.findIndex((c) => labelRe.test(c));
-      if (labelCol >= 0) {
-        console.log(`  fcdo-oda[B:${diagTag}] sheet="${sn}" yearCol=${yearCol} hdrB=${hdrB} labelCol=${labelCol} hdr=[${header.slice(0, 12).join("|")}]`);
-        const pts = [];
-        for (const r of rows) { const y = String(r[yearCol] ?? "").trim(); if (!yearRe.test(y)) continue; const v = num(r[labelCol]); if (v != null) pts.push({ date: `${y}-01-01`, value: v }); }
-        if (pts.length >= 3) return pts;
-      }
+    // Header row is just above the first year row; locate the ratio column.
+    const firstYearRow = yearRowIdxs[0][0];
+    const hdrRow = firstYearRow > 0 ? rows[firstYearRow - 1] : rows[0];
+    const hdr = denseRow(hdrRow);
+    let ratioCol = hdr.findIndex((c) => /oda[:\s/]*gni|gni.*ratio/.test(c));
+    if (ratioCol < 0) ratioCol = hdr.findIndex((c) => /ratio/.test(c));
+    // Some editions put the label one row higher (merged header) — scan a
+    // couple of rows above the first year row too.
+    if (ratioCol < 0 && firstYearRow > 1) {
+      const hdr2 = denseRow(rows[firstYearRow - 2]);
+      const j = hdr2.findIndex((c) => /oda[:\s/]*gni|gni.*ratio|ratio/.test(c));
+      if (j >= 0) ratioCol = j;
     }
+    if (ratioCol < 0) {
+      console.log(`  fcdo-oda-gni[${edition.year}] sheet="${sn}": no ratio column; hdr=[${hdr.slice(0, 10).join("|")}]`);
+      continue;
+    }
+    const [latestRowIdx, latestYear] = yearRowIdxs[yearRowIdxs.length - 1];
+    const raw = rows[latestRowIdx][ratioCol];
+    let v = fcdoNum(raw);
+    if (v != null && v > 1) v = v / 100; // tolerate "0.50" vs "50" (%) representations
+    console.log(`  fcdo-oda-gni[${edition.year}] sheet="${sn}" yearRow=${latestRowIdx} year=${latestYear} ratioCol=${ratioCol} raw=${JSON.stringify(raw)} -> ${v}`);
+    if (v != null) return { year: Number(latestYear), value: v };
+  }
+  // Diagnostics: dump Table_1-ish header rows for a future fix.
+  for (const sn of book.SheetNames.slice(0, 3)) {
+    let rows; try { rows = await sheetRows(book, sn); } catch { continue; }
+    console.log(`  fcdo-oda-gni[${edition.year}] dump sheet="${sn}" rows0-6: ${rows.slice(0, 6).map((r) => JSON.stringify(Array.from(r ?? []).slice(0, 8))).join(" / ")}`);
   }
   return null;
 }
 
+// Table_2 (or nearest match): "Total UK ODA: by Delivery Channel" — years
+// ACROSS columns, "TOTAL ODA" row (excluding Bilateral/Multilateral rows).
+// Returns the value for the LATEST year column present, plus diagnostics.
+async function fcdoReadTotalOda(book, edition) {
+  const sheetNames = book.SheetNames.filter((sn) => /^table[ _]?2$/i.test(sn))
+    .concat(book.SheetNames.filter((sn) => !/^table[ _]?2$/i.test(sn)));
+  for (const sn of sheetNames) {
+    let rows;
+    try { rows = (await sheetRows(book, sn)).map((r) => Array.from(r ?? [])); } catch { continue; }
+    if (!rows.length) continue;
+    const titleBlob = rows.slice(0, 3).map((r) => String(r[0] ?? "")).join(" | ").toLowerCase();
+    if (sn.toLowerCase() !== "table_2" && !/total uk oda|delivery channel/.test(titleBlob)) continue;
+
+    // Header row: the row with the most year-like cells.
+    let hdr = -1, best = 0;
+    for (let i = 0; i < Math.min(rows.length, 20); i++) {
+      const n = rows[i].filter((c) => fcdoYearRe.test(String(c).trim())).length;
+      if (n > best) { best = n; hdr = i; }
+    }
+    if (hdr < 0 || best < 1) {
+      console.log(`  fcdo-oda-total[${edition.year}] sheet="${sn}": no year header row found`);
+      continue;
+    }
+    const yearCols = rows[hdr].map((c, j) => [j, String(c).trim()]).filter(([, c]) => fcdoYearRe.test(c)).sort((a, b) => a[1].localeCompare(b[1]));
+    const totalRow = rows.find((r) => /^total\s*(uk\s*)?oda$/i.test(String(r[0] ?? "").trim()))
+      || rows.find((r) => /total.*oda/i.test(String(r[0] ?? "").trim()) && !/bilateral|multilateral/i.test(String(r[0] ?? "")));
+    if (!totalRow) {
+      console.log(`  fcdo-oda-total[${edition.year}] sheet="${sn}": no "TOTAL ODA" row; col0=[${rows.slice(0, 15).map((r) => String(r[0] ?? "").trim()).filter(Boolean).join(" | ")}]`);
+      continue;
+    }
+    const [latestCol, latestYear] = yearCols[yearCols.length - 1];
+    const raw = totalRow[latestCol];
+    const v = fcdoNum(raw);
+    console.log(`  fcdo-oda-total[${edition.year}] sheet="${sn}" hdr=${hdr} year=${latestYear} col=${latestCol} label="${String(totalRow[0]).slice(0, 40)}" raw=${JSON.stringify(raw)} -> ${v}`);
+    if (v != null) return { year: Number(latestYear), value: v };
+  }
+  for (const sn of book.SheetNames.slice(0, 3)) {
+    let rows; try { rows = await sheetRows(book, sn); } catch { continue; }
+    console.log(`  fcdo-oda-total[${edition.year}] dump sheet="${sn}" rows0-6: ${rows.slice(0, 6).map((r) => JSON.stringify(Array.from(r ?? []).slice(0, 8))).join(" / ")}`);
+  }
+  return null;
+}
+
+// Merge one headline point per edition into an ascending, de-duped series.
+// Editions are walked newest-first by fcdoOdaEditions, so de-duping by
+// "first seen wins" naturally prefers a year's own dedicated edition over a
+// later edition's comparator column reporting the same year.
+function fcdoMergeEditionPoints(points) {
+  const ordered = [];
+  const seen = new Set();
+  for (const p of points) {
+    if (!p || seen.has(p.year)) continue;
+    seen.add(p.year);
+    ordered.push(p);
+  }
+  return ordered
+    .map(({ year, value }) => ({ date: `${year}-01-01`, value }))
+    .sort((a, b) => (a.date < b.date ? -1 : 1));
+}
+
 async function fcdoOdaGni() {
-  const { book, path, year } = await fcdoOdaTables();
-  const pts = await fcdoScanSeries(book, /oda.*gni|gni.*ratio|%.*gni|oda\/gni/, "gni");
-  if (pts && pts.length) { console.log(`  fcdo-oda-gni: ${pts.length} pts from ${path} (release year ${year})`); return pts; }
-  for (const sn of book.SheetNames) { let rows; try { rows = await sheetRows(book, sn); } catch { continue; } console.log(`  fcdo-oda-gni dump sheet="${sn}" col0: ${rows.slice(0, 40).map((r) => String(r?.[0] ?? "").trim()).filter(Boolean).join(" | ").slice(0, 600)}`); }
-  throw new Error(`fcdo-oda-gni: ODA:GNI ratio row not found in ${path} (see diagnostics)`);
+  const editions = await fcdoOdaEditions();
+  const points = [];
+  for (const edition of editions) {
+    try {
+      const book = await xlsxBook(edition.odsUrl);
+      console.log(`  fcdo-oda-gni edition=${edition.year} ods=${(edition.odsUrl || "").split("/").pop()} sheets=[${book.SheetNames.join("|")}]`);
+      const pt = await fcdoReadGniRatio(book, edition);
+      if (pt && pt.value >= 0.2 && pt.value <= 1.0) points.push(pt);
+      else if (pt) console.log(`  fcdo-oda-gni edition=${edition.year}: value ${pt.value} outside guard 0.2-1.0 — discarded`);
+    } catch (e) { console.log(`  fcdo-oda-gni edition=${edition.year} err ${e.message}`); }
+  }
+  const merged = fcdoMergeEditionPoints(points);
+  if (merged.length < 3) throw new Error(`fcdo-oda-gni: only ${merged.length} edition points merged (need >=3) — see diagnostics`);
+  console.log(`  fcdo-oda-gni: merged ${merged.length} points from ${editions.length} editions`);
+  return merged;
 }
 
 // Returns raw £m values; SOURCES scale 0.001 converts to £bn.
 async function fcdoOdaTotal() {
-  const { book, path, year } = await fcdoOdaTables();
-  const pts = await fcdoScanSeries(book, /total (uk|net) oda|total oda.*(million|£m)|net oda.*million/, "total");
-  if (pts && pts.length) { console.log(`  fcdo-oda-total: ${pts.length} pts from ${path} (release year ${year})`); return pts; }
-  for (const sn of book.SheetNames) { let rows; try { rows = await sheetRows(book, sn); } catch { continue; } console.log(`  fcdo-oda-total dump sheet="${sn}" col0: ${rows.slice(0, 40).map((r) => String(r?.[0] ?? "").trim()).filter(Boolean).join(" | ").slice(0, 600)}`); }
-  throw new Error(`fcdo-oda-total: total ODA row not found in ${path} (see diagnostics)`);
+  const editions = await fcdoOdaEditions();
+  const points = [];
+  for (const edition of editions) {
+    try {
+      const book = await xlsxBook(edition.odsUrl);
+      console.log(`  fcdo-oda-total edition=${edition.year} ods=${(edition.odsUrl || "").split("/").pop()} sheets=[${book.SheetNames.join("|")}]`);
+      const pt = await fcdoReadTotalOda(book, edition);
+      if (pt && pt.value >= 5000 && pt.value <= 25000) points.push(pt);
+      else if (pt) console.log(`  fcdo-oda-total edition=${edition.year}: value ${pt.value} outside guard 5000-25000 (£m) — discarded`);
+    } catch (e) { console.log(`  fcdo-oda-total edition=${edition.year} err ${e.message}`); }
+  }
+  const merged = fcdoMergeEditionPoints(points);
+  if (merged.length < 3) throw new Error(`fcdo-oda-total: only ${merged.length} edition points merged (need >=3) — see diagnostics`);
+  console.log(`  fcdo-oda-total: merged ${merged.length} points from ${editions.length} editions`);
+  return merged;
 }
 
 // DCMS — adult sport participation (% active, 150+ min/week), Sport England
@@ -895,6 +1068,18 @@ async function sportActiveLives() {
     const y4 = u.match(/20\d\d/);
     return y4 ? y4[0] : null;
   };
+  // Pick the headline "Levels of activity" sheet: prefer one matching /level/i
+  // that is NOT a trend/region/local-authority breakdown (those still contain
+  // an "Active" column but split by year/region rather than carrying a single
+  // national headline row). Falls back to the first /level/i sheet.
+  const pickLevelsSheet = (sheetNames) => {
+    const candidates = sheetNames.filter((n) => /level/i.test(n));
+    const headline = candidates.find((n) => !/trend|local authorit|region/i.test(n));
+    return headline ?? candidates[0] ?? null;
+  };
+  // A row is "the national/overall row" if its label matches one of these, or
+  // (fallback) it's simply the first data row under the header.
+  const isOverallLabel = (s) => /^(all adults|overall|england|aged\s*16|16\s*\+)/i.test(String(s ?? "").trim());
   const points = [];
   for (const url of urls) {
     const year = yearFromUrl(decodeURIComponent(url));
@@ -902,26 +1087,68 @@ async function sportActiveLives() {
     if (points.some((p) => p.date.startsWith(year))) continue;
     try {
       const book = await xlsxBook(url);
-      let found = false;
-      for (const sn of book.SheetNames) {
-        if (/cover|note|content|index|guidance|metadata/i.test(sn)) continue;
-        let rows;
-        try { rows = await sheetRows(book, sn); } catch { continue; }
-        if (!rows.length) continue;
-        for (let i = 0; i < rows.length; i++) {
-          const row = Array.from(rows[i] ?? []);
-          const labelIdx = row.findIndex((c) => /^active\b/i.test(String(c ?? "").trim()) && !/fairly|in[\s-]?active/i.test(String(c ?? "")));
-          if (labelIdx < 0) continue;
-          const pct = row.slice(labelIdx + 1).map(num).find((v) => v != null && v > 0 && v <= 100);
-          if (pct != null) { console.log(`  sport-participation[${year}] sheet="${sn}" row=${i} label="${row[labelIdx]}" pct=${pct}`); points.push({ date: `${year}-01-01`, value: pct }); found = true; break; }
-        }
-        if (found) break;
+      const sn = pickLevelsSheet(book.SheetNames);
+      if (!sn) {
+        console.log(`  sport-participation[${year}] no "Levels" sheet; sheets=[${book.SheetNames.join("|")}]`);
+        continue;
       }
-      if (!found) {
-        console.log(`  sport-participation[${year}] no "Active" row found; sheets=[${book.SheetNames.join("|")}]`);
-        const sn0 = book.SheetNames.find((n) => !/cover|note|content|index/i.test(n)) ?? book.SheetNames[0];
-        const rows0 = await sheetRows(book, sn0);
-        for (const r of rows0.slice(0, 15)) console.log(`     ${JSON.stringify((r ?? []).slice(0, 10)).slice(0, 200)}`);
+      const rows = (await sheetRows(book, sn)).map((r) => Array.from(r ?? []));
+      if (!rows.length) { console.log(`  sport-participation[${year}] sheet "${sn}" empty`); continue; }
+
+      // Locate the header row: contains a cell matching /^active\b/i that is
+      // not "fairly active" / "inactive". The activity-level columns are
+      // usually paired (Number, %) per level, so the "Active" header cell can
+      // repeat (e.g. once for the count sub-block, once for the % sub-block).
+      let headerRowIdx = -1;
+      let activeCols = [];
+      for (let i = 0; i < Math.min(rows.length, 12); i++) {
+        const row = rows[i];
+        const cols = row.reduce((acc, c, idx) => {
+          if (/^active\b/i.test(String(c ?? "").trim()) && !/fairly|in[\s-]?active/i.test(String(c ?? ""))) acc.push(idx);
+          return acc;
+        }, []);
+        if (cols.length) { headerRowIdx = i; activeCols = cols; break; }
+      }
+      if (headerRowIdx < 0) {
+        console.log(`  sport-participation[${year}] no "Active" header found in sheet "${sn}"; dumping rows:`);
+        for (const r of rows.slice(0, 6)) console.log(`     ${JSON.stringify(r.slice(0, 10)).slice(0, 200)}`);
+        continue;
+      }
+      // The %-vs-count sub-header (if present) usually lives one row below the
+      // top-level "Active" label, e.g. "Number" | "%". Use it to disambiguate
+      // when there are multiple "Active" columns; otherwise pick whichever
+      // candidate column holds a plausible 0–100 value on the data rows.
+      const subHeaderRow = rows[headerRowIdx + 1] ?? [];
+      const pctColFromSubHeader = activeCols.find((c) => /%|percent/i.test(String(subHeaderRow[c] ?? "")));
+
+      // Candidate data rows: everything after the header (and sub-header, if
+      // it looks like one rather than data) — prefer a row whose label matches
+      // the overall/national pattern, else just the first data row.
+      const dataStart = /%|percent|number|^n\b/i.test(rows.slice(headerRowIdx + 1, headerRowIdx + 2).flat().join(" ")) ? headerRowIdx + 2 : headerRowIdx + 1;
+      const dataRows = rows.slice(dataStart, dataStart + 20);
+      const overallRow = dataRows.find((r) => isOverallLabel(r[0])) ?? dataRows[0];
+
+      if (!overallRow) {
+        console.log(`  sport-participation[${year}] sheet "${sn}" header row=${headerRowIdx} but no data rows; dumping:`);
+        for (const r of rows.slice(headerRowIdx, headerRowIdx + 8)) console.log(`     ${JSON.stringify(r.slice(0, 10)).slice(0, 200)}`);
+        continue;
+      }
+
+      // Resolve the % column: sub-header hint first, else whichever "Active"
+      // candidate column holds a plausible percentage (0–100) on the overall
+      // row, else the last candidate column (counts tend to come first).
+      let pctCol = pctColFromSubHeader;
+      if (pctCol == null) pctCol = activeCols.find((c) => { const v = num(overallRow[c]); return v != null && v > 0 && v <= 100; });
+      if (pctCol == null) pctCol = activeCols[activeCols.length - 1];
+      const pct = num(overallRow[pctCol]);
+
+      if (pct != null && pct >= 40 && pct <= 80) {
+        console.log(`  sport-participation[${year}] sheet="${sn}" headerRow=${headerRowIdx} activeCols=[${activeCols.join(",")}] pctCol=${pctCol} label="${overallRow[0]}" pct=${pct}`);
+        points.push({ date: `${year}-01-01`, value: pct });
+      } else {
+        console.log(`  sport-participation[${year}] sheet="${sn}" headerRow=${headerRowIdx} activeCols=[${activeCols.join(",")}] pctCol=${pctCol} label="${overallRow[0]}" pct=${pct} — out of 40-80 guard range, rejected`);
+        console.log(`  sport-participation[${year}] header row + first 6 data rows for diagnosis:`);
+        for (const r of rows.slice(headerRowIdx, headerRowIdx + 7)) console.log(`     ${JSON.stringify(r.slice(0, 12)).slice(0, 240)}`);
       }
     } catch (e) { console.log(`  sport-participation[${year}] err ${e.message}`); }
     if (points.length >= 8) break;
@@ -932,9 +1159,10 @@ async function sportActiveLives() {
 }
 
 // DSIT — gigabit-capable broadband coverage (% premises), Ofcom Connected
-// Nations. No stable national timeseries file; scrape each report-year's
-// data-downloads page for a UK-level "fixed" coverage CSV/ZIP. LOW confidence —
-// expect the first CI run to be discovery (diagnostics log every link).
+// Nations. CI-VERIFIED HARD BLOCK: every Ofcom data-downloads page returns
+// HTTP 403 to automated clients (like digital.nhs.uk for `turnover`), so this
+// always SKIPs. Kept as a documented blocker — needs a non-gated mirror (the
+// data.gov.uk CKAN copy is local-authority/postcode only, not a UK total).
 const OFCOM_REPORTS = [
   { year: 2025, page: "https://www.ofcom.org.uk/phones-and-broadband/coverage-and-speeds/connected-nations-20252/data-downloads-2025" },
   { year: 2024, page: "https://www.ofcom.org.uk/phones-and-broadband/coverage-and-speeds/connected-nations-2024/data-downloads-2024" },
