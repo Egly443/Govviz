@@ -784,7 +784,7 @@ async function creativeGva() {
     // Identify & skip SIC-classification lookup sheets up front (content-based,
     // robust to sheet renaming).
     const head = dense.slice(0, 6).map((r) => r.map((c) => String(c ?? "")).join(" ")).join(" ");
-    if (/standard industrial classification|sic07 code/i.test(head)) {
+    if (/standard industrial classifications used/i.test(head)) {
       console.log(`  dcms-gva skip SIC-definition sheet="${sn}"`);
       continue;
     }
@@ -939,49 +939,25 @@ async function fcdoOdaEditions(maxEditions = 8) {
 // col0 (as "2023\r\n..." strings), ratio in a column whose normalised header
 // matches /oda[:\s/]*gni|gni.*ratio|ratio/. Returns the LATEST year row's value.
 async function fcdoReadGniRatio(book, edition) {
-  const sheetNames = book.SheetNames.filter((sn) => /^table[ _]?1$/i.test(sn))
-    .concat(book.SheetNames.filter((sn) => !/^table[ _]?1$/i.test(sn)));
-  for (const sn of sheetNames) {
+  // Table_1 is a single-row table with years in the COLUMN HEADERS
+  // ("2021[r] ODA:GNI ratio"); the ratio cells are the only numbers in
+  // [0.2,1.0] (GNI ~2e6, ODA ~1.4e4). Take the rightmost in-range value =
+  // latest year. Date comes from edition.year (the release's headline year).
+  const sheets = book.SheetNames.filter((s) => /^table[ _]?1$/i.test(s)).concat(book.SheetNames);
+  for (const sn of sheets) {
     let rows;
     try { rows = (await sheetRows(book, sn)).map((r) => Array.from(r ?? [])); } catch { continue; }
     if (!rows.length) continue;
-    // Only attempt sheets that look like the GNI/ratio table by title row.
-    const titleBlob = rows.slice(0, 3).map((r) => fcdoNorm(r[0])).join(" | ").toLowerCase();
-    if (sn.toLowerCase() !== "table_1" && !/gni/.test(titleBlob)) continue;
-
-    // Year axis down col0 — leading-year match, tolerating trailing notes.
-    const yearRowIdxs = rows.map((r, i) => [i, fcdoYearOf(r[0])]).filter(([, y]) => y != null);
-    if (!yearRowIdxs.length) {
-      console.log(`  fcdo-oda-gni[${edition.year}] sheet="${sn}": no year rows in col0; col0=[${rows.slice(0, 8).map((r) => fcdoNorm(r[0]).slice(0, 24)).filter(Boolean).join(" | ")}]`);
-      continue;
+    const blob = rows.slice(0, 3).map((r) => String(r[0] ?? "")).join(" ").toLowerCase();
+    if (sn.toLowerCase() !== "table_1" && !/gni/.test(blob)) continue;
+    let best = null;
+    for (const r of rows) for (let j = 0; j < r.length; j++) {
+      const v = fcdoNum(r[j]);
+      if (v != null && v >= 0.2 && v <= 1.0 && (best == null || j > best.col)) best = { col: j, value: v };
     }
-    // Header row is just above the first year row; locate the ratio column.
-    const firstYearRow = yearRowIdxs[0][0];
-    const hdrCandidates = [firstYearRow - 1, firstYearRow - 2, 0].filter((i) => i >= 0);
-    let ratioCol = -1;
-    for (const hi of hdrCandidates) {
-      const hdr = (rows[hi] || []).map((c) => fcdoNorm(c).toLowerCase());
-      ratioCol = hdr.findIndex((c) => /oda[:\s/]*gni|gni.*ratio/.test(c));
-      if (ratioCol < 0) ratioCol = hdr.findIndex((c) => /ratio/.test(c));
-      if (ratioCol >= 0) break;
-    }
-    if (ratioCol < 0) {
-      const hdr = (rows[firstYearRow - 1] || rows[0] || []).map((c) => fcdoNorm(c)).slice(0, 10);
-      console.log(`  fcdo-oda-gni[${edition.year}] sheet="${sn}": no ratio column; hdr=[${hdr.join("|")}]`);
-      continue;
-    }
-    const [latestRowIdx, latestYear] = yearRowIdxs[yearRowIdxs.length - 1];
-    const raw = rows[latestRowIdx][ratioCol];
-    let v = fcdoNum(raw);
-    if (v != null && v > 1) v = v / 100; // tolerate "0.50" vs "50" (%) representations
-    console.log(`  fcdo-oda-gni[${edition.year}] sheet="${sn}" yearRow=${latestRowIdx} year=${latestYear} ratioCol=${ratioCol} raw=${JSON.stringify(raw)} -> ${v}`);
-    if (v != null) return { year: latestYear, value: v };
+    if (best) { console.log(`  fcdo-oda-gni[${edition.year}] sheet="${sn}" ratio=${best.value} col=${best.col}`); return { year: edition.year, value: best.value }; }
   }
-  // Diagnostics: dump first sheets' header rows for a future fix.
-  for (const sn of book.SheetNames.slice(0, 3)) {
-    let rows; try { rows = await sheetRows(book, sn); } catch { continue; }
-    console.log(`  fcdo-oda-gni[${edition.year}] dump sheet="${sn}" rows0-6: ${rows.slice(0, 6).map((r) => JSON.stringify(Array.from(r ?? []).slice(0, 8).map(fcdoNorm))).join(" / ")}`);
-  }
+  for (const sn of book.SheetNames.slice(0, 3)) { let rows; try { rows = await sheetRows(book, sn); } catch { continue; } console.log(`  fcdo-oda-gni[${edition.year}] dump sheet="${sn}" rows0-6: ${rows.slice(0,6).map((r)=>JSON.stringify(Array.from(r??[]).slice(0,8))).join(" / ")}`); }
   return null;
 }
 
@@ -989,41 +965,27 @@ async function fcdoReadGniRatio(book, edition) {
 // ACROSS columns (as "2024\r\n..." header cells), "TOTAL ODA" row (excluding
 // Bilateral/Multilateral). Returns the value for the LATEST (max) year column.
 async function fcdoReadTotalOda(book, edition) {
-  const sheetNames = book.SheetNames.filter((sn) => /^table[ _]?2$/i.test(sn))
-    .concat(book.SheetNames.filter((sn) => !/^table[ _]?2$/i.test(sn)));
-  for (const sn of sheetNames) {
+  // Table_2 "Total UK ODA by Delivery Channel": find the TOTAL ODA row, then
+  // take the rightmost cell whose value is a plausible annual total
+  // (5000-25000 £m) = latest year (year columns also carry note-markers like
+  // "1", so match by value range, not column position). Date = edition.year.
+  const sheets = book.SheetNames.filter((s) => /^table[ _]?2$/i.test(s)).concat(book.SheetNames);
+  for (const sn of sheets) {
     let rows;
     try { rows = (await sheetRows(book, sn)).map((r) => Array.from(r ?? [])); } catch { continue; }
     if (!rows.length) continue;
-    const titleBlob = rows.slice(0, 3).map((r) => fcdoNorm(r[0])).join(" | ").toLowerCase();
-    if (sn.toLowerCase() !== "table_2" && !/total uk oda|delivery channel/.test(titleBlob)) continue;
-
-    // Header row: the row with the most leading-year cells.
-    let hdr = -1, best = 0;
-    for (let i = 0; i < Math.min(rows.length, 20); i++) {
-      const n = rows[i].filter((c) => fcdoYearOf(c) != null).length;
-      if (n > best) { best = n; hdr = i; }
-    }
-    if (hdr < 0 || best < 1) {
-      console.log(`  fcdo-oda-total[${edition.year}] sheet="${sn}": no year header row found`);
-      continue;
-    }
-    const yearCols = rows[hdr].map((c, j) => [j, fcdoYearOf(c)]).filter(([, y]) => y != null).sort((a, b) => a[1] - b[1]);
-    const totalRow = rows.find((r) => /^total\s*(uk\s*)?oda$/i.test(fcdoNorm(r[0])))
+    const blob = rows.slice(0, 3).map((r) => String(r[0] ?? "")).join(" ").toLowerCase();
+    if (sn.toLowerCase() !== "table_2" && !/total uk oda|delivery channel/.test(blob)) continue;
+    const totalRow = rows.find((r) => /^total\s*(uk\s*)?oda\b/i.test(fcdoNorm(r[0])))
       || rows.find((r) => /total.*oda/i.test(fcdoNorm(r[0])) && !/bilateral|multilateral/i.test(fcdoNorm(r[0])));
-    if (!totalRow) {
-      console.log(`  fcdo-oda-total[${edition.year}] sheet="${sn}": no "TOTAL ODA" row; col0=[${rows.slice(0, 15).map((r) => fcdoNorm(r[0])).filter(Boolean).join(" | ")}]`);
-      continue;
+    if (!totalRow) { console.log(`  fcdo-oda-total[${edition.year}] sheet="${sn}": no TOTAL ODA row`); continue; }
+    let best = null;
+    for (let j = 0; j < totalRow.length; j++) {
+      const v = fcdoNum(totalRow[j]);
+      if (v != null && v >= 5000 && v <= 25000 && (best == null || j > best.col)) best = { col: j, value: v };
     }
-    const [latestCol, latestYear] = yearCols[yearCols.length - 1];
-    const raw = totalRow[latestCol];
-    const v = fcdoNum(raw);
-    console.log(`  fcdo-oda-total[${edition.year}] sheet="${sn}" hdr=${hdr} year=${latestYear} col=${latestCol} label="${fcdoNorm(totalRow[0]).slice(0, 40)}" raw=${JSON.stringify(raw)} -> ${v}`);
-    if (v != null) return { year: latestYear, value: v };
-  }
-  for (const sn of book.SheetNames.slice(0, 3)) {
-    let rows; try { rows = await sheetRows(book, sn); } catch { continue; }
-    console.log(`  fcdo-oda-total[${edition.year}] dump sheet="${sn}" rows0-6: ${rows.slice(0, 6).map((r) => JSON.stringify(Array.from(r ?? []).slice(0, 8).map(fcdoNorm))).join(" / ")}`);
+    if (best) { console.log(`  fcdo-oda-total[${edition.year}] sheet="${sn}" total=${best.value} col=${best.col} label="${String(totalRow[0]).slice(0,30)}"`); return { year: edition.year, value: best.value }; }
+    console.log(`  fcdo-oda-total[${edition.year}] sheet="${sn}": TOTAL ODA row found but no in-range value; row=${JSON.stringify(totalRow.slice(0,12))}`);
   }
   return null;
 }
@@ -1083,7 +1045,6 @@ async function fcdoOdaTotal() {
 }
 
 // ============================================================================
-//
 
 // DCMS — adult sport participation (% active, 150+ min/week), Sport England
 // Active Lives. Scrape the data-tables landing page for the current "Tables 1-5
