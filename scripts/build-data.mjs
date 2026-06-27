@@ -527,6 +527,56 @@ async function gmppVariance(deptRe, deptFull) {
   return points.filter((p) => { if (seen.has(p.date)) return false; seen.add(p.date); return true; });
 }
 
+// DESNZ — final UK territorial greenhouse gas emissions, MtCO2e per year.
+// The headline release is a gov.uk statistics page with an "accessible" ODS of
+// data tables. Layout is a transposed summary (years across columns, gases /
+// sectors down rows); the national total is a "Net emissions" / "Grand total"
+// row. We locate the newest release, then scan every sheet for the year header
+// row + a net-total label and read across. Diagnostics print sheet structure so
+// a first CI run reveals the exact shape if the heuristics miss.
+async function ghgEmissions() {
+  // Newest "final UK greenhouse gas emissions" release (slug drifts yearly).
+  const path = await govukLatest(
+    "final UK greenhouse gas emissions national statistics",
+    (r) => /greenhouse-gas-emissions/.test(String(r.link || "")),
+  );
+  const atts = await govukAttachments(path);
+  const ods = atts.find((a) => /\.ods$/i.test(a.url || "") && /data\s*tab|table|emission/i.test(`${a.title} ${a.url}`))
+    || atts.find((a) => /\.ods$/i.test(a.url || ""));
+  if (!ods) throw new Error(`ghg: no ODS attachment at ${path} (atts: ${atts.map((a) => (a.url || "").split("/").pop()).slice(0, 8).join(",")})`);
+  const book = await xlsxBook(ods.url);
+  console.log(`  ghg release=${path} ods=${(ods.url || "").split("/").pop()} sheets=[${book.SheetNames.join("|")}]`);
+  const yearRe = /^(19|20)\d{2}$/;
+  const totalRe = /net\s*emission|net\s*territorial|grand\s*total|^total\b.*greenhouse|^total\s*$/i;
+  for (const sn of book.SheetNames) {
+    const rows = (await sheetRows(book, sn)).map((r) => Array.from(r ?? []));
+    // Find the header row whose cells are mostly years.
+    let hdr = -1;
+    for (let i = 0; i < Math.min(rows.length, 25); i++) {
+      const yrs = rows[i].filter((c) => yearRe.test(String(c).trim())).length;
+      if (yrs >= 5) { hdr = i; break; }
+    }
+    if (hdr < 0) continue;
+    const yearCols = rows[hdr].map((c, j) => [j, String(c).trim()]).filter(([, c]) => yearRe.test(c));
+    // First data row whose label matches a national-total pattern.
+    const labelCol = 0;
+    let totRow = -1;
+    for (let i = hdr + 1; i < rows.length; i++) {
+      const label = String(rows[i][labelCol] ?? "").trim();
+      if (totalRe.test(label)) { totRow = i; break; }
+    }
+    console.log(`  ghg sheet="${sn}" hdr=${hdr} years=${yearCols.length} totRow=${totRow} sampleLabels=[${rows.slice(hdr + 1, hdr + 6).map((r) => String(r[0] ?? "").slice(0, 22)).join(" / ")}]`);
+    if (totRow < 0) continue;
+    const points = [];
+    for (const [j, yr] of yearCols) {
+      const v = parseFloat(rows[totRow][j]);
+      if (Number.isFinite(v)) points.push({ date: `${yr}-01-01`, value: v });
+    }
+    if (points.length >= 5) return points;
+  }
+  throw new Error("ghg: no net-total row found across sheets (see diagnostics)");
+}
+
 const SOURCES = [
   // --- confirmed working (real ONS data) ---
   { id: "hmt-cost-of-living", line: "cpi", min: -5, max: 30, get: () => ons(INFLATION, "D7G7", "mm23", "years") },
@@ -591,6 +641,8 @@ const SOURCES = [
   // --- World Bank wave 3: DESNZ / DSIT / DBT / DCMS ---
   // DESNZ: renewables as % of total final energy consumption (WB/IEA).
   { id: "desnz-renewables-share", min: 0, max: 60, get: () => wb("EG.FEC.RNEW.ZS") },
+  // DESNZ: UK net territorial GHG emissions, MtCO2e (gov.uk final emissions ODS).
+  { id: "desnz-ghg-emissions", min: 200, max: 900, get: () => ghgEmissions() },
   // DSIT: R&D as % of GDP (GERD), and researchers per million people (WB/OECD/UNESCO).
   { id: "dsit-rd-gdp", min: 0.5, max: 5, get: () => wb("GB.XPD.RSDV.GD.ZS") },
   { id: "dsit-researchers", min: 1000, max: 12000, get: () => wb("SP.POP.SCIE.RD.P6") },
@@ -599,6 +651,9 @@ const SOURCES = [
   { id: "dbt-hightech-exports", min: 5, max: 45, get: () => wb("TX.VAL.TECH.MF.ZS") },
   // DCMS: international tourist arrivals (absolute count) (WB/UN Tourism).
   { id: "dcms-tourism-arrivals", min: 5000000, max: 60000000, get: () => wb("ST.INT.ARVL") },
+  // DBT: UK business investment, quarterly, chained volume £m → £bn (ONS CDID
+  // NPEL, QNA dataset). Clean time series — no ODS parsing needed.
+  { id: "dbt-business-investment", min: 20, max: 90, scale: 0.001, get: () => ons(GDP, "NPEL", ["cxnv", "qna"], "quarters") },
 
   // --- MHCLG & Defra (new departments) ---
   // Defra air pollution: mean PM2.5 exposure (World Bank / OECD-IHME) — reliable.
