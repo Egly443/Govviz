@@ -1407,15 +1407,40 @@ function hmrcParseAsa(cell) {
 // plausible ASA value (1-40 minutes) — VALUE-RANGE extraction, same approach
 // as fcdoReadGniRatio/fcdoReadTotalOda, so we don't depend on a stable column
 // position (months/quarters/YTD columns vary report to report).
+function hmrcAsaSheetKind(sn) {
+  const s = String(sn || "").toLowerCase();
+  if (/content|definition/.test(s)) return null;
+  if (/year[- ]?to[- ]?date/.test(s)) return "ytd";
+  if (/in[- ]?month|measures/.test(s)) return "month";
+  return null;
+}
 function hmrcFindAsaInSheet(rows, sn, diag) {
   for (let i = 0; i < rows.length; i++) {
     const r = Array.from(rows[i] ?? []);
-    const label = String(r[0] ?? "").toLowerCase();
-    if (!/speed of answer|\basa\b/.test(label)) continue;
-    if (diag) console.log(`  hmrc-call-wait sheet="${sn}" row${i} label="${label.slice(0, 60)}" cells=${JSON.stringify(r.slice(0, 14))}`);
-    for (let j = 1; j < r.length; j++) {
-      const v = hmrcParseAsa(r[j]);
-      if (v != null && v >= 1 && v <= 40) return v;
+    for (let j = 0; j < r.length; j++) {
+      const label = String(r[j] ?? "").toLowerCase().trim();
+      if (!/average speed of answer|^asa$/.test(label)) continue;
+      if (diag) console.log(`  hmrc-call-wait sheet="${sn}" row${i} col${j} label="${label.slice(0, 60)}" rowCells=${JSON.stringify(r.slice(0, 14))}`);
+      // (a) same row, any other cell
+      for (let k = 0; k < r.length; k++) {
+        if (k === j) continue;
+        const v = hmrcParseAsa(r[k]);
+        if (v != null) return v;
+      }
+      // (b) cell directly below the label, and a few cells right of that
+      const below = Array.from(rows[i + 1] ?? []);
+      if (diag && below.length) console.log(`  hmrc-call-wait sheet="${sn}" row${i + 1} (below label) cells=${JSON.stringify(below.slice(0, 14))}`);
+      for (let k = j; k < below.length; k++) {
+        const v = hmrcParseAsa(below[k]);
+        if (v != null) return v;
+      }
+      // (c) two rows below (some layouts have a blank spacer row between a
+      // wrapped label and its value row)
+      const below2 = Array.from(rows[i + 2] ?? []);
+      for (let k = j; k < below2.length; k++) {
+        const v = hmrcParseAsa(below2[k]);
+        if (v != null) return v;
+      }
     }
   }
   return null;
@@ -1447,20 +1472,32 @@ async function hmrcCallWait() {
       const book = await xlsxBook(file.url);
       const diag = points.length === 0; // verbose on the first successfully-fetched edition only
       if (diag) console.log(`  hmrc-call-wait ${ed.date} file=${(file.url || "").split("/").pop()} sheets=[${book.SheetNames.join("|")}]`);
-      let value = null, hitSheet = null;
+      // Only the two measures sheets can hold the ASA value (Contents/
+      // Definitions excluded — see hmrcAsaSheetKind). Prefer Year-to-date
+      // over In-month when both resolve: YTD is the headline annual figure.
+      let monthValue = null, ytdValue = null;
       for (const sn of book.SheetNames) {
+        const kind = hmrcAsaSheetKind(sn);
+        if (!kind) continue;
         let rows;
         try { rows = await sheetRows(book, sn); } catch { continue; }
-        value = hmrcFindAsaInSheet(rows, sn, diag);
-        if (value != null) { hitSheet = sn; break; }
-      }
-      if (value == null) {
         if (diag) {
-          for (const sn of book.SheetNames.slice(0, 2)) {
-            let rows; try { rows = await sheetRows(book, sn); } catch { continue; }
-            console.log(`  hmrc-call-wait ${ed.date} dump sheet="${sn}" rows0-15 col0: ${rows.slice(0, 15).map((r) => String((r || [])[0] ?? "").slice(0, 50)).join(" | ")}`);
+          // RICH DIAGNOSTIC: dump up to ~40 rows x ~12 cols of each measures
+          // sheet so the exact ASA label/value position is visible even if
+          // the row/col heuristics above still miss.
+          console.log(`  hmrc-call-wait ${ed.date} FULL DUMP sheet="${sn}" (${rows.length} rows):`);
+          for (let i = 0; i < Math.min(rows.length, 40); i++) {
+            const r = Array.from(rows[i] ?? []).slice(0, 12);
+            console.log(`    row${String(i).padStart(2, "0")}: ${JSON.stringify(r)}`);
           }
         }
+        const v = hmrcFindAsaInSheet(rows, sn, diag);
+        if (v == null) continue;
+        if (kind === "ytd") ytdValue = v; else monthValue = v;
+      }
+      const value = ytdValue != null ? ytdValue : monthValue;
+      const hitSheet = ytdValue != null ? "year-to-date" : (monthValue != null ? "in-month" : null);
+      if (value == null) {
         console.log(`  hmrc-call-wait ${ed.date}: ASA not found in any sheet`);
         continue;
       }
@@ -1502,29 +1539,52 @@ function dedupeSortByDate(points) {
 // the leading year + quarter token. Guard [5,50] disambiguates p/kWh from a
 // £-bill row (hundreds) or an index row (~100) sharing the same sheet.
 async function electricityPrice() {
-  const SLUG = "government/statistical-data-sets/quarterly-domestic-energy-price-statistics";
-  let atts;
-  try {
-    atts = await govukAttachments(SLUG);
-  } catch (e) {
-    // Fall back to the QEP collection's latest edition if the data-set slug
-    // has moved/renamed (mirrors the ghgEmissions/fuelPoverty resilience
-    // pattern — try the stable structural slug first, then the collection).
-    console.log(`  desnz-elec-price: statistical-data-set ${SLUG} failed (${e.message}); trying collection`);
-    const path = await govukCollectionLatest("quarterly-energy-prices", (d) => /quarterly energy prices/i.test(d.title || ""));
-    atts = await govukAttachments(path);
+  // The p/kWh "average unit cost of electricity for domestic consumers" is QEP
+  // table 2.2.4, published in DESNZ's "Quarterly Energy Prices" release (home:
+  // the `domestic-energy-prices` collection). NOT the
+  // `quarterly-domestic-energy-price-statistics` data-set, which (CI-confirmed)
+  // is customer numbers / Economy-7 tariff mix (tables 2.4.x/2.5.x), no price.
+  let atts = [];
+  let relPath = "";
+  const discoveries = [
+    () => govukCollectionLatest("domestic-energy-prices", (d) => /price|quarterly energy prices/i.test(d.title || "")),
+    () => govukCollectionLatest("quarterly-energy-prices", (d) => /quarterly energy prices/i.test(d.title || "")),
+  ];
+  for (const disc of discoveries) {
+    try {
+      const p = await disc();
+      const a = await govukAttachments(p);
+      if (a.some((x) => /\.(ods|xlsx?)$/i.test(x.url || ""))) { atts = a; relPath = p; break; }
+    } catch (e) { console.log(`  desnz-elec-price discovery err ${e.message}`); }
   }
-  console.log(`  desnz-elec-price atts=[${atts.map((a) => (a.url || "").split("/").pop()).slice(0, 16).join("|")}]`);
+  if (!atts.length) throw new Error("desnz-elec-price: no QEP release with spreadsheet attachments resolved");
+  console.log(`  desnz-elec-price release=${relPath} atts=[${atts.map((a) => (a.url || "").split("/").pop()).slice(0, 20).join("|")}]`);
 
-  // Prefer a file whose title/url names the domestic electricity price table;
-  // QEP table numbering has the unit-cost-of-electricity table as 2.2.4 (and
-  // some editions ship table 2.2.4 alone, others a combined "Tables 2.1-2.6"
-  // workbook) — accept either, falling back to any spreadsheet present.
-  const file = atts.find((a) => /\.(ods|xlsx?)$/i.test(a.url || "") && /2\.2\.4|domestic.*electric|electric.*domestic|unit.*cost/i.test(`${a.title || ""} ${a.url || ""}`))
-    || atts.find((a) => /\.(ods|xlsx?)$/i.test(a.url || ""));
-  if (!file) throw new Error(`desnz-elec-price: no spreadsheet found (atts: ${atts.map((a) => (a.url || "").split("/").pop()).slice(0, 8).join(",")})`);
-  const book = await xlsxBook(file.url);
-  console.log(`  desnz-elec-price file=${(file.url || "").split("/").pop()} sheets=[${book.SheetNames.join("|")}]`);
+  // CI diagnostics (2026-06-27) showed this data-set's attachments are QEP
+  // domestic tables 2.4.1/2.4.2/2.4.3/2.5.1/2.5.2 ("table_241.xlsx" etc) — NOT
+  // table 2.2.4 as originally assumed. Per gov.uk/DESNZ documentation, 2.4.x is
+  // the proportion of customers on Economy 7 tariffs (a customer-numbers/
+  // tariff-mix table, region-split, no price column) and 2.5.x is a related
+  // customer-numbers table — this whole data-set is "Quarterly domestic energy
+  // customer numbers", a different release from the unit-PRICE table 2.2.4.
+  // We can't be 100% sure from outside (no live access) whether some edition
+  // of this same statistical-data-set also ships a 2.2.x/2.3.x price table
+  // alongside the customer-number tables, so rather than hard-fail we now:
+  //   1. try EVERY spreadsheet attachment found (not just the first "looks
+  //      like a price table" match) — a future edition may add one;
+  //   2. within each file, check every sheet, preferring "(Annual)" sheets
+  //      then "(Quarterly)" sheets, for a NATIONAL (UK/All/GB) row of values
+  //      in the p/kWh guard range [5,50] — this is what disambiguates a
+  //      genuine unit-price column/row from customer-count or £-bill data
+  //      regardless of how the table happens to be labelled;
+  //   3. dump rich diagnostics per file (sheet names) and per attempted sheet
+  //      (header row + first ~8 data rows, first ~14 cells) so a CI run that
+  //      still comes up empty hands us the exact layout to fix next time.
+  // Prefer the domestic-electricity unit-cost table (2.2.4 / "table_224"); the
+  // value-range parser below still confirms by [5,50] p/kWh regardless.
+  const is224 = (a) => /2[._]?2[._]?4|table_?224|unit\s*cost.*electric|electric.*unit\s*cost|domestic.*electric/i.test(`${a.title || ""} ${a.url || ""}`);
+  const files = atts.filter((a) => /\.(ods|xlsx?)$/i.test(a.url || "")).sort((a, b) => (is224(b) ? 1 : 0) - (is224(a) ? 1 : 0));
+  if (!files.length) throw new Error(`desnz-elec-price: no spreadsheets found (atts: ${atts.map((a) => (a.url || "").split("/").pop()).slice(0, 8).join(",")})`);
 
   const num = (c) => { const v = typeof c === "number" ? c : parseFloat(String(c ?? "").replace(/[,£%]/g, "")); return Number.isFinite(v) ? v : null; };
   // Periods appear as "2024 Q1", "2024Q1", "Q1 2024", or "Jan-Mar 2024" —
@@ -1547,77 +1607,129 @@ async function electricityPrice() {
   };
   const periodDate = (p) => `${p.year}-${String(p.q ? (p.q - 1) * 3 + 1 : 1).padStart(2, "0")}-01`;
   const inRange = (v) => v != null && v >= 5 && v <= 50; // p/kWh guard
-
-  const sheetOrder = book.SheetNames.filter((n) => /2\.2\.4|electric/i.test(n)).concat(book.SheetNames);
-  const rowLabelRe = /all\s*payment\s*methods|weighted\s*average|uk\s*average|average\s*unit\s*cost|all\s*methods|standard\s*credit.*direct\s*debit.*prepay/i;
-  const excludeRowRe = /direct\s*debit\s*only|standard\s*credit\s*only|prepay(ment)?\s*only|gas\b/i;
+  // Rows that are region/PES breakdowns, not the national total — exclude
+  // these even if their values happen to fall in [5,50].
+  const nationalRowRe = /united\s*kingdom|^uk$|^all\b|great\s*britain|^england\s*(&|and)\s*wales$|^national$/i;
+  const regionRowRe = /\b(north|south|midlands|wales|scotland|yorkshire|eastern|london|merseyside|southern|swalec|seeboard|manweb|norweb|yelectricity|region)\b/i;
 
   let dumpCount = 0;
-  for (const sn of [...new Set(sheetOrder)]) {
-    let rows;
-    try { rows = await sheetRows(book, sn); } catch { continue; }
-    if (!rows.length) continue;
-    const dense = rows.map((r) => Array.from(r ?? []));
-
-    // Orientation A — periods ACROSS a header row, payment-method rows below;
-    // take the "all payment methods"/weighted-average row (or the only row if
-    // there is just one electricity series in the sheet).
-    let hdr = -1;
-    for (let i = 0; i < Math.min(dense.length, 25); i++) {
-      if (dense[i].filter((c) => periodOf(c)).length >= 5) { hdr = i; break; }
+  for (const file of files) {
+    let book;
+    try { book = await xlsxBook(file.url); } catch (e) {
+      console.log(`  desnz-elec-price file=${(file.url || "").split("/").pop()} failed to open (${e.message})`);
+      continue;
     }
-    if (hdr >= 0) {
-      const periodCols = dense[hdr].map((c, j) => [j, periodOf(c)]).filter(([, p]) => p);
-      let valRow = dense.find((r) => rowLabelRe.test(String(r[0] ?? "").trim()) && !excludeRowRe.test(String(r[0] ?? "").trim()));
-      if (!valRow) {
-        // Single-series sheet: take the first data row below hdr whose values
-        // are mostly in [5,50].
-        for (let i = hdr + 1; i < dense.length; i++) {
-          const vals = periodCols.map(([j]) => num(dense[i][j])).filter((v) => v != null);
-          if (vals.length >= 4 && vals.filter(inRange).length / vals.length > 0.7) { valRow = dense[i]; break; }
+    console.log(`  desnz-elec-price file=${(file.url || "").split("/").pop()} sheets=[${book.SheetNames.join("|")}]`);
+
+    // Prefer "(Annual)" sheets (cleaner national series), then "(Quarterly)",
+    // then anything else mentioning "electric" in its name, then all sheets.
+    const sheetOrder = [
+      ...book.SheetNames.filter((n) => /annual/i.test(n)),
+      ...book.SheetNames.filter((n) => /quarter/i.test(n)),
+      ...book.SheetNames.filter((n) => /electric/i.test(n)),
+      ...book.SheetNames,
+    ];
+
+    for (const sn of [...new Set(sheetOrder)]) {
+      let rows;
+      try { rows = await sheetRows(book, sn); } catch { continue; }
+      if (!rows.length) continue;
+      const dense = rows.map((r) => Array.from(r ?? []));
+
+      // Find a region/area column (if any) so we can pick the national row
+      // out of a region-split table rather than e.g. the first PES region.
+      let regionCol = -1;
+      for (let j = 0; j < 6; j++) {
+        let hits = 0;
+        for (const r of dense) if (regionRowRe.test(String(r[j] ?? "")) || nationalRowRe.test(String(r[j] ?? ""))) hits++;
+        if (hits >= 3) { regionCol = j; break; }
+      }
+
+      // Orientation A — periods ACROSS a header row, value rows below
+      // (payment-method or region rows). Take the national/all-methods row.
+      let hdr = -1;
+      for (let i = 0; i < Math.min(dense.length, 25); i++) {
+        if (dense[i].filter((c) => periodOf(c)).length >= 5) { hdr = i; break; }
+      }
+      if (hdr >= 0) {
+        const periodCols = dense[hdr].map((c, j) => [j, periodOf(c)]).filter(([, p]) => p);
+        const labelCol = regionCol >= 0 ? regionCol : 0;
+        let valRow = dense.find((r) => nationalRowRe.test(String(r[labelCol] ?? "").trim()));
+        if (!valRow) {
+          // Single-series sheet (no region split visible): take the first
+          // data row below hdr whose values are mostly in [5,50].
+          for (let i = hdr + 1; i < dense.length; i++) {
+            if (regionRowRe.test(String(dense[i][labelCol] ?? ""))) continue; // skip explicit region rows
+            const vals = periodCols.map(([j]) => num(dense[i][j])).filter((v) => v != null);
+            if (vals.length >= 4 && vals.filter(inRange).length / vals.length > 0.7) { valRow = dense[i]; break; }
+          }
+        }
+        console.log(`  desnz-elec-price[A] file=${(file.url || "").split("/").pop()} sheet="${sn}" hdr=${hdr} periods=${periodCols.length} regionCol=${regionCol} rowLabel="${valRow ? String(valRow[labelCol]).slice(0, 40) : null}"`);
+        if (valRow) {
+          const points = [];
+          for (const [j, p] of periodCols) { const v = num(valRow[j]); if (inRange(v)) points.push({ date: periodDate(p), value: v }); }
+          if (points.length >= 5) return points.sort((a, b) => (a.date < b.date ? -1 : 1));
         }
       }
-      console.log(`  desnz-elec-price[A] sheet="${sn}" hdr=${hdr} periods=${periodCols.length} rowLabel="${valRow ? String(valRow[0]).slice(0, 40) : null}"`);
-      if (valRow) {
-        const points = [];
-        for (const [j, p] of periodCols) { const v = num(valRow[j]); if (inRange(v)) points.push({ date: periodDate(p), value: v }); }
-        if (points.length >= 5) return points.sort((a, b) => (a.date < b.date ? -1 : 1));
-      }
-    }
 
-    // Orientation B — periods DOWN a column, electricity unit cost in a
-    // labelled column (tidy layout: one row per period).
-    let perCol = -1;
-    for (let j = 0; j < 4; j++) {
-      let n = 0;
-      for (const r of dense) if (periodOf(r[j])) n++;
-      if (n >= 5) { perCol = j; break; }
-    }
-    if (perCol >= 0) {
-      const firstRow = dense.findIndex((r) => periodOf(r[perCol]));
-      const hdrB = firstRow > 0 ? firstRow - 1 : 0;
-      const hdrRow = (dense[hdrB] || []).map((c) => String(c ?? "").toLowerCase());
-      let valCol = hdrRow.findIndex((c) => /electric/.test(c) && !/gas/.test(c));
-      console.log(`  desnz-elec-price[B] sheet="${sn}" perCol=${perCol} hdrB=${hdrB} valCol=${valCol} hdr=[${hdrRow.slice(0, 10).join("|")}]`);
-      if (valCol >= 0) {
-        const points = [];
-        for (const r of dense) {
-          const p = periodOf(r[perCol]);
-          if (!p) continue;
-          const v = num(r[valCol]);
-          if (inRange(v)) points.push({ date: periodDate(p), value: v });
+      // Orientation B — periods DOWN a column, one row per period; value
+      // column identified either by header label ("electric"/"unit cost"/
+      // "p/kwh") or, failing that, by VALUE RANGE (the column whose values
+      // sit mostly in [5,50] — this disambiguates p/kWh from £-bills, which
+      // run into the hundreds, and from customer counts/percentages).
+      let perCol = -1;
+      for (let j = 0; j < 4; j++) {
+        let n = 0;
+        for (const r of dense) if (periodOf(r[j])) n++;
+        if (n >= 5) { perCol = j; break; }
+      }
+      if (perCol >= 0) {
+        const periodRows = dense.map((r, i) => [i, periodOf(r[perCol])]).filter(([, p]) => p);
+        const firstRow = periodRows.length ? periodRows[0][0] : -1;
+        const hdrB = firstRow > 0 ? firstRow - 1 : 0;
+        const hdrRow = (dense[hdrB] || []).map((c) => String(c ?? "").toLowerCase());
+        // If the sheet is region-split, restrict to rows whose region cell is
+        // the UK/national one (or skip the filter if no region column found).
+        const rowsForPeriod = regionCol >= 0
+          ? periodRows.filter(([i]) => nationalRowRe.test(String(dense[i][regionCol] ?? "")))
+          : periodRows;
+
+        let valCol = hdrRow.findIndex((c) => /electric/.test(c) && !/gas/.test(c) && !(/customer|number|count/.test(c)));
+        if (valCol < 0) valCol = hdrRow.findIndex((c) => /unit\s*cost|p\/kwh|pence/.test(c));
+        if (valCol < 0) {
+          // Value-range fallback: scan every numeric column and pick the one
+          // whose values are mostly in [5,50] across the candidate rows.
+          const ncols = Math.max(...dense.map((r) => r.length));
+          let best = -1, bestFrac = 0;
+          for (let j = 0; j < ncols; j++) {
+            if (j === perCol || j === regionCol) continue;
+            const vals = rowsForPeriod.map(([i]) => num(dense[i][j])).filter((v) => v != null);
+            if (vals.length < 5) continue;
+            const frac = vals.filter(inRange).length / vals.length;
+            if (frac > bestFrac) { bestFrac = frac; best = j; }
+          }
+          if (bestFrac > 0.7) valCol = best;
         }
-        if (points.length >= 5) return points.sort((a, b) => (a.date < b.date ? -1 : 1));
+        console.log(`  desnz-elec-price[B] file=${(file.url || "").split("/").pop()} sheet="${sn}" perCol=${perCol} regionCol=${regionCol} hdrB=${hdrB} valCol=${valCol} hdr=[${hdrRow.slice(0, 10).join("|")}]`);
+        if (valCol >= 0) {
+          const points = [];
+          for (const [i] of rowsForPeriod) {
+            const p = periodOf(dense[i][perCol]);
+            const v = num(dense[i][valCol]);
+            if (p && inRange(v)) points.push({ date: periodDate(p), value: v });
+          }
+          if (points.length >= 5) return points.sort((a, b) => (a.date < b.date ? -1 : 1));
+        }
       }
-    }
 
-    if (!dumpCount && dumpCount < 6) {
-      dumpCount++;
-      console.log(`  desnz-elec-price sheet="${sn}" no match; first 8 rows:`);
-      for (const r of dense.slice(0, 8)) console.log(`    ${JSON.stringify(r.slice(0, 14)).slice(0, 220)}`);
+      if (dumpCount < 6) {
+        dumpCount++;
+        console.log(`  desnz-elec-price file=${(file.url || "").split("/").pop()} sheet="${sn}" no match; header+first 8 rows:`);
+        for (const r of dense.slice(0, 9)) console.log(`    ${JSON.stringify(r.slice(0, 14)).slice(0, 220)}`);
+      }
     }
   }
-  throw new Error("desnz-elec-price: domestic electricity p/kWh series not found across sheets (see diagnostics)");
+  throw new Error("desnz-elec-price: domestic electricity p/kWh series not found across any file/sheet (see diagnostics)");
 }
 
 // ----------------------------------------------------------------------------
@@ -1678,38 +1790,117 @@ function foiNum(c) {
 }
 
 async function foiReadInTimePct(book, edition) {
-  const sheetNameRe = /worksheet\s*4|in\s*time|timeliness/i;
-  const sheets = book.SheetNames.filter((s) => sheetNameRe.test(s)).concat(book.SheetNames);
+  // Prefer the headline "3_Timeliness" sheet (table 3a); explicitly exclude
+  // the quarter-on-quarter variant "4_Timeliness_Q-to-Q" which reports
+  // change-over-time, not the quarter's own %. Fall back to any sheet whose
+  // name mentions "timeliness" (still excluding Q-to-Q), then to the old
+  // "worksheet 4"/"in time" name patterns for older editions with different
+  // sheet naming, then to every sheet as a last resort.
+  const primary = book.SheetNames.filter((s) => /3.?timeliness/i.test(s) && !/q.?to.?q/i.test(s));
+  const secondary = book.SheetNames.filter((s) => /timeliness/i.test(s) && !/q.?to.?q/i.test(s) && !primary.includes(s));
+  const tertiary = book.SheetNames.filter((s) => /worksheet\s*4|in\s*time/i.test(s) && !primary.includes(s) && !secondary.includes(s));
+  const rest = book.SheetNames.filter((s) => !primary.includes(s) && !secondary.includes(s) && !tertiary.includes(s));
+  const sheets = [...primary, ...secondary, ...tertiary, ...rest];
+
   const totalRowRe = /all\s*monitored\s*bodies|all\s*bodies|total\b|overall/i;
   const excludeRowRe = /departments?\s*of\s*state\s*only|other\s*monitored\s*bodies\s*only/i;
+  const inTimeColRe = /%.*in\s*time|in\s*time.*%|%\s*answered|answered.*%|percentage.*time/i;
+  const inTimeCountColRe = /^in\s*time$|number.*in\s*time|in\s*time\s*number/i;
+  const resolvableColRe = /resolvable|^total$|total\s*(requests|resolved|responses)/i;
 
   for (const sn of sheets) {
-    let rows;
-    try { rows = (await sheetRows(book, sn)).map((r) => Array.from(r ?? [])); } catch { continue; }
-    if (!rows.length) continue;
-    const blob = rows.slice(0, 5).map((r) => r.map(foiNorm).join(" ")).join(" ").toLowerCase();
-    // Only consider sheets that plausibly carry timeliness data, unless we've
-    // exhausted the name-matched candidates (then take whatever is left).
-    if (sn.toLowerCase().indexOf("worksheet 4") < 0 && !/in\s*time|timeliness|response/i.test(blob)) continue;
+    let rawRows;
+    try { rawRows = await sheetRows(book, sn); } catch { continue; }
+    if (!rawRows.length) continue;
+    const rows = rawRows.map((r) => Array.from(r ?? []));
+    const blob = rows.slice(0, 8).map((r) => r.map(foiNorm).join(" ")).join(" ").toLowerCase();
+    // Only consider sheets that plausibly carry timeliness data, unless
+    // we've exhausted the name-matched candidates (then take whatever's left).
+    if (!primary.includes(sn) && sn.toLowerCase().indexOf("worksheet 4") < 0 && !/in\s*time|timeliness|response/i.test(blob)) continue;
 
-    const totalRow = rows.find((r) => totalRowRe.test(foiNorm(r[0])) && !excludeRowRe.test(foiNorm(r[0])))
-      ?? rows.find((r) => totalRowRe.test(foiNorm(r[1])) && !excludeRowRe.test(foiNorm(r[1])));
-    if (!totalRow) { console.log(`  cab-foi[${edition.year}Q${edition.q}] sheet="${sn}": no all-monitored-bodies row`); continue; }
+    // Find a header row: the row with the most column labels matching
+    // "in time" / "%" / "resolvable" / "total", searched AFTER any leading
+    // title row(s) so "Table 3a: Total figures" can't be mistaken for it.
+    let headerRowIdx = -1, headerRow = null;
+    for (let i = 0; i < Math.min(rows.length, 15); i++) {
+      const r = rows[i];
+      const label0 = foiNorm(r[0]);
+      if (foiIsTitleRow(label0)) continue;
+      const hits = r.filter((c) => inTimeColRe.test(foiNorm(c)) || inTimeCountColRe.test(foiNorm(c)) || resolvableColRe.test(foiNorm(c))).length;
+      if (hits > 0 && (headerRowIdx < 0 || hits > rows[headerRowIdx].filter((c) => inTimeColRe.test(foiNorm(c)) || inTimeCountColRe.test(foiNorm(c)) || resolvableColRe.test(foiNorm(c))).length)) {
+        headerRowIdx = i; headerRow = r;
+      }
+    }
 
+    // Find the "all monitored bodies"/total data row, skipping title rows,
+    // searched anywhere after the header (or from the top if no header found).
+    const searchFrom = headerRowIdx >= 0 ? headerRowIdx + 1 : 0;
+    const candidateRows = rows.slice(searchFrom).filter((r) => !foiIsTitleRow(foiNorm(r[0])) && !foiIsTitleRow(foiNorm(r[1])));
+    const dataRow = candidateRows.find((r) => totalRowRe.test(foiNorm(r[0])) && !excludeRowRe.test(foiNorm(r[0])))
+      ?? candidateRows.find((r) => totalRowRe.test(foiNorm(r[1])) && !excludeRowRe.test(foiNorm(r[1])));
+
+    if (!dataRow) {
+      console.log(`  cab-foi[${edition.year}Q${edition.q}] sheet="${sn}": no all-monitored-bodies data row (headerRowIdx=${headerRowIdx})`);
+      continue;
+    }
+    const dataRowLabel = foiNorm(dataRow[0]) || foiNorm(dataRow[1]);
+
+    // 1) Direct %-column read, by header label if we found one.
+    if (headerRow) {
+      const pctCol = headerRow.findIndex((c) => inTimeColRe.test(foiNorm(c)));
+      if (pctCol >= 0) {
+        const v = foiNum(dataRow[pctCol]);
+        if (v != null && v >= 70 && v <= 100) {
+          console.log(`  cab-foi[${edition.year}Q${edition.q}] sheet="${sn}" inTime=${v} col=${pctCol} (by header "${foiNorm(headerRow[pctCol])}") label="${dataRowLabel.slice(0, 40)}"`);
+          return { year: edition.year, q: edition.q, value: v };
+        }
+      }
+      // 2) Computed: in-time-count ÷ resolvable/total-count, by header labels.
+      const countCol = headerRow.findIndex((c) => inTimeCountColRe.test(foiNorm(c)));
+      const totalCol = headerRow.findIndex((c) => resolvableColRe.test(foiNorm(c)));
+      if (countCol >= 0 && totalCol >= 0 && countCol !== totalCol) {
+        const inTimeN = foiNum(dataRow[countCol]);
+        const totalN = foiNum(dataRow[totalCol]);
+        if (inTimeN != null && totalN != null && totalN > 0) {
+          const pct = (inTimeN / totalN) * 100;
+          if (pct >= 70 && pct <= 100) {
+            console.log(`  cab-foi[${edition.year}Q${edition.q}] sheet="${sn}" inTime=${pct.toFixed(1)} computed ${inTimeN}/${totalN} (cols ${countCol}/${totalCol}) label="${dataRowLabel.slice(0, 40)}"`);
+            return { year: edition.year, q: edition.q, value: pct };
+          }
+        }
+      }
+    }
+
+    // 3) Fallback: value-range scan of the data row itself (skip if it's
+    // somehow still a title row — shouldn't be, dataRow is already filtered).
     let best = null;
-    for (let j = 0; j < totalRow.length; j++) {
-      const v = foiNum(totalRow[j]);
+    for (let j = 0; j < dataRow.length; j++) {
+      const v = foiNum(dataRow[j]);
       if (v != null && v >= 70 && v <= 100) best = { col: j, value: v }; // rightmost in-range wins (latest/total column)
     }
     if (best) {
-      console.log(`  cab-foi[${edition.year}Q${edition.q}] sheet="${sn}" inTime=${best.value} col=${best.col} label="${foiNorm(totalRow[0]).slice(0, 40)}"`);
+      console.log(`  cab-foi[${edition.year}Q${edition.q}] sheet="${sn}" inTime=${best.value} col=${best.col} (by value-range) label="${dataRowLabel.slice(0, 40)}"`);
       return { year: edition.year, q: edition.q, value: best.value };
     }
-    console.log(`  cab-foi[${edition.year}Q${edition.q}] sheet="${sn}": total row found but no in-range (70-100) value; row=${JSON.stringify(totalRow.slice(0, 12).map(foiNorm))}`);
+    console.log(`  cab-foi[${edition.year}Q${edition.q}] sheet="${sn}": data row found but no in-range (70-100) value; row=${JSON.stringify(dataRow.slice(0, 14).map(foiNorm))}`);
   }
-  // Diagnostic dump of the first couple of sheets if nothing matched, so a
-  // failed CI run reveals the real worksheet names/layout.
+
+  // Rich diagnostic dump of the full "3_Timeliness" sheet (or the closest
+  // name match) if nothing matched, so a failed CI run reveals the exact
+  // row label + column for the in-time % on the next iteration.
+  const dumpSheet = primary[0] || secondary[0] || book.SheetNames.find((s) => /timeliness/i.test(s)) || book.SheetNames[0];
+  if (dumpSheet) {
+    let rows;
+    try { rows = (await sheetRows(book, dumpSheet)).map((r) => Array.from(r ?? [])); } catch { rows = []; }
+    console.log(`  cab-foi[${edition.year}Q${edition.q}] FULL DUMP sheet="${dumpSheet}" (${rows.length} rows):`);
+    for (let i = 0; i < Math.min(rows.length, 30); i++) {
+      console.log(`    [${i}] ${JSON.stringify(rows[i].slice(0, 14).map(foiNorm))}`);
+    }
+  }
+  // Also a brief peek at the first couple of other sheets in case the right
+  // sheet wasn't the one we picked.
   for (const sn of book.SheetNames.slice(0, 3)) {
+    if (sn === dumpSheet) continue;
     let rows;
     try { rows = await sheetRows(book, sn); } catch { continue; }
     console.log(`  cab-foi[${edition.year}Q${edition.q}] dump sheet="${sn}" rows0-6: ${rows.slice(0, 6).map((r) => JSON.stringify(Array.from(r ?? []).slice(0, 8).map(foiNorm))).join(" / ")}`);
