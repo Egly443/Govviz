@@ -1832,7 +1832,7 @@ const SOURCES = [
   { id: "desnz-energy-use-pc", min: 1000, max: 6000, get: () => wb("EG.USE.PCAP.KG.OE") },
   { id: "dsit-internet-users", min: 0, max: 100, get: () => wb("IT.NET.USER.ZS") },
   { id: "dsit-mobile-subs", min: 0, max: 200, get: () => wb("IT.CEL.SETS.P2") },
-  { id: "dbt-fdi", min: -40, max: 60, get: () => wb("BX.KLT.DINV.WD.GD.ZS") },,
+  { id: "dbt-fdi", min: -40, max: 60, get: () => wb("BX.KLT.DINV.WD.GD.ZS") },
   // DBT retail sales volume index (ONS CDID J5EK, incl. fuel, SA, monthly).
   { id: "dbt-retail-sales", min: 40, max: 130, get: () => ons("businessindustryandtrade/retailindustry", "J5EK", "drsi", "months") },
 
