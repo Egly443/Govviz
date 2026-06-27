@@ -535,13 +535,20 @@ async function gmppVariance(deptRe, deptFull) {
 // row + a net-total label and read across. Diagnostics print sheet structure so
 // a first CI run reveals the exact shape if the heuristics miss.
 async function ghgEmissions() {
-  // Use the stable collection (not a recency search — annual releases get
-  // crowded out by news items) and pick the newest "final" emissions edition.
-  const path = await govukCollectionLatest(
-    "uk-greenhouse-gas-emissions-statistics",
-    (d) => /final/i.test(d.title || "") && /greenhouse/i.test(d.title || ""),
-  );
-  const atts = await govukAttachments(path);
+  // The release slug is stable and yearly: final emissions for year Y publish
+  // ~Y+2, so walk recent years newest-first and take the first page that exists
+  // and carries an ODS. More deterministic than the collection structure, which
+  // groups documents in a way govukCollectionLatest doesn't read.
+  const thisYear = new Date().getFullYear();
+  let path, atts;
+  for (let y = thisYear - 1; y >= thisYear - 5; y--) {
+    const cand = `government/statistics/final-uk-greenhouse-gas-emissions-national-statistics-1990-to-${y}`;
+    try {
+      const a = await govukAttachments(cand);
+      if (a.some((x) => /\.ods$/i.test(x.url || ""))) { path = cand; atts = a; break; }
+    } catch { /* 404 for that year — try the previous one */ }
+  }
+  if (!path) throw new Error("ghg: no final-emissions release page resolved for recent years");
   const ods = atts.find((a) => /\.ods$/i.test(a.url || "") && /data\s*tab|table/i.test(a.title || ""))
     || atts.find((a) => /\.ods$/i.test(a.url || ""));
   if (!ods) throw new Error(`ghg: no ODS at ${path} (atts: ${atts.map((a) => (a.url || "").split("/").pop()).slice(0, 8).join(",")})`);
