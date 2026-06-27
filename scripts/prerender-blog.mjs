@@ -175,9 +175,12 @@ const urls = [
   { loc: `${SITE}/overview`, pri: "0.8" },
   { loc: `${SITE}/blog`, pri: "1.0" },
   { loc: `${SITE}/blog.md`, pri: "0.7" },
-  ...["hmt", "dhsc", "dfe", "home-office", "moj", "mod", "dwp", "dft", "mhclg", "defra"].map(
-    (c) => ({ loc: `${SITE}/${c}`, pri: "0.6" }),
-  ),
+  // Department route slugs — must match `code` in src/components/departments.ts
+  // (note: Treasury's slug is "treasury", not "hmt").
+  ...[
+    "dhsc", "dfe", "home-office", "moj", "mod", "dwp", "dft", "treasury",
+    "mhclg", "defra", "desnz", "dsit", "dbt", "dcms", "fcdo", "cabinet-office",
+  ].map((c) => ({ loc: `${SITE}/${c}`, pri: "0.6" })),
 ];
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

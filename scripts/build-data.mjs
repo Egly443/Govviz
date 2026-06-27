@@ -588,6 +588,18 @@ const SOURCES = [
   // fossil-only EN.ATM.CO2E.PC code referenced by the illustrative fallback).
   ...wbCompare("dft-co2-pc", "EN.GHG.CO2.PC.CE.AR5", { min: 1, max: 20 }),
 
+  // --- World Bank wave 3: DESNZ / DSIT / DBT / DCMS ---
+  // DESNZ: renewables as % of total final energy consumption (WB/IEA).
+  { id: "desnz-renewables-share", min: 0, max: 60, get: () => wb("EG.FEC.RNEW.ZS") },
+  // DSIT: R&D as % of GDP (GERD), and researchers per million people (WB/OECD/UNESCO).
+  { id: "dsit-rd-gdp", min: 0.5, max: 5, get: () => wb("GB.XPD.RSDV.GD.ZS") },
+  { id: "dsit-researchers", min: 1000, max: 12000, get: () => wb("SP.POP.SCIE.RD.P6") },
+  // DBT: exports % of GDP, and high-tech share of manufactured exports (WB).
+  { id: "dbt-exports-gdp", min: 10, max: 60, get: () => wb("NE.EXP.GNFS.ZS") },
+  { id: "dbt-hightech-exports", min: 5, max: 45, get: () => wb("TX.VAL.TECH.MF.ZS") },
+  // DCMS: international tourist arrivals (absolute count) (WB/UN Tourism).
+  { id: "dcms-tourism-arrivals", min: 5000000, max: 60000000, get: () => wb("ST.INT.ARVL") },
+
   // --- MHCLG & Defra (new departments) ---
   // Defra air pollution: mean PM2.5 exposure (World Bank / OECD-IHME) — reliable.
   { id: "defra-pm25", min: 1, max: 40, get: () => wb("EN.ATM.PM25.MC.M3") },

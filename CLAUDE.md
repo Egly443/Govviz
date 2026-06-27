@@ -124,9 +124,25 @@ Read the latest CI **"Fetch live data"** log (`mcp__github__get_job_logs`) for t
 `ok`/`SKIP` tally — the manifest is cumulative so one run shows everything. Only `turnover` is a
 consistent `SKIP` (digital.nhs.uk 403); `defra-sewage-hours` fetches intermittently (`ok` with a
 partial year-range, or `SKIP`, depending on whether the EA host rate-limits that run). ~90 series
-IDs now bake real data across all ten departments (HMT/DHSC via ONS+World Bank; DfE via EES; DWP via
-World Bank; MHCLG/Defra via gov.uk-ODS + ONS + World Bank; plus the gov.uk-ODS / statistical-data-set
-/ england.nhs.uk operational series listed below).
+IDs now bake real data across the original ten departments (HMT/DHSC via ONS+World Bank; DfE via EES;
+DWP via World Bank; MHCLG/Defra via gov.uk-ODS + ONS + World Bank; plus the gov.uk-ODS /
+statistical-data-set / england.nhs.uk operational series listed below).
+
+### Whole-of-government expansion (2026-06): six more departments
+The registry grew from ten to **sixteen** departments (the major missing ministerial departments).
+All wiring is data-driven from the `departments` array — no new routes/tabs/treemap code.
+- **DESNZ, DSIT, DBT, DCMS** ship with a **real World Bank hero/series** wired in `build-data.mjs`
+  (`desnz-renewables-share` EG.FEC.RNEW.ZS; `dsit-rd-gdp` GB.XPD.RSDV.GD.ZS + `dsit-researchers`
+  SP.POP.SCIE.RD.P6; `dbt-exports-gdp` NE.EXP.GNFS.ZS + `dbt-hightech-exports` TX.VAL.TECH.MF.ZS;
+  `dcms-tourism-arrivals` ST.INT.ARVL) **— pending CI verification of the indicator codes** (validate
+  on `data-check.yml`; guards reject wrong-but-resolving values). Their gov.uk/ONS/Ofcom secondary
+  indicators (GHG emissions, fuel poverty, gigabit broadband, business investment, creative GVA,
+  sport participation) render **placeholders** until a fetcher is wired.
+- **FCDO, Cabinet Office** ship as **placeholder-only shells** (no clean machine-readable source yet):
+  FCDO ODA % GNI / total ODA (gov.uk SID ODS); Cabinet Office GMPP delivery confidence (IPA) +
+  civil-service headcount (ONS). All `realPoints` placeholders, sources documented in `sourceUrl`.
+- TODO: wire the gov.uk/ONS/IPA/Ofcom fetchers for the placeholder indicators above (IPA GMPP can
+  reuse the proven consolidated-CSV pattern already powering `mod-procurement`/`dft-capital-overrun`).
 
 Converted illustrative→real in the 2026-06 campaign: dwp-fraud-error, dfe-teacher-recruitment,
 dfe-attainment-gap, moj-crown-backlog, moj-cost-per-prisoner, moj-officer-resignations,
