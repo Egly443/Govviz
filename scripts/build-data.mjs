@@ -1383,7 +1383,15 @@ function hmrcMonthFromTitle(title) {
 function hmrcParseAsa(cell) {
   if (cell == null) return null;
   if (typeof cell === "number") {
-    if (cell > 0 && cell < 1) return +(cell * 24 * 60).toFixed(2); // Excel time-of-day serial
+    // HMRC's data tables type ASA as "mm:ss" but Excel stored it as h:mm, so a
+    // value like 0.99236 (a day-fraction) is really "23:49" meaning 23 min 49
+    // sec. value*24 → mm.frac: floor = minutes, frac*60 = seconds.
+    if (cell > 0 && cell < 1) {
+      const t = cell * 24;
+      const mm = Math.floor(t);
+      const ss = Math.round((t - mm) * 60);
+      return +(mm + ss / 60).toFixed(2);
+    }
     if (cell >= 1 && cell <= 40) return +cell.toFixed(2); // already decimal minutes
     return null;
   }
@@ -1421,25 +1429,25 @@ function hmrcFindAsaInSheet(rows, sn, diag) {
       const label = String(r[j] ?? "").toLowerCase().trim();
       if (!/average speed of answer|^asa$/.test(label)) continue;
       if (diag) console.log(`  hmrc-call-wait sheet="${sn}" row${i} col${j} label="${label.slice(0, 60)}" rowCells=${JSON.stringify(r.slice(0, 14))}`);
-      // (a) same row, any other cell
-      for (let k = 0; k < r.length; k++) {
-        if (k === j) continue;
+      // Collect every parseable ASA value to the RIGHT of the label, then take
+      // the LAST one: the period columns run oldest→newest left-to-right, so the
+      // rightmost populated value is this edition's most recent month/YTD figure.
+      const right = [];
+      for (let k = j + 1; k < r.length; k++) {
         const v = hmrcParseAsa(r[k]);
-        if (v != null) return v;
+        if (v != null) right.push(v);
       }
-      // (b) cell directly below the label, and a few cells right of that
-      const below = Array.from(rows[i + 1] ?? []);
-      if (diag && below.length) console.log(`  hmrc-call-wait sheet="${sn}" row${i + 1} (below label) cells=${JSON.stringify(below.slice(0, 14))}`);
-      for (let k = j; k < below.length; k++) {
-        const v = hmrcParseAsa(below[k]);
-        if (v != null) return v;
-      }
-      // (c) two rows below (some layouts have a blank spacer row between a
-      // wrapped label and its value row)
-      const below2 = Array.from(rows[i + 2] ?? []);
-      for (let k = j; k < below2.length; k++) {
-        const v = hmrcParseAsa(below2[k]);
-        if (v != null) return v;
+      if (right.length) return right[right.length - 1];
+      // Fallback layouts: value below the label (same column or to its right),
+      // and two rows below (a blank spacer between a wrapped label and values).
+      for (const off of [1, 2]) {
+        const below = Array.from(rows[i + off] ?? []);
+        const bvals = [];
+        for (let k = j; k < below.length; k++) {
+          const v = hmrcParseAsa(below[k]);
+          if (v != null) bvals.push(v);
+        }
+        if (bvals.length) return bvals[bvals.length - 1];
       }
     }
   }
@@ -1473,8 +1481,9 @@ async function hmrcCallWait() {
       const diag = points.length === 0; // verbose on the first successfully-fetched edition only
       if (diag) console.log(`  hmrc-call-wait ${ed.date} file=${(file.url || "").split("/").pop()} sheets=[${book.SheetNames.join("|")}]`);
       // Only the two measures sheets can hold the ASA value (Contents/
-      // Definitions excluded — see hmrcAsaSheetKind). Prefer Year-to-date
-      // over In-month when both resolve: YTD is the headline annual figure.
+      // Definitions excluded — see hmrcAsaSheetKind). Prefer In-month over
+      // Year-to-date when both resolve: the in-month figure is the truer value
+      // for that edition's month (YTD is a cumulative fiscal-year average).
       let monthValue = null, ytdValue = null;
       for (const sn of book.SheetNames) {
         const kind = hmrcAsaSheetKind(sn);
@@ -1495,8 +1504,8 @@ async function hmrcCallWait() {
         if (v == null) continue;
         if (kind === "ytd") ytdValue = v; else monthValue = v;
       }
-      const value = ytdValue != null ? ytdValue : monthValue;
-      const hitSheet = ytdValue != null ? "year-to-date" : (monthValue != null ? "in-month" : null);
+      const value = monthValue != null ? monthValue : ytdValue;
+      const hitSheet = monthValue != null ? "in-month" : (ytdValue != null ? "year-to-date" : null);
       if (value == null) {
         console.log(`  hmrc-call-wait ${ed.date}: ASA not found in any sheet`);
         continue;
@@ -1636,6 +1645,24 @@ async function electricityPrice() {
       if (!rows.length) continue;
       const dense = rows.map((r) => Array.from(r ?? []));
 
+      // CONTENT GATE (fail-safe): the [5,50] value-range guard alone is too
+      // loose — a petroleum/road-fuel pence-per-litre or a rebased price-INDEX
+      // column can also land in [5,50] (CI run #134 wrongly accepted QEP table
+      // 2.1.1/2.1.3 → a fuel-price index, 1990–2017). So require positive
+      // evidence this sheet is a DOMESTIC ELECTRICITY UNIT-COST table before
+      // trusting any number on it, and reject index / petroleum / gas /
+      // customer-number sheets outright. If no sheet qualifies we throw →
+      // the series SKIPs and renders a "no source yet" placeholder rather than
+      // shipping believably-wrong data.
+      const sheetBlob = `${sn} ${dense.slice(0, 8).map((r) => r.map((c) => String(c ?? "")).join(" ")).join(" ")}`.toLowerCase();
+      const isElecSheet = /electric/.test(sheetBlob)
+        && !/index|indices|petroleum|road\s*fuel|crude|\bgas\b/.test(sheetBlob)
+        && !/customer|number\s*of|proportion|economy\s*7/.test(sheetBlob);
+      if (!isElecSheet) {
+        if (dumpCount < 6) { dumpCount++; console.log(`  desnz-elec-price file=${(file.url || "").split("/").pop()} sheet="${sn}" gated out (not a domestic-electricity unit-cost sheet)`); }
+        continue;
+      }
+
       // Find a region/area column (if any) so we can pick the national row
       // out of a region-split table rather than e.g. the first PES region.
       let regionCol = -1;
@@ -1694,8 +1721,8 @@ async function electricityPrice() {
           ? periodRows.filter(([i]) => nationalRowRe.test(String(dense[i][regionCol] ?? "")))
           : periodRows;
 
-        let valCol = hdrRow.findIndex((c) => /electric/.test(c) && !/gas/.test(c) && !(/customer|number|count/.test(c)));
-        if (valCol < 0) valCol = hdrRow.findIndex((c) => /unit\s*cost|p\/kwh|pence/.test(c));
+        let valCol = hdrRow.findIndex((c) => /electric/.test(c) && !/gas/.test(c) && !(/customer|number|count|index|indices/.test(c)));
+        if (valCol < 0) valCol = hdrRow.findIndex((c) => /unit\s*cost|p\/kwh|pence/.test(c) && !/index|indices/.test(c));
         if (valCol < 0) {
           // Value-range fallback: scan every numeric column and pick the one
           // whose values are mostly in [5,50] across the candidate rows.
@@ -1787,6 +1814,19 @@ function foiNorm(c) { return String(c ?? "").replace(/[\r\n]+/g, " ").replace(/\
 function foiNum(c) {
   const v = typeof c === "number" ? c : parseFloat(foiNorm(c).replace(/[,%]/g, ""));
   return Number.isFinite(v) ? v : null;
+}
+// A worksheet's leading cells often hold a title/caption ("Table 3a: …",
+// "Worksheet 3 — Timeliness", a "Source: …" footnote) rather than a column
+// header or data label — skip those so they can't be mistaken for the header
+// or the total row.
+function foiIsTitleRow(s) {
+  const t = foiNorm(s).toLowerCase();
+  if (!t) return false;
+  return /^table\s*\d/.test(t)
+    || /^worksheet\s*\d/.test(t)
+    || /^chart\s*\d/.test(t)
+    || /^(source|notes?|footnote|back to)\b/.test(t)
+    || /total figures$/.test(t);
 }
 
 async function foiReadInTimePct(book, edition) {
