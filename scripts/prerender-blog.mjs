@@ -152,7 +152,7 @@ const html = `<!doctype html>
   <nav class="bar">
     <a href="${SITE}/">&larr; Govviz dashboard</a>
     <a href="${SITE}/blog.md">Machine-readable Markdown</a>
-    <a href="https://github.com/egly443/govviz/blob/main/docs/blog-open-data-for-ai.md">Source on GitHub</a>
+    <a href="https://github.com/Egly443/Govviz/blob/main/docs/blog-open-data-for-ai.md">Source on GitHub</a>
   </nav>
   <p class="note">Static, no-JavaScript version of the essay &mdash; directly
   readable by people and by AI agents. Canonical machine artifact:
@@ -202,8 +202,8 @@ const llmstxt = `# Govviz — UK government performance data, made AI-readable
 - [Agentic Open Data](${SITE}/blog.md): why AI agents can't reliably read UK government open data today, and a costed, standards-based plan (stable IDs, tidy data / CSVW / SDMX, in-band semantics, open access, MCP) to fix it.
 
 ## Specifications
-- [AI-ready series profile](https://github.com/egly443/govviz/blob/main/docs/conformance/ai-ready-series-profile.md): a thin, normative profile for publishing one statistical series so an agent can consume it.
-- [Conformance suite](https://github.com/egly443/govviz/blob/main/docs/conformance/test-cases.json): an adversarial AI-readiness test set built from the hardest real UK datasets.
+- [AI-ready series profile](https://github.com/Egly443/Govviz/blob/main/docs/conformance/ai-ready-series-profile.md): a thin, normative profile for publishing one statistical series so an agent can consume it.
+- [Conformance suite](https://github.com/Egly443/Govviz/blob/main/docs/conformance/test-cases.json): an adversarial AI-readiness test set built from the hardest real UK datasets.
 
 ## Dashboard
 - [Whole-of-government overview](${SITE}/overview): real, sourced UK department performance indicators.

@@ -14,7 +14,7 @@ const OUT = "src/generated/seriesData.ts";
 // Shared fetch options: identify ourselves (some gov APIs throttle anonymous
 // bots) and bound every request so a hung server can't stall the CI job.
 const fetchOpts = (headers) => ({
-  headers: { "user-agent": "Govviz data fetcher (github.com/egly443/govviz)", ...headers },
+  headers: { "user-agent": "Govviz data fetcher (github.com/Egly443/Govviz)", ...headers },
   signal: AbortSignal.timeout(30_000),
 });
 
