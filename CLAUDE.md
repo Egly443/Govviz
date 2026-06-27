@@ -173,6 +173,29 @@ SKIP, both hard-blocked by HTTP 403 — not parser bugs).
 - TODO: freeze the new real series into `tools/loop/fixtures/ok-series.json` via `ci-reward.mjs --freeze`
   once stable, so a future regression fails CI.
 
+### Deepening pass + HMRC (2026-06): 17 departments, ~120 series
+Added **HMRC as the 17th department** (non-ministerial; hero = phone wait times, core = tax gap) and
+deepened the six newer departments with long-run "ordinary people" indicators. Data-driven as always —
+no route/tab/treemap changes. CI tally: **117 ok / 5 skip** (data-check run #131).
+- **7 new real series landed `ok`:**
+  - DESNZ `desnz-energy-use-pc` (WB EG.USE.PCAP.KG.OE, 35 pts).
+  - DSIT `dsit-internet-users` (WB IT.NET.USER.ZS, 35 pts) + `dsit-mobile-subs` (IT.CEL.SETS.P2, 53 pts).
+  - DBT `dbt-fdi` (WB BX.KLT.DINV.WD.GD.ZS, 55 pts) + `dbt-retail-sales` (ONS CDID **J5EK**, 365 monthly
+    pts 1996–2026 — clean `ons()` one-liner, no ODS).
+  - HMRC `hmrc-tax-gap` (gov.uk "Measuring tax gaps tables" consolidated ODS, **20 pts 2005–2024** —
+    dual-orientation + [3,12]% value-range; the strong HMRC anchor).
+- **Dropped:** `dcms-tourism-receipts` (WB ST.INT.RCPT.CD) — resolved `ok` but only 4 stale points
+  (1995–1998; WB discontinued it for the UK) and redundant with the `dcms-tourism-arrivals` hero. Removed
+  rather than ship a 1998-latest chart.
+- **3 bespoke gov.uk-ODS series still SKIP (placeholders, need a diagnostic round — drafted, wired, guarded):**
+  - `hmrc-call-wait` (HMRC monthly performance reports) — walks 24 editions but the "average speed of
+    answer" row label didn't match in any sheet → 0 points. Hardest: each month is a separate publication.
+  - `desnz-electricity-price` (DESNZ Quarterly Energy Prices table 2.2.4, p/kWh) — file/sheet found but the
+    p/kWh row/orientation missed.
+  - `cab-foi-intime` (Cabinet Office FOI statistics, quarterly editions) — 0 edition points merged; the
+    "all monitored bodies" timeliness row/worksheet didn't match.
+  Each emits rich CI diagnostics for the next iteration (same loop that landed FCDO/sport/creative-GVA).
+
 Converted illustrative→real in the 2026-06 campaign: dwp-fraud-error, dfe-teacher-recruitment,
 dfe-attainment-gap, moj-crown-backlog, moj-cost-per-prisoner, moj-officer-resignations,
 moj-completion-days, mod-personnel-shortfall, mod-voluntary-outflow, mod-procurement,

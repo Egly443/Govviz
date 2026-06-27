@@ -1354,8 +1354,6 @@ const dbtRetail: TrendSeries = {
   annotations: [],
 };
 
-// DCMS — inbound tourism receipts (WB, real).
-const dcmsReceipts = wbS({ id: "dcms-tourism-receipts", title: "Tourism receipts", subtitle: "International tourism receipts, $ billion", good: "up", unit: "currency", format: (v) => `$${(v / 1e9).toFixed(0)}bn`, shortFormat: (v) => `$${(v / 1e9).toFixed(0)}bn`, yFormat: (v) => `$${(v / 1e9).toFixed(0)}bn`, source: "World Bank (UN Tourism)", code: "ST.INT.RCPT.CD", anchors: [], start: 1995, end: 2022, seed: 445, amp: 0 });
 
 // Cabinet Office — FOI requests answered in time (gov.uk FOI statistics).
 const cabFoi: TrendSeries = {
@@ -1609,7 +1607,6 @@ export const departments: Department[] = [
     themes: ["Creative economy", "Tourism", "Participation"],
     hero: dcmsTourism,
     core: [dcmsCreativeGva, dcmsSport],
-    supporting: [dcmsReceipts],
   },
   {
     code: "fcdo",
