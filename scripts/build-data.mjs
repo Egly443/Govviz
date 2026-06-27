@@ -755,7 +755,7 @@ async function creativeGva() {
   // Match a LEADING 4-digit year for the down-column year axis — tolerates note
   // suffixes like "2024 [provisional]" / "2023 [r]".
   const leadYear = (c) => { const m = /^\s*((?:19|20)\d{2})\b/.exec(String(c ?? "").trim()); return m ? m[1] : null; };
-  const inRange = (v) => v != null && v >= 30000 && v <= 250000;
+  const inRange = (v) => v != null && v >= 20 && v <= 300; // £bn (sheets are current-prices £bn)
   const ciRe = /creative industr/i;
   const excludeRe = /of which|sub[- ]?sector/i;
 
@@ -809,7 +809,7 @@ async function creativeGva() {
           if (inRange(v)) points.push({ date: `${yr}-01-01`, value: v });
         }
         console.log(`  dcms-gva[C] sheet="${sn}" hdrC=${hdrC} ciCol=${ciCol} pts=${points.length}`);
-        if (points.length >= 5) { matchedThisSheet = true; found.push({ sheet: sn, points: points.sort((a, b) => (a.date < b.date ? -1 : 1)) }); }
+        if (points.length >= 5) { matchedThisSheet = true; found.push({ sheet: sn, cp: /current price/i.test(String(dense[0]?.[0] ?? "")), points: points.sort((a, b) => (a.date < b.date ? -1 : 1)) }); }
       }
     }
 
@@ -836,7 +836,7 @@ async function creativeGva() {
             // index/chained-volume sheet sharing the same label.
             if (inRange(v)) points.push({ date: `${yr}-01-01`, value: v });
           }
-          if (points.length >= 5) { matchedThisSheet = true; found.push({ sheet: sn, points: points.sort((a, b) => (a.date < b.date ? -1 : 1)) }); }
+          if (points.length >= 5) { matchedThisSheet = true; found.push({ sheet: sn, cp: /current price/i.test(String(dense[0]?.[0] ?? "")), points: points.sort((a, b) => (a.date < b.date ? -1 : 1)) }); }
         }
       }
     }
@@ -867,7 +867,7 @@ async function creativeGva() {
             const v = num(r[valCol]);
             if (inRange(v)) points.push({ date: `${y}-01-01`, value: v });
           }
-          if (points.length >= 5) { matchedThisSheet = true; found.push({ sheet: sn, points: points.sort((a, b) => (a.date < b.date ? -1 : 1)) }); }
+          if (points.length >= 5) { matchedThisSheet = true; found.push({ sheet: sn, cp: /current price/i.test(String(dense[0]?.[0] ?? "")), points: points.sort((a, b) => (a.date < b.date ? -1 : 1)) }); }
         }
       }
     }
@@ -882,7 +882,7 @@ async function creativeGva() {
   }
   if (found.length) {
     // If several sheets matched (near-duplicate tables), prefer the longest.
-    found.sort((a, b) => b.points.length - a.points.length);
+    found.sort((a, b) => (b.cp - a.cp) || (b.points.length - a.points.length));
     console.log(`  dcms-gva matched sheet="${found[0].sheet}" pts=${found[0].points.length}`);
     return found[0].points;
   }
@@ -1298,8 +1298,8 @@ const SOURCES = [
   // --- New-department placeholder fetchers (gov.uk ODS / scrape / IPA) ---
   // DESNZ fuel poverty (England LILEE %) — gov.uk "Fuel poverty trends" ODS.
   { id: "desnz-fuel-poverty", min: 5, max: 30, get: () => fuelPoverty() },
-  // DCMS Creative Industries GVA (£m → £bn) — DCMS Economic Estimates ODS.
-  { id: "dcms-creative-gva", min: 30, max: 250, scale: 0.001, get: () => creativeGva() },
+  // DCMS Creative Industries GVA — DCMS Economic Estimates ODS (already in £bn).
+  { id: "dcms-creative-gva", min: 20, max: 300, get: () => creativeGva() },
   // Cabinet Office GMPP whole-portfolio delivery confidence (% green/amber-green).
   { id: "cab-gmpp-confidence", min: 0, max: 100, get: () => gmppPortfolioConfidence() },
   // FCDO ODA: % of GNI, and total £m → £bn — gov.uk SID final-spend ODS tables.
