@@ -1313,6 +1313,99 @@ const cabCivilService: TrendSeries = {
 };
 
 // ============================================================
+// Deepening indicators (2026-06): WB/ONS one-liners + salient "ordinary
+// people" series for the newer departments, plus HMRC.
+// ============================================================
+// DESNZ — energy use per person (WB, real) + domestic electricity price (gov.uk).
+const desnzEnergyUse = wbS({ id: "desnz-energy-use-pc", title: "Energy use per person", subtitle: "Kg of oil equivalent per capita", good: "down", unit: "count", format: (v) => `${Math.round(v).toLocaleString("en-GB")}`, shortFormat: (v) => `${(v / 1000).toFixed(1)}k`, source: "World Bank (IEA)", code: "EG.USE.PCAP.KG.OE", anchors: [], start: 1960, end: 2015, seed: 441, amp: 0 });
+const desnzElecPrice: TrendSeries = {
+  id: "desnz-electricity-price",
+  title: "Domestic electricity price",
+  subtitle: "Average UK standard domestic electricity price, pence per kWh",
+  unit: "count",
+  format: (v) => `${v.toFixed(1)}p`,
+  shortFormat: (v) => `${v.toFixed(0)}p`,
+  goodDirection: "down",
+  source: "DESNZ, Quarterly Energy Prices",
+  sourceUrl: "https://www.gov.uk/government/collections/quarterly-energy-prices",
+  cadence: "quarterly",
+  points: realPoints("desnz-electricity-price"),
+  annotations: [],
+};
+
+// DSIT — internet users + mobile subscriptions (WB, real).
+const dsitInternet = wbS({ id: "dsit-internet-users", title: "Internet users", subtitle: "% of individuals using the internet", good: "up", unit: "percent", format: fmtPct, source: "World Bank (ITU)", code: "IT.NET.USER.ZS", anchors: [], start: 1990, end: 2023, seed: 442, amp: 0 });
+const dsitMobile = wbS({ id: "dsit-mobile-subs", title: "Mobile subscriptions", subtitle: "Mobile-cellular subscriptions per 100 people", good: "up", unit: "count", format: (v) => v.toFixed(0), source: "World Bank (ITU)", code: "IT.CEL.SETS.P2", anchors: [], start: 1980, end: 2023, seed: 443, amp: 0 });
+
+// DBT — inward FDI (WB, real) + retail sales volume (ONS CDID J5EK, real).
+const dbtFdi = wbS({ id: "dbt-fdi", title: "Foreign direct investment", subtitle: "Net inflows, % of GDP", good: "up", unit: "percent", format: fmtPct, source: "World Bank (IMF BoP)", code: "BX.KLT.DINV.WD.GD.ZS", anchors: [], start: 1970, end: 2023, seed: 444, amp: 0 });
+const dbtRetail: TrendSeries = {
+  id: "dbt-retail-sales",
+  title: "Retail sales",
+  subtitle: "Retail sales volume index (2022 = 100, incl. fuel, seasonally adjusted)",
+  unit: "count",
+  format: (v) => v.toFixed(1),
+  shortFormat: (v) => v.toFixed(0),
+  goodDirection: "up",
+  source: "ONS, Retail Sales Index (series J5EK)",
+  sourceUrl: "https://www.ons.gov.uk/businessindustryandtrade/retailindustry/timeseries/j5ek/drsi",
+  cadence: "monthly",
+  points: realPoints("dbt-retail-sales"),
+  annotations: [],
+};
+
+// DCMS — inbound tourism receipts (WB, real).
+const dcmsReceipts = wbS({ id: "dcms-tourism-receipts", title: "Tourism receipts", subtitle: "International tourism receipts, $ billion", good: "up", unit: "currency", format: (v) => `$${(v / 1e9).toFixed(0)}bn`, shortFormat: (v) => `$${(v / 1e9).toFixed(0)}bn`, yFormat: (v) => `$${(v / 1e9).toFixed(0)}bn`, source: "World Bank (UN Tourism)", code: "ST.INT.RCPT.CD", anchors: [], start: 1995, end: 2022, seed: 445, amp: 0 });
+
+// Cabinet Office — FOI requests answered in time (gov.uk FOI statistics).
+const cabFoi: TrendSeries = {
+  id: "cab-foi-intime",
+  title: "FOI requests answered in time",
+  subtitle: "% of Freedom of Information requests answered within the statutory deadline",
+  unit: "percent",
+  format: fmtPct,
+  shortFormat: fmtPct,
+  goodDirection: "up",
+  source: "Cabinet Office, Freedom of Information statistics",
+  sourceUrl: "https://www.gov.uk/government/collections/government-foi-statistics",
+  cadence: "quarterly",
+  points: realPoints("cab-foi-intime"),
+  annotations: [],
+};
+
+// ============================================================
+// HMRC — HM Revenue & Customs (non-ministerial, added 2026-06)
+// ============================================================
+const hmrcCallWait: TrendSeries = {
+  id: "hmrc-call-wait",
+  title: "Phone wait times",
+  subtitle: "Average speed of answer to an HMRC adviser, minutes",
+  unit: "count",
+  format: (v) => `${v.toFixed(1)} min`,
+  shortFormat: (v) => `${v.toFixed(0)}m`,
+  goodDirection: "down",
+  source: "HMRC monthly performance reports",
+  sourceUrl: "https://www.gov.uk/government/collections/hmrc-monthly-performance-reports",
+  cadence: "monthly",
+  points: realPoints("hmrc-call-wait"),
+  annotations: [],
+};
+const hmrcTaxGap: TrendSeries = {
+  id: "hmrc-tax-gap",
+  title: "Tax gap",
+  subtitle: "Tax not collected as % of total theoretical liabilities",
+  unit: "percent",
+  format: fmtPct,
+  shortFormat: fmtPct,
+  goodDirection: "down",
+  source: "HMRC, Measuring tax gaps",
+  sourceUrl: "https://www.gov.uk/government/statistics/measuring-tax-gaps",
+  cadence: "annual",
+  points: realPoints("hmrc-tax-gap"),
+  annotations: [],
+};
+
+// ============================================================
 // Registry
 // ============================================================
 export const departments: Department[] = [
@@ -1470,7 +1563,8 @@ export const departments: Department[] = [
       "The renewable share of energy has climbed steadily and territorial emissions are well down on 1990, but the pace must roughly double to stay on the carbon-budget path to net zero by 2050 — while fuel poverty remains elevated after the energy-price shock.",
     themes: ["Emissions", "Renewables", "Affordability"],
     hero: desnzRenewables,
-    core: [desnzEmissions, desnzFuelPoverty],
+    core: [desnzEmissions, desnzFuelPoverty, desnzElecPrice],
+    supporting: [desnzEnergyUse],
   },
   {
     code: "dsit",
@@ -1485,6 +1579,7 @@ export const departments: Department[] = [
     themes: ["Research", "Connectivity", "Talent"],
     hero: dsitRandD,
     core: [dsitResearchers, dsitBroadband],
+    supporting: [dsitInternet, dsitMobile],
   },
   {
     code: "dbt",
@@ -1498,7 +1593,8 @@ export const departments: Department[] = [
       "Exports as a share of GDP have held up but the high-tech share of manufactured exports has drifted, and business investment has lagged peers since 2016 — the long-running weakness behind the productivity gap.",
     themes: ["Exports", "Innovation", "Investment"],
     hero: dbtExports,
-    core: [dbtHighTech, dbtBusinessInvestment],
+    core: [dbtHighTech, dbtBusinessInvestment, dbtRetail],
+    supporting: [dbtFdi],
   },
   {
     code: "dcms",
@@ -1513,6 +1609,7 @@ export const departments: Department[] = [
     themes: ["Creative economy", "Tourism", "Participation"],
     hero: dcmsTourism,
     core: [dcmsCreativeGva, dcmsSport],
+    supporting: [dcmsReceipts],
   },
   {
     code: "fcdo",
@@ -1538,9 +1635,24 @@ export const departments: Department[] = [
       "The centre of government is hard to score on outcomes — it coordinates rather than delivers — so the honest measures are how well the projects it oversees are delivering and how the size of the civil service is moving.",
     synthesis:
       "Delivery confidence across the Government Major Projects Portfolio has been persistently mixed, with a large share of the highest-value projects rated less than confident; civil-service headcount grew sharply post-2016 and is now the subject of reduction targets (direction here is contested, not a verdict).",
-    themes: ["Delivery", "Workforce"],
+    themes: ["Delivery", "Workforce", "Transparency"],
     hero: cabGmpp,
     core: [cabCivilService],
+    supporting: [cabFoi],
+  },
+  {
+    code: "hmrc",
+    name: "HMRC",
+    spendBn: 6,
+    fullName: "HM Revenue & Customs",
+    pageTitle: "HM Revenue & Customs",
+    blurb:
+      "The tax authority most people actually deal with — whether you can get through on the phone, and how much of the tax owed actually gets collected.",
+    synthesis:
+      "Phone waiting times climbed steeply through the early 2020s as HMRC pushed callers towards digital channels and the contact centres struggled; the tax gap has drifted down over two decades but remains tens of billions a year.",
+    themes: ["Service", "Compliance"],
+    hero: hmrcCallWait,
+    core: [hmrcTaxGap],
   },
 ];
 

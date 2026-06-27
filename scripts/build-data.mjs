@@ -1291,6 +1291,15 @@ const SOURCES = [
   // DBT: UK business investment, quarterly, chained volume £m → £bn (ONS CDID
   // NPEL, QNA dataset). Clean time series — no ODS parsing needed.
   { id: "dbt-business-investment", min: 20, max: 90, scale: 0.001, get: () => ons(GDP, "NPEL", ["cxnv", "qna"], "quarters") },
+
+  // --- World Bank/ONS wave 4: deepen the newer departments (real, long series) ---
+  { id: "desnz-energy-use-pc", min: 1000, max: 6000, get: () => wb("EG.USE.PCAP.KG.OE") },
+  { id: "dsit-internet-users", min: 0, max: 100, get: () => wb("IT.NET.USER.ZS") },
+  { id: "dsit-mobile-subs", min: 0, max: 200, get: () => wb("IT.CEL.SETS.P2") },
+  { id: "dbt-fdi", min: -40, max: 60, get: () => wb("BX.KLT.DINV.WD.GD.ZS") },
+  { id: "dcms-tourism-receipts", min: 5000000000, max: 120000000000, get: () => wb("ST.INT.RCPT.CD") },
+  // DBT retail sales volume index (ONS CDID J5EK, incl. fuel, SA, monthly).
+  { id: "dbt-retail-sales", min: 40, max: 130, get: () => ons("businessindustryandtrade/retailindustry", "J5EK", "drsi", "months") },
   // Cabinet Office civil service headcount (FTE) — ONS public-sector-employment
   // CDID G7G6, quarterly, reported in thousands (scale → raw FTE).
   { id: "cab-civil-service-headcount", min: 300000, max: 600000, scale: 1000, get: () => ons(PUBSECPERS, "G7G6", "pse", "quarters") },

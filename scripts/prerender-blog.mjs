@@ -180,6 +180,7 @@ const urls = [
   ...[
     "dhsc", "dfe", "home-office", "moj", "mod", "dwp", "dft", "treasury",
     "mhclg", "defra", "desnz", "dsit", "dbt", "dcms", "fcdo", "cabinet-office",
+    "hmrc",
   ].map((c) => ({ loc: `${SITE}/${c}`, pri: "0.6" })),
 ];
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
