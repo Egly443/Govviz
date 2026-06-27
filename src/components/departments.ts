@@ -1132,6 +1132,278 @@ const defraForest = wbS({
 });
 
 // ============================================================
+// DESNZ — Department for Energy Security & Net Zero
+// ============================================================
+// Hero is real (World Bank renewables share). Territorial emissions and fuel
+// poverty are wired to placeholders pending a gov.uk fetcher (see CLAUDE.md).
+const desnzRenewables = wbS({ id: "desnz-renewables-share", title: "Renewable energy share", subtitle: "Renewables as % of total final energy consumption", good: "up", unit: "percent", format: fmtPct, source: "World Bank (IEA)", code: "EG.FEC.RNEW.ZS", anchors: [], start: 1990, end: 2021, seed: 401, amp: 0 });
+const desnzEmissions: TrendSeries = {
+  id: "desnz-ghg-emissions",
+  title: "Greenhouse gas emissions",
+  subtitle: "UK territorial emissions, million tonnes CO₂e (net zero by 2050)",
+  unit: "count",
+  format: (v) => `${Math.round(v)} Mt`,
+  shortFormat: (v) => `${Math.round(v)}Mt`,
+  goodDirection: "down",
+  source: "DESNZ, Final UK greenhouse gas emissions national statistics",
+  sourceUrl:
+    "https://www.gov.uk/government/collections/final-uk-greenhouse-gas-emissions-national-statistics",
+  cadence: "annual",
+  points: realPoints("desnz-ghg-emissions"),
+  annotations: [],
+};
+const desnzFuelPoverty: TrendSeries = {
+  id: "desnz-fuel-poverty",
+  title: "Households in fuel poverty",
+  subtitle: "% of English households (Low Income Low Energy Efficiency)",
+  unit: "percent",
+  format: fmtPct,
+  shortFormat: fmtPct,
+  goodDirection: "down",
+  source: "DESNZ, Annual Fuel Poverty Statistics",
+  sourceUrl: "https://www.gov.uk/government/collections/fuel-poverty-statistics",
+  cadence: "annual",
+  points: realPoints("desnz-fuel-poverty"),
+  annotations: [],
+};
+
+// ============================================================
+// DSIT — Department for Science, Innovation & Technology
+// ============================================================
+const dsitRandD = wbS({ id: "dsit-rd-gdp", title: "R&D spending", subtitle: "Gross domestic R&D expenditure (GERD), % of GDP", good: "up", unit: "percent", format: fmtPct, target: { value: 2.4, label: "2.4% R&D-intensity target", kind: "standard" }, source: "World Bank (OECD/UNESCO)", code: "GB.XPD.RSDV.GD.ZS", anchors: [], start: 1996, end: 2021, seed: 411, amp: 0 });
+const dsitResearchers = wbS({ id: "dsit-researchers", title: "Researchers in R&D", subtitle: "Researchers per million people", good: "up", unit: "count", format: fmtThousands, shortFormat: fmtK, yFormat: fmtK, source: "World Bank (OECD/UNESCO)", code: "SP.POP.SCIE.RD.P6", anchors: [], start: 1996, end: 2021, seed: 412, amp: 0 });
+const dsitBroadband: TrendSeries = {
+  id: "dsit-gigabit-broadband",
+  title: "Gigabit broadband coverage",
+  subtitle: "% of UK premises with gigabit-capable broadband available",
+  unit: "percent",
+  format: fmtPct,
+  shortFormat: fmtPct,
+  goodDirection: "up",
+  source: "Ofcom, Connected Nations",
+  sourceUrl:
+    "https://www.ofcom.org.uk/phones-and-broadband/coverage-and-speeds/connected-nations-update",
+  cadence: "annual",
+  points: realPoints("dsit-gigabit-broadband"),
+  annotations: [],
+};
+
+// ============================================================
+// DBT — Department for Business & Trade
+// ============================================================
+const dbtExports = wbS({ id: "dbt-exports-gdp", title: "Exports", subtitle: "Exports of goods & services, % of GDP", good: "up", unit: "percent", format: fmtPct, source: "World Bank (ONS)", code: "NE.EXP.GNFS.ZS", anchors: [], start: 1990, end: 2023, seed: 421, amp: 0 });
+const dbtHighTech = wbS({ id: "dbt-hightech-exports", title: "High-tech exports", subtitle: "% of manufactured exports", good: "up", unit: "percent", format: fmtPct, source: "World Bank (UN Comtrade)", code: "TX.VAL.TECH.MF.ZS", anchors: [], start: 1990, end: 2022, seed: 422, amp: 0 });
+const dbtBusinessInvestment: TrendSeries = {
+  id: "dbt-business-investment",
+  title: "Business investment",
+  subtitle: "UK business investment, £bn per quarter (chained volume, seasonally adjusted)",
+  unit: "gbp",
+  format: fmtGbpBn,
+  shortFormat: fmtGbpBnShort,
+  goodDirection: "up",
+  source: "ONS, Business investment in the UK (series NPEL)",
+  sourceUrl:
+    "https://www.ons.gov.uk/economy/grossdomesticproductgdp/timeseries/npel/cxnv",
+  cadence: "quarterly",
+  points: realPoints("dbt-business-investment"),
+  annotations: [],
+};
+
+// ============================================================
+// DCMS — Department for Culture, Media & Sport
+// ============================================================
+const dcmsTourism = wbS({ id: "dcms-tourism-arrivals", title: "Inbound tourism", subtitle: "International tourist arrivals, millions", good: "up", unit: "count", format: (v) => `${(v / 1e6).toFixed(1)}m`, shortFormat: (v) => `${(v / 1e6).toFixed(0)}m`, yFormat: (v) => `${(v / 1e6).toFixed(0)}m`, source: "World Bank (UN Tourism)", code: "ST.INT.ARVL", anchors: [], start: 1995, end: 2022, seed: 431, amp: 0 });
+const dcmsCreativeGva: TrendSeries = {
+  id: "dcms-creative-gva",
+  title: "Creative industries GVA",
+  subtitle: "Gross value added of the creative industries, £ billion",
+  unit: "gbp",
+  format: fmtGbpBn,
+  shortFormat: fmtGbpBnShort,
+  goodDirection: "up",
+  source: "DCMS, Economic Estimates: gross value added",
+  sourceUrl: "https://www.gov.uk/government/collections/dcms-sectors-economic-estimates",
+  cadence: "annual",
+  points: realPoints("dcms-creative-gva"),
+  annotations: [],
+};
+const dcmsSport: TrendSeries = {
+  id: "dcms-sport-participation",
+  title: "Adult sport participation",
+  subtitle: "% of adults active (150+ minutes a week), Active Lives",
+  unit: "percent",
+  format: fmtPct,
+  shortFormat: fmtPct,
+  goodDirection: "up",
+  source: "Sport England, Active Lives Adult Survey",
+  sourceUrl: "https://www.sportengland.org/research-and-data/data/active-lives",
+  cadence: "annual",
+  points: realPoints("dcms-sport-participation"),
+  annotations: [],
+};
+
+// ============================================================
+// FCDO — Foreign, Commonwealth & Development Office
+// ============================================================
+// No clean machine-readable source yet (ODA is published via the gov.uk SID
+// collection as ODS) — both indicators render placeholders pending a fetcher.
+const fcdoOdaGni: TrendSeries = {
+  id: "fcdo-oda-gni",
+  title: "Aid spending (ODA)",
+  subtitle: "UK official development assistance, % of gross national income",
+  unit: "percent",
+  format: (v) => `${v.toFixed(2)}%`,
+  shortFormat: (v) => `${v.toFixed(2)}%`,
+  goodDirection: "up",
+  target: { value: 0.7, label: "0.7% UN/statutory target", kind: "standard" },
+  source: "FCDO, Statistics on International Development",
+  sourceUrl: "https://www.gov.uk/government/collections/statistics-on-international-development",
+  cadence: "annual",
+  points: realPoints("fcdo-oda-gni"),
+  annotations: [],
+};
+const fcdoOdaTotal: TrendSeries = {
+  id: "fcdo-oda-total",
+  title: "Total ODA",
+  subtitle: "UK net official development assistance, £ billion",
+  unit: "gbp",
+  format: fmtGbpBn,
+  shortFormat: fmtGbpBnShort,
+  goodDirection: "up",
+  source: "FCDO, Statistics on International Development",
+  sourceUrl: "https://www.gov.uk/government/collections/statistics-on-international-development",
+  cadence: "annual",
+  points: realPoints("fcdo-oda-total"),
+  annotations: [],
+};
+
+// ============================================================
+// Cabinet Office
+// ============================================================
+const cabGmpp: TrendSeries = {
+  id: "cab-gmpp-confidence",
+  title: "Major projects delivery confidence",
+  subtitle: "% of Government Major Projects Portfolio rated green / amber-green",
+  unit: "percent",
+  format: fmtPct,
+  shortFormat: fmtPct,
+  goodDirection: "up",
+  source: "Infrastructure & Projects Authority, GMPP annual report",
+  sourceUrl: "https://www.gov.uk/government/collections/major-projects-data",
+  cadence: "annual",
+  points: realPoints("cab-gmpp-confidence"),
+  annotations: [],
+};
+const cabCivilService: TrendSeries = {
+  id: "cab-civil-service-headcount",
+  title: "Civil service headcount",
+  // Direction is contested (efficiency vs capacity); oriented "down" only to
+  // colour the tile, not as a value judgement — see the department synthesis.
+  subtitle: "Full-time-equivalent civil servants",
+  unit: "count",
+  format: fmtThousands,
+  shortFormat: fmtK,
+  yFormat: fmtK,
+  goodDirection: "down",
+  source: "Cabinet Office / ONS, Civil Service Statistics",
+  sourceUrl: "https://www.gov.uk/government/collections/civil-service-statistics",
+  cadence: "annual",
+  points: realPoints("cab-civil-service-headcount"),
+  annotations: [],
+};
+
+// ============================================================
+// Deepening indicators (2026-06): WB/ONS one-liners + salient "ordinary
+// people" series for the newer departments, plus HMRC.
+// ============================================================
+// DESNZ — energy use per person (WB, real) + domestic electricity price (gov.uk).
+const desnzEnergyUse = wbS({ id: "desnz-energy-use-pc", title: "Energy use per person", subtitle: "Kg of oil equivalent per capita", good: "down", unit: "count", format: (v) => `${Math.round(v).toLocaleString("en-GB")}`, shortFormat: (v) => `${(v / 1000).toFixed(1)}k`, source: "World Bank (IEA)", code: "EG.USE.PCAP.KG.OE", anchors: [], start: 1960, end: 2015, seed: 441, amp: 0 });
+const desnzElecPrice: TrendSeries = {
+  id: "desnz-electricity-price",
+  title: "Domestic electricity price",
+  subtitle: "Average UK standard domestic electricity price, pence per kWh",
+  unit: "count",
+  format: (v) => `${v.toFixed(1)}p`,
+  shortFormat: (v) => `${v.toFixed(0)}p`,
+  goodDirection: "down",
+  source: "DESNZ, Quarterly Energy Prices",
+  sourceUrl: "https://www.gov.uk/government/collections/quarterly-energy-prices",
+  cadence: "quarterly",
+  points: realPoints("desnz-electricity-price"),
+  annotations: [],
+};
+
+// DSIT — internet users + mobile subscriptions (WB, real).
+const dsitInternet = wbS({ id: "dsit-internet-users", title: "Internet users", subtitle: "% of individuals using the internet", good: "up", unit: "percent", format: fmtPct, source: "World Bank (ITU)", code: "IT.NET.USER.ZS", anchors: [], start: 1990, end: 2023, seed: 442, amp: 0 });
+const dsitMobile = wbS({ id: "dsit-mobile-subs", title: "Mobile subscriptions", subtitle: "Mobile-cellular subscriptions per 100 people", good: "up", unit: "count", format: (v) => v.toFixed(0), source: "World Bank (ITU)", code: "IT.CEL.SETS.P2", anchors: [], start: 1980, end: 2023, seed: 443, amp: 0 });
+
+// DBT — inward FDI (WB, real) + retail sales volume (ONS CDID J5EK, real).
+const dbtFdi = wbS({ id: "dbt-fdi", title: "Foreign direct investment", subtitle: "Net inflows, % of GDP", good: "up", unit: "percent", format: fmtPct, source: "World Bank (IMF BoP)", code: "BX.KLT.DINV.WD.GD.ZS", anchors: [], start: 1970, end: 2023, seed: 444, amp: 0 });
+const dbtRetail: TrendSeries = {
+  id: "dbt-retail-sales",
+  title: "Retail sales",
+  subtitle: "Retail sales volume index (2022 = 100, incl. fuel, seasonally adjusted)",
+  unit: "count",
+  format: (v) => v.toFixed(1),
+  shortFormat: (v) => v.toFixed(0),
+  goodDirection: "up",
+  source: "ONS, Retail Sales Index (series J5EK)",
+  sourceUrl: "https://www.ons.gov.uk/businessindustryandtrade/retailindustry/timeseries/j5ek/drsi",
+  cadence: "monthly",
+  points: realPoints("dbt-retail-sales"),
+  annotations: [],
+};
+
+
+// Cabinet Office — FOI requests answered in time (gov.uk FOI statistics).
+const cabFoi: TrendSeries = {
+  id: "cab-foi-intime",
+  title: "FOI requests answered in time",
+  subtitle: "% of Freedom of Information requests answered within the statutory deadline",
+  unit: "percent",
+  format: fmtPct,
+  shortFormat: fmtPct,
+  goodDirection: "up",
+  source: "Cabinet Office, Freedom of Information statistics",
+  sourceUrl: "https://www.gov.uk/government/collections/government-foi-statistics",
+  cadence: "quarterly",
+  points: realPoints("cab-foi-intime"),
+  annotations: [],
+};
+
+// ============================================================
+// HMRC — HM Revenue & Customs (non-ministerial, added 2026-06)
+// ============================================================
+const hmrcCallWait: TrendSeries = {
+  id: "hmrc-call-wait",
+  title: "Phone wait times",
+  subtitle: "Average speed of answer to an HMRC adviser, minutes",
+  unit: "count",
+  format: (v) => `${v.toFixed(1)} min`,
+  shortFormat: (v) => `${v.toFixed(0)}m`,
+  goodDirection: "down",
+  source: "HMRC monthly performance reports",
+  sourceUrl: "https://www.gov.uk/government/collections/hmrc-monthly-performance-reports",
+  cadence: "monthly",
+  points: realPoints("hmrc-call-wait"),
+  annotations: [],
+};
+const hmrcTaxGap: TrendSeries = {
+  id: "hmrc-tax-gap",
+  title: "Tax gap",
+  subtitle: "Tax not collected as % of total theoretical liabilities",
+  unit: "percent",
+  format: fmtPct,
+  shortFormat: fmtPct,
+  goodDirection: "down",
+  source: "HMRC, Measuring tax gaps",
+  sourceUrl: "https://www.gov.uk/government/statistics/measuring-tax-gaps",
+  cadence: "annual",
+  points: realPoints("hmrc-tax-gap"),
+  annotations: [],
+};
+
+// ============================================================
 // Registry
 // ============================================================
 export const departments: Department[] = [
@@ -1276,6 +1548,108 @@ export const departments: Department[] = [
     hero: defraRecycling,
     core: [defraPm25, defraForest],
     supporting: [defraBathingWater, defraSewage],
+  },
+  {
+    code: "desnz",
+    name: "DESNZ",
+    spendBn: 13,
+    fullName: "Energy Security & Net Zero",
+    pageTitle: "Department for Energy Security & Net Zero",
+    blurb:
+      "The decarbonisation trajectory the department is accountable for, alongside the energy security and affordability it must protect on the way.",
+    synthesis:
+      "The renewable share of energy has climbed steadily and territorial emissions are well down on 1990, but the pace must roughly double to stay on the carbon-budget path to net zero by 2050 — while fuel poverty remains elevated after the energy-price shock.",
+    themes: ["Emissions", "Renewables", "Affordability"],
+    hero: desnzRenewables,
+    core: [desnzEmissions, desnzFuelPoverty, desnzElecPrice],
+    supporting: [desnzEnergyUse],
+  },
+  {
+    code: "dsit",
+    name: "DSIT",
+    spendBn: 16,
+    fullName: "Science, Innovation & Technology",
+    pageTitle: "Department for Science, Innovation & Technology",
+    blurb:
+      "Whether the UK is investing in research at the intensity a high-productivity economy needs, and whether the digital infrastructure that growth runs on is reaching everyone.",
+    synthesis:
+      "R&D intensity has risen towards the 2.4%-of-GDP ambition (helped by an ONS methodology revision), and gigabit broadband has gone from niche to majority coverage in a few years; the open question is whether the researcher base keeps pace with the spending.",
+    themes: ["Research", "Connectivity", "Talent"],
+    hero: dsitRandD,
+    core: [dsitResearchers, dsitBroadband],
+    supporting: [dsitInternet, dsitMobile],
+  },
+  {
+    code: "dbt",
+    name: "DBT",
+    spendBn: 6,
+    fullName: "Business & Trade",
+    pageTitle: "Department for Business & Trade",
+    blurb:
+      "The external-facing health of the economy the department promotes: how much the UK exports, how sophisticated those exports are, and whether business is investing.",
+    synthesis:
+      "Exports as a share of GDP have held up but the high-tech share of manufactured exports has drifted, and business investment has lagged peers since 2016 — the long-running weakness behind the productivity gap.",
+    themes: ["Exports", "Innovation", "Investment"],
+    hero: dbtExports,
+    core: [dbtHighTech, dbtBusinessInvestment, dbtRetail],
+    supporting: [dbtFdi],
+  },
+  {
+    code: "dcms",
+    name: "DCMS",
+    spendBn: 2,
+    fullName: "Culture, Media & Sport",
+    pageTitle: "Department for Culture, Media & Sport",
+    blurb:
+      "The economic and participation footprint of the sectors the department sponsors — creative industries, tourism and sport — which punch well above their budget line.",
+    synthesis:
+      "The creative industries have grown faster than the wider economy and inbound tourism has recovered towards its pre-pandemic peak; adult sport participation has been broadly flat, a persistent public-health frustration.",
+    themes: ["Creative economy", "Tourism", "Participation"],
+    hero: dcmsTourism,
+    core: [dcmsCreativeGva, dcmsSport],
+  },
+  {
+    code: "fcdo",
+    name: "FCDO",
+    spendBn: 8,
+    fullName: "Foreign, Commonwealth & Development Office",
+    pageTitle: "Foreign, Commonwealth & Development Office",
+    blurb:
+      "The most quantifiable lever of UK foreign policy: how much the UK spends on overseas development, against the statutory benchmark it set itself.",
+    synthesis:
+      "Aid spending has fallen well below the 0.7%-of-GNI statutory target since the 2021 cut to 0.5%, with a further planned reduction towards 0.3% — a deliberate policy choice, shown here against the benchmark rather than judged.",
+    themes: ["Development", "Commitment"],
+    hero: fcdoOdaGni,
+    core: [fcdoOdaTotal],
+  },
+  {
+    code: "cabinet-office",
+    name: "Cabinet Office",
+    spendBn: 2,
+    fullName: "Cabinet Office",
+    pageTitle: "Cabinet Office",
+    blurb:
+      "The centre of government is hard to score on outcomes — it coordinates rather than delivers — so the honest measures are how well the projects it oversees are delivering and how the size of the civil service is moving.",
+    synthesis:
+      "Delivery confidence across the Government Major Projects Portfolio has been persistently mixed, with a large share of the highest-value projects rated less than confident; civil-service headcount grew sharply post-2016 and is now the subject of reduction targets (direction here is contested, not a verdict).",
+    themes: ["Delivery", "Workforce", "Transparency"],
+    hero: cabGmpp,
+    core: [cabCivilService],
+    supporting: [cabFoi],
+  },
+  {
+    code: "hmrc",
+    name: "HMRC",
+    spendBn: 6,
+    fullName: "HM Revenue & Customs",
+    pageTitle: "HM Revenue & Customs",
+    blurb:
+      "The tax authority most people actually deal with — whether you can get through on the phone, and how much of the tax owed actually gets collected.",
+    synthesis:
+      "Phone waiting times climbed steeply through the early 2020s as HMRC pushed callers towards digital channels and the contact centres struggled; the tax gap has drifted down over two decades but remains tens of billions a year.",
+    themes: ["Service", "Compliance"],
+    hero: hmrcCallWait,
+    core: [hmrcTaxGap],
   },
 ];
 

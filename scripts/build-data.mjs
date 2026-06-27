@@ -14,7 +14,7 @@ const OUT = "src/generated/seriesData.ts";
 // Shared fetch options: identify ourselves (some gov APIs throttle anonymous
 // bots) and bound every request so a hung server can't stall the CI job.
 const fetchOpts = (headers) => ({
-  headers: { "user-agent": "Govviz data fetcher (github.com/egly443/govviz)", ...headers },
+  headers: { "user-agent": "Govviz data fetcher (github.com/Egly443/Govviz)", ...headers },
   signal: AbortSignal.timeout(30_000),
 });
 
@@ -318,6 +318,7 @@ const PUBFIN = "economy/governmentpublicsectorandtaxes/publicsectorfinance";
 const EARN = "employmentandlabourmarket/peopleinwork/earningsandworkinghours";
 const GDP = "economy/grossdomesticproductgdp";
 const UNEMP = "employmentandlabourmarket/peoplenotinwork/unemployment";
+const PUBSECPERS = "employmentandlabourmarket/peopleinwork/publicsectorpersonnel";
 
 // Manifest. `id` = TrendSeries id; `line` = a line of a multi-line chart;
 // `min`/`max` guard the latest value; `scale` multiplies raw values.
@@ -470,10 +471,11 @@ async function parseRtt() {
 let _rttCache = null;
 function rttData() { if (!_rttCache) _rttCache = parseRtt(); return _rttCache; }
 
-// IPA/NISTA Government Major Projects Portfolio: mean in-year cost variance % for
-// one department across all published annual CSV editions. Hardcoded 2021–2024
-// asset URLs (stable) plus collection-API discovery of newer editions.
-async function gmppVariance(deptRe, deptFull) {
+// IPA/NISTA Government Major Projects Portfolio: discover every published annual
+// consolidated CSV edition. Hardcoded 2021–2024 asset URLs (stable) plus
+// collection-API discovery of newer editions. Shared by gmppVariance (per-dept
+// red/amber-red %) and gmppPortfolioConfidence (whole-portfolio green %).
+async function gmppEntries() {
   const entries = [
     { date: "2021-03-31", url: "https://assets.publishing.service.gov.uk/media/60eecae48fa8f50c7ca55af1/GMPP_Government_Major_Projects_Portofolio_AR_Data_March_2021.csv" },
     { date: "2022-03-31", url: "https://assets.publishing.service.gov.uk/media/62d6c047e90e071e753d6936/GMPP_Government_Major_Projects_Portfolio_AR_Data_March_2022.csv" },
@@ -496,8 +498,14 @@ async function gmppVariance(deptRe, deptFull) {
       } catch { /* skip edition */ }
     }
   } catch (e) { console.log(`gmpp: collection discovery failed (${e.message})`); }
+  return entries.sort((a, b) => a.date.localeCompare(b.date));
+}
+
+// IPA/NISTA GMPP: mean in-year delivery confidence (red/amber-red %) for one
+// department across all published annual CSV editions.
+async function gmppVariance(deptRe, deptFull) {
   const points = [];
-  for (const { date, url } of entries.sort((a, b) => a.date.localeCompare(b.date))) {
+  for (const { date, url } of await gmppEntries()) {
     try {
       const res = await fetch(url, fetchOpts({ accept: "text/csv,*/*" }));
       if (!res.ok) { console.log(`gmpp ${date} -> HTTP ${res.status}`); continue; }
@@ -525,6 +533,1221 @@ async function gmppVariance(deptRe, deptFull) {
   if (points.length < 2) throw new Error(`gmpp: only ${points.length} annual points`);
   const seen = new Set();
   return points.filter((p) => { if (seen.has(p.date)) return false; seen.add(p.date); return true; });
+}
+
+// IPA/NISTA GMPP: whole-portfolio delivery-confidence mix (Cabinet Office) — %
+// of all rated projects with positive confidence (DCA Green or Amber/Green) per
+// annual snapshot. Same editions as gmppVariance, aggregated across every
+// department's rated rows. Non-RAG values (blank/"Exempt") excluded.
+async function gmppPortfolioConfidence() {
+  const points = [];
+  for (const { date, url } of await gmppEntries()) {
+    try {
+      const res = await fetch(url, fetchOpts({ accept: "text/csv,*/*" }));
+      if (!res.ok) { console.log(`gmpp-portfolio ${date} -> HTTP ${res.status}`); continue; }
+      const lines = (await res.text()).trim().split(/\r?\n/);
+      if (lines.length < 2) continue;
+      const headers = parseCsvLine(lines[0]).map((h) => h.toLowerCase().trim());
+      const dcaCol = headers.findIndex((h) => /delivery confidence/i.test(h) && /ipa|assessment/i.test(h));
+      if (dcaCol < 0) { console.log(`gmpp-portfolio ${date}: dcaCol=${dcaCol} headers=[${headers.slice(0, 12).join("|")}]`); continue; }
+      let rated = 0, greenish = 0;
+      for (const l of lines.slice(1)) {
+        const cells = parseCsvLine(l);
+        const dca = String(cells[dcaCol] ?? "").trim();
+        if (!/green|amber|red/i.test(dca)) continue; // valid RAG only — excludes blank/"Exempt"
+        rated++;
+        if (/green/i.test(dca)) greenish++; // "Green" and "Amber/Green"
+      }
+      if (rated < 1) { console.log(`gmpp-portfolio ${date}: 0 rated rows`); continue; }
+      console.log(`gmpp-portfolio ${date}: ${greenish}/${rated} green/amber-green`);
+      points.push({ date, value: +(greenish / rated * 100).toFixed(1) });
+    } catch (e) { console.log(`gmpp-portfolio ${date} err ${e.message}`); }
+  }
+  if (points.length < 2) throw new Error(`gmpp-portfolio: only ${points.length} annual points`);
+  const seen = new Set();
+  return points.filter((p) => { if (seen.has(p.date)) return false; seen.add(p.date); return true; });
+}
+
+// DESNZ — final UK territorial greenhouse gas emissions, MtCO2e per year.
+// The headline release is a gov.uk statistics page with an "accessible" ODS of
+// data tables. Layout is a transposed summary (years across columns, gases /
+// sectors down rows); the national total is a "Net emissions" / "Grand total"
+// row. We locate the newest release, then scan every sheet for the year header
+// row + a net-total label and read across. Diagnostics print sheet structure so
+// a first CI run reveals the exact shape if the heuristics miss.
+async function ghgEmissions() {
+  // The release slug is stable and yearly: final emissions for year Y publish
+  // ~Y+2, so walk recent years newest-first and take the first page that exists
+  // and carries an ODS. More deterministic than the collection structure, which
+  // groups documents in a way govukCollectionLatest doesn't read.
+  const thisYear = new Date().getFullYear();
+  let path, atts;
+  for (let y = thisYear - 1; y >= thisYear - 5; y--) {
+    const cand = `government/statistics/final-uk-greenhouse-gas-emissions-national-statistics-1990-to-${y}`;
+    try {
+      const a = await govukAttachments(cand);
+      if (a.some((x) => /\.ods$/i.test(x.url || ""))) { path = cand; atts = a; break; }
+    } catch { /* 404 for that year — try the previous one */ }
+  }
+  if (!path) throw new Error("ghg: no final-emissions release page resolved for recent years");
+  const ods = atts.find((a) => /\.ods$/i.test(a.url || "") && /data\s*tab|table/i.test(a.title || ""))
+    || atts.find((a) => /\.ods$/i.test(a.url || ""));
+  if (!ods) throw new Error(`ghg: no ODS at ${path} (atts: ${atts.map((a) => (a.url || "").split("/").pop()).slice(0, 8).join(",")})`);
+  const book = await xlsxBook(ods.url);
+  console.log(`  ghg release=${path} ods=${(ods.url || "").split("/").pop()} sheets=[${book.SheetNames.join("|")}]`);
+  const yearRe = /^(19|20)\d{2}$/;
+  const totalRe = /net\s*(territorial\s*)?(greenhouse|emission|ghg|co2e?)|grand\s*total|total\s*greenhouse|total\s*net|net\s*total/i;
+  for (const sn of book.SheetNames) {
+    const rows = (await sheetRows(book, sn)).map((r) => Array.from(r ?? []));
+    if (!rows.length) continue;
+    // Orientation A — years across a header row (transposed), total down rows.
+    let hdr = -1;
+    for (let i = 0; i < Math.min(rows.length, 30); i++) {
+      if (rows[i].filter((c) => yearRe.test(String(c).trim())).length >= 5) { hdr = i; break; }
+    }
+    if (hdr >= 0) {
+      const yearCols = rows[hdr].map((c, j) => [j, String(c).trim()]).filter(([, c]) => yearRe.test(c));
+      let totRow = -1;
+      for (let i = hdr + 1; i < rows.length; i++) {
+        if (totalRe.test(String(rows[i][0] ?? "").trim())) { totRow = i; break; }
+      }
+      console.log(`  ghg[A] sheet="${sn}" hdr=${hdr} years=${yearCols.length} totRow=${totRow} labels=[${rows.slice(hdr + 1, hdr + 8).map((r) => String(r[0] ?? "").slice(0, 20)).join(" / ")}]`);
+      if (totRow >= 0) {
+        const pts = [];
+        for (const [j, yr] of yearCols) {
+          const v = parseFloat(rows[totRow][j]);
+          if (Number.isFinite(v)) pts.push({ date: `${yr}-01-01`, value: v });
+        }
+        if (pts.length >= 5) return pts;
+      }
+    }
+    // Orientation B — years down a column, total across a labelled column.
+    let yearCol = -1;
+    for (let j = 0; j < 6; j++) {
+      let n = 0;
+      for (const r of rows) if (yearRe.test(String(r[j] ?? "").trim())) n++;
+      if (n >= 5) { yearCol = j; break; }
+    }
+    if (yearCol >= 0) {
+      const firstYearRow = rows.findIndex((r) => yearRe.test(String(r[yearCol] ?? "").trim()));
+      const hdrB = firstYearRow > 0 ? firstYearRow - 1 : 0;
+      let totCol = -1;
+      for (let j = 0; j < (rows[hdrB] || []).length; j++) {
+        if (totalRe.test(String(rows[hdrB][j] ?? "").trim())) { totCol = j; break; }
+      }
+      console.log(`  ghg[B] sheet="${sn}" yearCol=${yearCol} hdrB=${hdrB} totCol=${totCol} hdr=[${(rows[hdrB] || []).slice(0, 12).map((c) => String(c).slice(0, 14)).join("|")}]`);
+      if (totCol >= 0) {
+        const pts = [];
+        for (const r of rows) {
+          const y = String(r[yearCol] ?? "").trim();
+          if (!yearRe.test(y)) continue;
+          const v = parseFloat(r[totCol]);
+          if (Number.isFinite(v)) pts.push({ date: `${y}-01-01`, value: v });
+        }
+        if (pts.length >= 5) return pts;
+      }
+    }
+  }
+  throw new Error("ghg: no net-total series found across sheets (see diagnostics)");
+}
+
+// DESNZ — fuel poverty (England), % of households fuel-poor under the Low Income
+// Low Energy Efficiency (LILEE) indicator, annual. Each "Fuel poverty trends"
+// edition carries the full back series in one workbook (unlike GHG), so one
+// edition suffices; walk recent years newest-first for resilience.
+async function fuelPoverty() {
+  const thisYear = new Date().getFullYear();
+  let path, atts;
+  for (let y = thisYear; y >= thisYear - 3; y--) {
+    const cand = `government/statistics/fuel-poverty-trends-${y}`;
+    try {
+      const a = await govukAttachments(cand);
+      if (a.some((x) => /\.(ods|xlsx?)$/i.test(x.url || ""))) { path = cand; atts = a; break; }
+    } catch { /* 404 — try previous year */ }
+  }
+  if (!path) {
+    path = await govukCollectionLatest("fuel-poverty-statistics", (d) => /trends/i.test(d.title || ""));
+    atts = await govukAttachments(path);
+  }
+  const file = atts.find((a) => /\.(ods|xlsx?)$/i.test(a.url || "") && /trend/i.test(`${a.title || ""} ${a.url || ""}`))
+    || atts.find((a) => /\.(ods|xlsx?)$/i.test(a.url || ""));
+  if (!file) throw new Error(`fuel-poverty: no spreadsheet at ${path} (atts: ${atts.map((a) => (a.url || "").split("/").pop()).slice(0, 8).join(",")})`);
+  const book = await xlsxBook(file.url);
+  console.log(`  fuel-poverty release=${path} file=${(file.url || "").split("/").pop()} sheets=[${book.SheetNames.join("|")}]`);
+  const num = (c) => { const v = typeof c === "number" ? c : parseFloat(String(c ?? "").replace(/[,%]/g, "")); return Number.isFinite(v) ? v : null; };
+  const yearRe = /^(19|20)\d{2}$/;
+  const order = book.SheetNames.filter((n) => /lilee|all households?|headline|table ?1\b|summary/i.test(n)).concat(book.SheetNames);
+  let dumped = false;
+  for (const sn of [...new Set(order)]) {
+    let rows;
+    try { rows = await sheetRows(book, sn); } catch { continue; }
+    if (!rows.length) continue;
+    const dense = rows.map((r) => Array.from(r ?? []));
+    let hdr = -1;
+    for (let i = 0; i < Math.min(dense.length, 20); i++) {
+      if (dense[i].filter((c) => yearRe.test(String(c).trim())).length >= 5) { hdr = i; break; }
+    }
+    if (hdr >= 0) {
+      const yearCols = dense[hdr].map((c, j) => [j, String(c).trim()]).filter(([, c]) => yearRe.test(c));
+      const pctRow = dense.find((r) => /^(proportion|percentage|%)|fuel poor.*%|%.*fuel poor/i.test(String(r[0] ?? "").trim()))
+        ?? dense.find((r) => /all households/i.test(String(r[0] ?? "").trim()));
+      console.log(`  fuel-poverty[A] sheet="${sn}" hdr=${hdr} years=${yearCols.length} pctRowLabel="${pctRow ? String(pctRow[0]).slice(0, 40) : null}"`);
+      if (pctRow) {
+        const points = [];
+        for (const [j, yr] of yearCols) { const v = num(pctRow[j]); if (v != null && v >= 5 && v <= 30) points.push({ date: `${yr}-01-01`, value: +v.toFixed(1) }); }
+        if (points.length >= 5) return points.sort((a, b) => (a.date < b.date ? -1 : 1));
+      }
+    }
+    let yearCol = -1;
+    for (let j = 0; j < 4; j++) { let n = 0; for (const r of dense) if (yearRe.test(String(r[j] ?? "").trim())) n++; if (n >= 5) { yearCol = j; break; } }
+    if (yearCol >= 0) {
+      const firstYearRow = dense.findIndex((r) => yearRe.test(String(r[yearCol] ?? "").trim()));
+      const hdrB = firstYearRow > 0 ? firstYearRow - 1 : 0;
+      const hdrRow = (dense[hdrB] || []).map((c) => String(c ?? "").toLowerCase());
+      let pctCol = hdrRow.findIndex((c) => /(%|proportion|percentage).*fuel poor|fuel poor.*(%|proportion|percentage)/.test(c));
+      if (pctCol < 0) pctCol = hdrRow.findIndex((c) => /^(%|proportion|percentage)/.test(c));
+      console.log(`  fuel-poverty[B] sheet="${sn}" yearCol=${yearCol} hdrB=${hdrB} pctCol=${pctCol} hdr=[${hdrRow.slice(0, 10).join("|")}]`);
+      if (pctCol >= 0) {
+        const points = [];
+        for (const r of dense) { const y = String(r[yearCol] ?? "").trim(); if (!yearRe.test(y)) continue; const v = num(r[pctCol]); if (v != null && v >= 5 && v <= 30) points.push({ date: `${y}-01-01`, value: +v.toFixed(1) }); }
+        if (points.length >= 5) return points.sort((a, b) => (a.date < b.date ? -1 : 1));
+      }
+    }
+    if (!dumped) { dumped = true; console.log(`  fuel-poverty sheet="${sn}" no match; first 10 rows:`); for (const r of dense.slice(0, 10)) console.log(`    ${JSON.stringify(r.slice(0, 14)).slice(0, 220)}`); }
+  }
+  throw new Error("fuel-poverty: LILEE % series not found across sheets (see diagnostics)");
+}
+
+// DCMS — Creative Industries Gross Value Added, current prices, £m (→£bn via
+// scale), annual. Each DCMS "Economic Estimates: GVA" edition carries the full
+// back series; walk recent years newest-first, fall back to the collection.
+async function creativeGva() {
+  const thisYear = new Date().getFullYear();
+  let path, atts;
+  const slugsFor = (y) => [
+    `government/statistics/dcms-economic-estimates-gva-${y}-provisional/dcms-sectors-economic-estimates-gross-value-added-${y}-provisional`,
+    `government/statistics/dcms-economic-estimates-gva-${y}-provisional`,
+    `government/statistics/dcms-and-digital-sector-gva-${y}-provisional/dcms-sectors-economic-estimates-gross-value-added-${y}-provisional`,
+  ];
+  for (let y = thisYear - 1; y >= thisYear - 5 && !path; y--) {
+    for (const cand of slugsFor(y)) {
+      try {
+        const a = await govukAttachments(cand);
+        if (a.some((x) => /\.(ods|xlsx?|csv)$/i.test(x.url || ""))) { path = cand; atts = a; break; }
+      } catch { /* wrong slug/year — try the next */ }
+    }
+  }
+  if (!path) {
+    path = await govukCollectionLatest("dcms-sector-economic-estimates-gross-value-added", (d) => /gross value added|gva/i.test(d.title || ""))
+      .catch(() => govukCollectionLatest("dcms-sectors-economic-estimates", (d) => /gross value added|gva/i.test(d.title || "")));
+    atts = await govukAttachments(path);
+  }
+  console.log(`  dcms-gva release=${path} atts=[${atts.map((a) => (a.url || "").split("/").pop()).slice(0, 16).join("|")}]`);
+  const file = atts.find((a) => /\.(ods|xlsx?)$/i.test(a.url || "") && /gva|gross value added|table/i.test(`${a.title || ""} ${a.url || ""}`))
+    || atts.find((a) => /\.(ods|xlsx?)$/i.test(a.url || ""));
+  if (!file) throw new Error(`dcms-gva: no spreadsheet at ${path}`);
+  const book = await xlsxBook(file.url);
+  console.log(`  dcms-gva file=${(file.url || "").split("/").pop()} sheets=[${book.SheetNames.join("|")}]`);
+
+  const num = (c) => { const v = typeof c === "number" ? c : parseFloat(String(c ?? "").replace(/,/g, "")); return Number.isFinite(v) ? v : null; };
+  // Match an EXACT 4-digit year (header cells, "2010" etc.).
+  const yearRe = /^(19|20)\d{2}$/;
+  // Match a LEADING 4-digit year for the down-column year axis — tolerates note
+  // suffixes like "2024 [provisional]" / "2023 [r]".
+  const leadYear = (c) => { const m = /^\s*((?:19|20)\d{2})\b/.exec(String(c ?? "").trim()); return m ? m[1] : null; };
+  const inRange = (v) => v != null && v >= 20 && v <= 300; // £bn (sheets are current-prices £bn)
+  const ciRe = /creative industr/i;
+  const excludeRe = /of which|sub[- ]?sector/i;
+
+  // Skip cover/contents/notes pages and the SIC-classification lookup sheets
+  // (1a/1b/1c — they list SIC07 codes/descriptions and YES/null sector
+  // membership flags, no GVA values). Prefer the value sheets (2a/2b/2c/3a…).
+  const isMeta = (n) => /^cover|^contents|^notes/i.test(n.trim());
+  const candidates = book.SheetNames.filter((n) => !isMeta(n));
+  // Prioritise sheets that name themselves as current-price GVA, then all the
+  // non-1[abc] sheets (the GVA value tables), then everything else as a
+  // last resort. Content-based SIC detection below still skips lookup sheets
+  // even if they slip through here.
+  const order = candidates.filter((n) => /current price/i.test(n))
+    .concat(candidates.filter((n) => /gva/i.test(n) && !/constant|chained|real|employment/i.test(n)))
+    .concat(candidates.filter((n) => !/^1[abc]$/i.test(n.trim())))
+    .concat(candidates);
+
+  let dumpCount = 0;
+  const found = [];
+  for (const sn of [...new Set(order)]) {
+    let rows;
+    try { rows = await sheetRows(book, sn); } catch { continue; }
+    if (!rows.length) continue;
+    const dense = rows.map((r) => Array.from(r ?? []));
+
+    // Identify & skip SIC-classification lookup sheets up front (content-based,
+    // robust to sheet renaming).
+    const head = dense.slice(0, 6).map((r) => r.map((c) => String(c ?? "")).join(" ")).join(" ");
+    if (/standard industrial classifications used/i.test(head)) {
+      console.log(`  dcms-gva skip SIC-definition sheet="${sn}"`);
+      continue;
+    }
+
+    let matchedThisSheet = false;
+
+    // Orientation C (PRIMARY) — DCMS sectors as COLUMN headers, years DOWN col0.
+    // Find the header row that contains a "Creative Industr…" cell, take that
+    // column index, then read it down every row whose col0 starts with a year.
+    {
+      let hdrC = -1, ciCol = -1;
+      for (let i = 0; i < Math.min(dense.length, 20); i++) {
+        const cj = dense[i].findIndex((c) => ciRe.test(String(c ?? "")) && !excludeRe.test(String(c ?? "")));
+        if (cj >= 0) { hdrC = i; ciCol = cj; break; }
+      }
+      if (hdrC >= 0 && ciCol >= 0) {
+        const points = [];
+        for (let i = hdrC + 1; i < dense.length; i++) {
+          const yr = leadYear(dense[i][0]);
+          if (!yr) continue;
+          const v = num(dense[i][ciCol]);
+          if (inRange(v)) points.push({ date: `${yr}-01-01`, value: v });
+        }
+        console.log(`  dcms-gva[C] sheet="${sn}" hdrC=${hdrC} ciCol=${ciCol} pts=${points.length}`);
+        if (points.length >= 5) { matchedThisSheet = true; found.push({ sheet: sn, cp: /current price/i.test(String(dense[0]?.[0] ?? "")), points: points.sort((a, b) => (a.date < b.date ? -1 : 1)) }); }
+      }
+    }
+
+    // Orientation A — years across a header row, "Creative Industries" as a ROW.
+    if (!matchedThisSheet) {
+      let hdr = -1;
+      for (let i = 0; i < Math.min(dense.length, 20); i++) {
+        if (dense[i].filter((c) => yearRe.test(String(c).trim())).length >= 4) { hdr = i; break; }
+      }
+      if (hdr >= 0) {
+        const yearCols = dense[hdr].map((c, j) => [j, String(c).trim()]).filter(([, c]) => yearRe.test(c));
+        const ciRow = dense.find((r) => {
+          const label = [r[0], r[1], r[2]].map((c) => String(c ?? "").trim()).find((s) => s) || "";
+          return ciRe.test(label) && !excludeRe.test(label);
+        });
+        const ciLabel = ciRow ? ([ciRow[0], ciRow[1], ciRow[2]].map((c) => String(c ?? "").trim()).find((s) => s) || "") : null;
+        console.log(`  dcms-gva[A] sheet="${sn}" hdr=${hdr} years=${yearCols.length} ciRowLabel="${ciLabel ? ciLabel.slice(0, 40) : null}"`);
+        if (ciRow) {
+          const points = [];
+          for (const [j, yr] of yearCols) {
+            const v = num(ciRow[j]);
+            // Raw £m; SOURCES scale:0.001 → £bn. Guard in raw £m (30..250 £bn →
+            // 30000..250000 £m) — also disambiguates current-price from an
+            // index/chained-volume sheet sharing the same label.
+            if (inRange(v)) points.push({ date: `${yr}-01-01`, value: v });
+          }
+          if (points.length >= 5) { matchedThisSheet = true; found.push({ sheet: sn, cp: /current price/i.test(String(dense[0]?.[0] ?? "")), points: points.sort((a, b) => (a.date < b.date ? -1 : 1)) }); }
+        }
+      }
+    }
+
+    // Orientation B — years down a column with explicit sector/value header cols
+    // (tidy/long layout: one row per year×sector).
+    if (!matchedThisSheet) {
+      let yearCol = -1;
+      for (let j = 0; j < 4; j++) {
+        let n = 0;
+        for (const r of dense) if (yearRe.test(String(r[j] ?? "").trim())) n++;
+        if (n >= 5) { yearCol = j; break; }
+      }
+      if (yearCol >= 0) {
+        const firstYearRow = dense.findIndex((r) => yearRe.test(String(r[yearCol] ?? "").trim()));
+        const hdrB = firstYearRow > 0 ? firstYearRow - 1 : 0;
+        const hdrRow = (dense[hdrB] || []).map((c) => String(c ?? "").toLowerCase());
+        let sectorCol = hdrRow.findIndex((c) => /sector|industry|industries/.test(c));
+        let valCol = hdrRow.findIndex((c) => /gva|value/.test(c) && !/constant|chained|real/.test(c));
+        console.log(`  dcms-gva[B] sheet="${sn}" yearCol=${yearCol} hdrB=${hdrB} sectorCol=${sectorCol} valCol=${valCol} hdr=[${hdrRow.slice(0, 10).join("|")}]`);
+        if (sectorCol >= 0 && valCol >= 0) {
+          const points = [];
+          for (const r of dense) {
+            const y = String(r[yearCol] ?? "").trim();
+            if (!yearRe.test(y)) continue;
+            const label = String(r[sectorCol] ?? "").trim();
+            if (!ciRe.test(label) || excludeRe.test(label)) continue;
+            const v = num(r[valCol]);
+            if (inRange(v)) points.push({ date: `${y}-01-01`, value: v });
+          }
+          if (points.length >= 5) { matchedThisSheet = true; found.push({ sheet: sn, cp: /current price/i.test(String(dense[0]?.[0] ?? "")), points: points.sort((a, b) => (a.date < b.date ? -1 : 1)) }); }
+        }
+      }
+    }
+
+    // Dump up to ~6 non-matching candidate sheets (SIC/meta already skipped),
+    // so a future failed run reveals 2a/2b/2c/3a… layout.
+    if (!matchedThisSheet && dumpCount < 6) {
+      dumpCount++;
+      console.log(`  dcms-gva sheet="${sn}" no in-range match; first 8 rows:`);
+      for (const r of dense.slice(0, 8)) console.log(`    ${JSON.stringify(r.slice(0, 14)).slice(0, 220)}`);
+    }
+  }
+  if (found.length) {
+    // If several sheets matched (near-duplicate tables), prefer the longest.
+    found.sort((a, b) => (b.cp - a.cp) || (b.points.length - a.points.length));
+    console.log(`  dcms-gva matched sheet="${found[0].sheet}" pts=${found[0].points.length}`);
+    return found[0].points;
+  }
+  throw new Error("dcms-gva: Creative Industries GVA series not found across sheets (see diagnostics)");
+}
+
+// FCDO — Statistics on International Development: each annual "final UK ODA
+// spend {year}" release publishes a companion ODS, but the ODS is a 2-3 year
+// SNAPSHOT (current + 1-2 prior years for comparison), not a back-series —
+// e.g. the 2024 edition's Table_1 only carries 2023 and 2024. So a single
+// edition can never yield a multi-year series. Instead we walk every
+// available annual edition (like gmppVariance walks GMPP CSV editions) and
+// take just the HEADLINE (latest) year's value from each, merging one point
+// per edition into a proper series. Slug changed naming partway through:
+// "final-uk-aid-spend-{Y}" (~2018-2021) vs "final-uk-oda-spend-{Y}"
+// (~2022 onwards) — try both forms per year.
+//
+// NB: year cells in these ODS are NOT bare "2023" — they carry trailing
+// newlines / note markers, e.g. "2023\r\n(£ millions)". So every year match is
+// LEADING-anchored (/^(19|20)\d{2}/) against a whitespace-normalised cell, and
+// the year value is the first 4 digits. Same for header/label regexes.
+const fcdoNorm = (c) => String(c ?? "").replace(/[\r\n]+/g, " ").replace(/\s+/g, " ").trim();
+const fcdoYearOf = (c) => { const m = fcdoNorm(c).match(/^(19|20)\d{2}\b/); return m ? Number(m[0]) : null; };
+const fcdoNum = (c) => {
+  const v = typeof c === "number" ? c : parseFloat(fcdoNorm(c).replace(/[,%]/g, ""));
+  return Number.isFinite(v) ? v : null;
+};
+
+async function fcdoOdaEditions(maxEditions = 8) {
+  const thisYear = new Date().getFullYear();
+  const editions = [];
+  for (let y = thisYear - 1; y >= 2016 && editions.length < maxEditions; y--) {
+    const slugs = [
+      `government/statistics/statistics-on-international-development-final-uk-oda-spend-${y}`,
+      `government/statistics/statistics-on-international-development-final-uk-aid-spend-${y}`,
+    ];
+    let found = null;
+    for (const cand of slugs) {
+      try {
+        const atts = await govukAttachments(cand);
+        const ods = atts.find((a) => /\.ods$/i.test(a.url || "") && /table/i.test(a.title || ""))
+          || atts.find((a) => /\.ods$/i.test(a.url || ""));
+        if (ods) { found = { year: y, path: cand, odsUrl: ods.url }; break; }
+      } catch { /* 404 or no ODS — try the other slug form / older year */ }
+    }
+    if (found) editions.push(found);
+    else console.log(`  fcdo-oda ${y}: no release/ODS at either slug form — skipping`);
+  }
+  if (!editions.length) throw new Error("fcdo-oda: no final-uk-oda/aid-spend editions resolved");
+  return editions;
+}
+
+// Table_1 (or nearest match): "GNI estimates and ODA:GNI ratios" — years DOWN
+// col0 (as "2023\r\n..." strings), ratio in a column whose normalised header
+// matches /oda[:\s/]*gni|gni.*ratio|ratio/. Returns the LATEST year row's value.
+async function fcdoReadGniRatio(book, edition) {
+  // Table_1 is a single-row table with years in the COLUMN HEADERS
+  // ("2021[r] ODA:GNI ratio"); the ratio cells are the only numbers in
+  // [0.2,1.0] (GNI ~2e6, ODA ~1.4e4). Take the rightmost in-range value =
+  // latest year. Date comes from edition.year (the release's headline year).
+  const sheets = book.SheetNames.filter((s) => /^table[ _]?1$/i.test(s)).concat(book.SheetNames);
+  for (const sn of sheets) {
+    let rows;
+    try { rows = (await sheetRows(book, sn)).map((r) => Array.from(r ?? [])); } catch { continue; }
+    if (!rows.length) continue;
+    const blob = rows.slice(0, 3).map((r) => String(r[0] ?? "")).join(" ").toLowerCase();
+    if (sn.toLowerCase() !== "table_1" && !/gni/.test(blob)) continue;
+    let best = null;
+    for (const r of rows) for (let j = 0; j < r.length; j++) {
+      const v = fcdoNum(r[j]);
+      if (v != null && v >= 0.2 && v <= 1.0 && (best == null || j > best.col)) best = { col: j, value: v };
+    }
+    if (best) { console.log(`  fcdo-oda-gni[${edition.year}] sheet="${sn}" ratio=${best.value} col=${best.col}`); return { year: edition.year, value: best.value }; }
+  }
+  for (const sn of book.SheetNames.slice(0, 3)) { let rows; try { rows = await sheetRows(book, sn); } catch { continue; } console.log(`  fcdo-oda-gni[${edition.year}] dump sheet="${sn}" rows0-6: ${rows.slice(0,6).map((r)=>JSON.stringify(Array.from(r??[]).slice(0,8))).join(" / ")}`); }
+  return null;
+}
+
+// Table_2 (or nearest match): "Total UK ODA: by Delivery Channel" — years
+// ACROSS columns (as "2024\r\n..." header cells), "TOTAL ODA" row (excluding
+// Bilateral/Multilateral). Returns the value for the LATEST (max) year column.
+async function fcdoReadTotalOda(book, edition) {
+  // Table_2 "Total UK ODA by Delivery Channel": find the TOTAL ODA row, then
+  // take the rightmost cell whose value is a plausible annual total
+  // (5000-25000 £m) = latest year (year columns also carry note-markers like
+  // "1", so match by value range, not column position). Date = edition.year.
+  const sheets = book.SheetNames.filter((s) => /^table[ _]?2$/i.test(s)).concat(book.SheetNames);
+  for (const sn of sheets) {
+    let rows;
+    try { rows = (await sheetRows(book, sn)).map((r) => Array.from(r ?? [])); } catch { continue; }
+    if (!rows.length) continue;
+    const blob = rows.slice(0, 3).map((r) => String(r[0] ?? "")).join(" ").toLowerCase();
+    if (sn.toLowerCase() !== "table_2" && !/total uk oda|delivery channel/.test(blob)) continue;
+    const totalRow = rows.find((r) => /^total\s*(uk\s*)?oda\b/i.test(fcdoNorm(r[0])))
+      || rows.find((r) => /total.*oda/i.test(fcdoNorm(r[0])) && !/bilateral|multilateral/i.test(fcdoNorm(r[0])));
+    if (!totalRow) { console.log(`  fcdo-oda-total[${edition.year}] sheet="${sn}": no TOTAL ODA row`); continue; }
+    let best = null;
+    for (let j = 0; j < totalRow.length; j++) {
+      const v = fcdoNum(totalRow[j]);
+      if (v != null && v >= 5000 && v <= 25000 && (best == null || j > best.col)) best = { col: j, value: v };
+    }
+    if (best) { console.log(`  fcdo-oda-total[${edition.year}] sheet="${sn}" total=${best.value} col=${best.col} label="${String(totalRow[0]).slice(0,30)}"`); return { year: edition.year, value: best.value }; }
+    console.log(`  fcdo-oda-total[${edition.year}] sheet="${sn}": TOTAL ODA row found but no in-range value; row=${JSON.stringify(totalRow.slice(0,12))}`);
+  }
+  return null;
+}
+
+// Merge one headline point per edition into an ascending, de-duped series.
+// Editions are walked newest-first by fcdoOdaEditions, so de-duping by
+// "first seen wins" naturally prefers a year's own dedicated edition over a
+// later edition's comparator column reporting the same year.
+function fcdoMergeEditionPoints(points) {
+  const ordered = [];
+  const seen = new Set();
+  for (const p of points) {
+    if (!p || seen.has(p.year)) continue;
+    seen.add(p.year);
+    ordered.push(p);
+  }
+  return ordered
+    .map(({ year, value }) => ({ date: `${year}-01-01`, value }))
+    .sort((a, b) => (a.date < b.date ? -1 : 1));
+}
+
+async function fcdoOdaGni() {
+  const editions = await fcdoOdaEditions();
+  const points = [];
+  for (const edition of editions) {
+    try {
+      const book = await xlsxBook(edition.odsUrl);
+      console.log(`  fcdo-oda-gni edition=${edition.year} ods=${(edition.odsUrl || "").split("/").pop()} sheets=[${book.SheetNames.join("|")}]`);
+      const pt = await fcdoReadGniRatio(book, edition);
+      if (pt && pt.value >= 0.2 && pt.value <= 1.0) points.push(pt);
+      else if (pt) console.log(`  fcdo-oda-gni edition=${edition.year}: value ${pt.value} outside guard 0.2-1.0 — discarded`);
+    } catch (e) { console.log(`  fcdo-oda-gni edition=${edition.year} err ${e.message}`); }
+  }
+  const merged = fcdoMergeEditionPoints(points);
+  if (merged.length < 3) throw new Error(`fcdo-oda-gni: only ${merged.length} edition points merged (need >=3) — see diagnostics`);
+  console.log(`  fcdo-oda-gni: merged ${merged.length} points from ${editions.length} editions`);
+  return merged;
+}
+
+// Returns raw £m values; SOURCES scale 0.001 converts to £bn.
+async function fcdoOdaTotal() {
+  const editions = await fcdoOdaEditions();
+  const points = [];
+  for (const edition of editions) {
+    try {
+      const book = await xlsxBook(edition.odsUrl);
+      console.log(`  fcdo-oda-total edition=${edition.year} ods=${(edition.odsUrl || "").split("/").pop()} sheets=[${book.SheetNames.join("|")}]`);
+      const pt = await fcdoReadTotalOda(book, edition);
+      if (pt && pt.value >= 5000 && pt.value <= 25000) points.push(pt);
+      else if (pt) console.log(`  fcdo-oda-total edition=${edition.year}: value ${pt.value} outside guard 5000-25000 (£m) — discarded`);
+    } catch (e) { console.log(`  fcdo-oda-total edition=${edition.year} err ${e.message}`); }
+  }
+  const merged = fcdoMergeEditionPoints(points);
+  if (merged.length < 3) throw new Error(`fcdo-oda-total: only ${merged.length} edition points merged (need >=3) — see diagnostics`);
+  console.log(`  fcdo-oda-total: merged ${merged.length} points from ${editions.length} editions`);
+  return merged;
+}
+
+// ============================================================================
+
+// DCMS — adult sport participation (% active, 150+ min/week), Sport England
+// Active Lives. Scrape the data-tables landing page for the current "Tables 1-5
+// Levels of activity" workbooks (S3, dated paths) and read the "Active" row.
+async function sportActiveLives() {
+  const pageUrl = "https://www.sportengland.org/research-and-data/data/active-lives/active-lives-data-tables";
+  const res = await fetch(pageUrl, fetchOpts({ accept: "text/html,*/*" }));
+  if (!res.ok) throw new Error(`sport-participation: landing page HTTP ${res.status}`);
+  const html = await res.text();
+  const hrefs = [...html.matchAll(/href="([^"]*Tables%201-5[^"]*\.xlsx[^"]*)"/gi)].map((m) => m[1]);
+  if (!hrefs.length) {
+    const loose = [...html.matchAll(/href="([^"]*\.xlsx[^"]*)"/gi)].map((m) => m[1]);
+    console.log(`  sport-participation: no "Tables 1-5" href; ${loose.length} .xlsx links, sample: ${loose.slice(0, 6).join(" , ")}`);
+    throw new Error("sport-participation: no Tables 1-5 Levels of activity link found");
+  }
+  const seen = new Set();
+  const urls = hrefs.filter((h) => { if (seen.has(h)) return false; seen.add(h); return true; }).map((h) => (h.startsWith("http") ? h : `https://www.sportengland.org${h}`));
+  console.log(`  sport-participation: ${urls.length} "Tables 1-5" links found, trying newest first`);
+  const num = (c) => { const v = typeof c === "number" ? c : parseFloat(String(c ?? "").replace(/[,%]/g, "")); return Number.isFinite(v) ? v : null; };
+  const yearFromUrl = (u) => {
+    const m = u.match(/(?:Nov(?:ember)?[%20_ ]*)(\d{2,4})[-–](\d{2})/i);
+    if (m) { const endYY = m[2]; const century = m[1].length === 4 ? m[1].slice(0, 2) : Math.floor(new Date().getFullYear() / 100); return `${century}${endYY}`; }
+    const y4 = u.match(/20\d\d/);
+    return y4 ? y4[0] : null;
+  };
+  // Pick the headline activity-levels sheet. The table is named "Table 1a
+  // Levels" / "Table 1 Levels" in newer workbooks but "Table 1 Demographics" /
+  // "Table 1a Demographics" in older ones (2021/2022) — same All-adults ×
+  // activity-level structure, different sheet name. Accept either, excluding
+  // trend/region/local-authority breakdowns (which lack a single headline row).
+  const pickLevelsSheet = (sheetNames) => {
+    const candidates = sheetNames.filter((n) => /level|demographic/i.test(n) && !/trend|local authorit|region/i.test(n));
+    // Prefer an explicit "Levels" sheet over a "Demographics" one when both exist.
+    return candidates.find((n) => /level/i.test(n)) ?? candidates[0] ?? null;
+  };
+  // A row is "the national/overall row" if its label matches one of these.
+  const isOverallLabel = (s) => /^(all adults|overall|england|aged\s*16|16\s*\+)/i.test(String(s ?? "").trim());
+  const points = [];
+  for (const url of urls) {
+    const year = yearFromUrl(decodeURIComponent(url));
+    if (!year) { console.log(`  sport-participation: couldn't parse year from ${url}`); continue; }
+    if (points.some((p) => p.date.startsWith(year))) continue;
+    try {
+      const book = await xlsxBook(url);
+      const sn = pickLevelsSheet(book.SheetNames);
+      if (!sn) {
+        console.log(`  sport-participation[${year}] no Levels/Demographics sheet; sheets=[${book.SheetNames.join("|")}]`);
+        continue;
+      }
+      const rows = (await sheetRows(book, sn)).map((r) => Array.from(r ?? []));
+      if (!rows.length) { console.log(`  sport-participation[${year}] sheet "${sn}" empty`); continue; }
+
+      // Locate the header row: contains a cell matching /^active\b/i that is
+      // NOT "fairly active"/"inactive". The FIRST such cell is the anchor for
+      // the Active group (later "Active" matches are spurious — e.g. other
+      // tables stacked below, or confidence-interval artefacts).
+      let headerRowIdx = -1;
+      let activeCol = -1;
+      for (let i = 0; i < Math.min(rows.length, 12); i++) {
+        const idx = rows[i].findIndex((c) => /^active\b/i.test(String(c ?? "").trim()) && !/fairly|in[\s-]?active/i.test(String(c ?? "")));
+        if (idx >= 0) { headerRowIdx = i; activeCol = idx; break; }
+      }
+      if (headerRowIdx < 0) {
+        console.log(`  sport-participation[${year}] no "Active" header found in sheet "${sn}"; dumping rows:`);
+        for (const r of rows.slice(0, 8)) console.log(`     ${JSON.stringify(r.slice(0, 12)).slice(0, 240)}`);
+        continue;
+      }
+
+      // Within the Active group (anchorCol .. anchorCol+3) the values are
+      // grouped Population total | Rate (%) | 95% CI. Find the "Rate (%)"
+      // sub-header column in the row immediately below the header.
+      const subHeader = rows[headerRowIdx + 1] ?? [];
+      let pctCol = -1;
+      for (let c = activeCol; c <= activeCol + 3 && c < subHeader.length; c++) {
+        if (/rate\s*\(?\s*%|rate|%|percent/i.test(String(subHeader[c] ?? ""))) { pctCol = c; break; }
+      }
+      // Fallback: the column right after the "Population total" count.
+      if (pctCol < 0) pctCol = activeCol + 1;
+
+      // Overall row: the All-adults / Aged-16+ row (else the first data row
+      // carrying a numeric value in the chosen % column).
+      const dataRows = rows.slice(headerRowIdx + 1, headerRowIdx + 24);
+      const overallRow = dataRows.find((r) => isOverallLabel(r[0])) ?? dataRows.find((r) => num(r[pctCol]) != null);
+
+      if (!overallRow) {
+        console.log(`  sport-participation[${year}] sheet "${sn}" header row=${headerRowIdx} activeCol=${activeCol} pctCol=${pctCol} but no overall row; dumping:`);
+        for (const r of rows.slice(headerRowIdx, headerRowIdx + 8)) console.log(`     ${JSON.stringify(r.slice(0, 12)).slice(0, 240)}`);
+        continue;
+      }
+
+      let pct = num(overallRow[pctCol]);
+      // Active Lives stores rates as proportions (0.6207 = 62.07%). Scale up.
+      if (pct != null && pct <= 1.5) pct = pct * 100;
+
+      if (pct != null && pct >= 40 && pct <= 80) {
+        console.log(`  sport-participation[${year}] sheet="${sn}" headerRow=${headerRowIdx} activeCol=${activeCol} pctCol=${pctCol} label="${overallRow[0]}" pct=${pct}`);
+        points.push({ date: `${year}-01-01`, value: pct });
+      } else {
+        console.log(`  sport-participation[${year}] sheet="${sn}" headerRow=${headerRowIdx} activeCol=${activeCol} pctCol=${pctCol} label="${overallRow[0]}" pct=${pct} — out of 40-80 guard, rejected`);
+        console.log(`  sport-participation[${year}] header row + first 6 data rows for diagnosis:`);
+        for (const r of rows.slice(headerRowIdx, headerRowIdx + 7)) console.log(`     ${JSON.stringify(r.slice(0, 12)).slice(0, 240)}`);
+      }
+    } catch (e) { console.log(`  sport-participation[${year}] err ${e.message}`); }
+    if (points.length >= 8) break;
+  }
+  if (points.length < 3) throw new Error(`sport-participation: only ${points.length} annual points parsed`);
+  setSrc(pageUrl);
+  return points.sort((a, b) => (a.date < b.date ? -1 : 1));
+}
+
+// DSIT — gigabit-capable broadband coverage (% premises), Ofcom Connected
+// Nations. CI-VERIFIED HARD BLOCK: every Ofcom data-downloads page returns
+// HTTP 403 to automated clients (like digital.nhs.uk for `turnover`), so this
+// always SKIPs. Kept as a documented blocker — needs a non-gated mirror (the
+// data.gov.uk CKAN copy is local-authority/postcode only, not a UK total).
+const OFCOM_REPORTS = [
+  { year: 2025, page: "https://www.ofcom.org.uk/phones-and-broadband/coverage-and-speeds/connected-nations-20252/data-downloads-2025" },
+  { year: 2024, page: "https://www.ofcom.org.uk/phones-and-broadband/coverage-and-speeds/connected-nations-2024/data-downloads-2024" },
+  { year: 2023, page: "https://www.ofcom.org.uk/phones-and-broadband/coverage-and-speeds/connected-nations-2023/data-downloads" },
+  { year: 2022, page: "https://www.ofcom.org.uk/phones-and-broadband/coverage-and-speeds/data" },
+];
+async function ofcomFixedCoverageUrl(pageUrl) {
+  const res = await fetch(pageUrl, fetchOpts({ accept: "text/html,*/*" }));
+  if (!res.ok) throw new Error(`ofcom page ${pageUrl} -> HTTP ${res.status}`);
+  const html = await res.text();
+  const hrefs = [...html.matchAll(/href="([^"]*\.(?:csv|zip)[^"]*)"/gi)].map((m) => m[1]);
+  const abs = hrefs.map((h) => (h.startsWith("http") ? h : `https://www.ofcom.org.uk${h}`));
+  console.log(`  gigabit-broadband: ${pageUrl} -> ${abs.length} csv/zip links, sample: ${abs.slice(0, 10).map((u) => u.split("/").pop()).join(" , ")}`);
+  const pick = abs.find((u) => /fixed/i.test(u) && /nations?[-_]?and[-_]?regions|uk[-_]summary|summary/i.test(u))
+    ?? abs.find((u) => /fixed/i.test(u) && !/local[-_]?authority|postcode|la\d|lsoa/i.test(u));
+  if (!pick) throw new Error(`ofcom ${pageUrl}: no UK-level "fixed" coverage file`);
+  return pick;
+}
+async function gigabitBroadband() {
+  const num = (c) => { const v = typeof c === "number" ? c : parseFloat(String(c ?? "").replace(/[,%]/g, "")); return Number.isFinite(v) ? v : null; };
+  const points = [];
+  for (const { year, page } of OFCOM_REPORTS) {
+    try {
+      const fileUrl = await ofcomFixedCoverageUrl(page);
+      console.log(`  gigabit-broadband[${year}] file: ${fileUrl}`);
+      let rows;
+      if (/\.zip$/i.test(fileUrl)) {
+        const entries = (await unzipUrl(fileUrl)).filter((e) => /\.csv$/i.test(e.name));
+        if (!entries.length) { console.log(`  gigabit-broadband[${year}]: zip had no CSV entries`); continue; }
+        rows = entries[0].buf.toString("utf8").trim().split(/\r?\n/).map(parseCsvLine);
+      } else {
+        const res = await fetch(fileUrl, fetchOpts({ accept: "text/csv,*/*" }));
+        if (!res.ok) { console.log(`  gigabit-broadband[${year}]: HTTP ${res.status}`); continue; }
+        rows = (await res.text()).trim().split(/\r?\n/).map(parseCsvLine);
+      }
+      if (rows.length < 2) { console.log(`  gigabit-broadband[${year}]: empty CSV`); continue; }
+      const header = rows[0].map((h) => h.toLowerCase().trim());
+      console.log(`  gigabit-broadband[${year}] header: [${header.join("|")}]`);
+      const giga = header.findIndex((h) => /gigabit/.test(h) && (/%|percent|premises/.test(h)));
+      if (giga < 0) { console.log(`  gigabit-broadband[${year}]: no gigabit % column`); continue; }
+      const geoCol = header.findIndex((h) => /nation|region|geograph|area|country/.test(h));
+      let row = geoCol >= 0 ? rows.slice(1).find((r) => /^uk$|united kingdom/i.test(String(r[geoCol] ?? "").trim())) : null;
+      if (!row) row = rows[1];
+      const pct = num(row[giga]);
+      if (pct == null || pct < 0 || pct > 100) { console.log(`  gigabit-broadband[${year}]: unusable value "${row[giga]}" in col ${giga}`); continue; }
+      console.log(`  gigabit-broadband[${year}]: ${pct}% (col "${header[giga]}")`);
+      points.push({ date: `${year}-07-01`, value: pct });
+      setSrc(fileUrl);
+    } catch (e) { console.log(`  gigabit-broadband[${year}] err ${e.message}`); }
+  }
+  if (points.length < 3) throw new Error(`gigabit-broadband: only ${points.length} annual points parsed (see diagnostics)`);
+  return points.sort((a, b) => (a.date < b.date ? -1 : 1));
+}
+
+
+// --- 1. HMRC — Measuring tax gaps: overall tax gap, % of total theoretical
+// liabilities, ANNUAL. The "Measuring tax gaps tables" release
+// (government/statistics/measuring-tax-gaps-tables) carries a consolidated
+// online-tables workbook with the full back series (2005-06 to latest) in one
+// file — unlike FCDO ODA, no edition-walking needed. Tax years are financial
+// ("2005-06" or "2005/06" or "2005 to 06") — keyed on the LEADING 4-digit year,
+// dated YYYY-04-01 (start of the UK tax year) to avoid colliding with any
+// calendar-year series on the same chart. Table layout is unknown in advance
+// (HMRC's "Table 1.2" historically has years across columns, %-tax-gap row),
+// so — exactly like ghgEmissions — we try both orientations and disambiguate
+// by VALUE RANGE (overall %-gap is always mid-single/low-double digits, unlike
+// the £bn cash tax-gap row on an adjacent line of the same table) rather than
+// by row/column label, which has been reworded release to release ("Tax gap
+// (%)" / "Overall tax gap (%, all taxes)" / "Total theoretical liability tax
+// gap (%)" across editions).
+const taxGapYearRe = /^(19|20)\d{2}\b/;
+function taxGapYearOf(cell) {
+  // "2005-06", "2005/06", "2005 to 2006", "2005-06\r\n(provisional)" — leading
+  // 4-digit year is always the start of the financial year.
+  const m = String(cell ?? "").trim().match(taxGapYearRe);
+  return m ? Number(m[0]) : null;
+}
+function taxGapNum(cell) {
+  const v = typeof cell === "number" ? cell : parseFloat(String(cell ?? "").replace(/[,%]/g, "").trim());
+  return Number.isFinite(v) ? v : null;
+}
+async function taxGapPercent() {
+  // The release has both a narrative statistics page and a dedicated "tables"
+  // page; the tables page carries the full machine-readable back series.
+  const path = "government/statistics/measuring-tax-gaps-tables";
+  let atts;
+  try {
+    atts = await govukAttachments(path);
+  } catch (e) {
+    throw new Error(`tax-gap: ${path} → ${e.message}`);
+  }
+  console.log(`  tax-gap atts: ${atts.map((a) => `${(a.title || "").slice(0, 50)}::${(a.url || "").split("/").pop()}`).slice(0, 20).join(" | ")}`);
+  // Prefer an ODS/XLSX whose title suggests the main consolidated tables (as
+  // opposed to a single-tax annex); fall back to the first spreadsheet.
+  const score = (a) => {
+    const t = `${a.title || ""} ${a.url || ""}`.toLowerCase();
+    if (!/\.(ods|xlsx?)$/.test(t)) return -1;
+    let s = 0;
+    if (/online table|tax gaps? tables|all tables|summary/.test(t)) s += 8;
+    if (/^table\s*1\b|overall|total/.test(t)) s += 4;
+    if (/vat|income tax|corporation|excise|behaviour|annex/.test(t)) s -= 3; // single-tax annex tables
+    return s;
+  };
+  const sheets = atts.filter((a) => /\.(ods|xlsx?)$/i.test(a.url || "")).sort((a, b) => score(b) - score(a));
+  if (!sheets.length) throw new Error(`tax-gap: no spreadsheet attachment at ${path} (atts: ${atts.map((a) => (a.url || "").split("/").pop()).slice(0, 10).join(",")})`);
+
+  for (const file of sheets) {
+    let book;
+    try { book = await xlsxBook(file.url); } catch (e) { console.log(`  tax-gap: ${(file.url || "").split("/").pop()} → ${e.message}`); continue; }
+    console.log(`  tax-gap file=${(file.url || "").split("/").pop()} sheets=[${book.SheetNames.join("|")}]`);
+    // Prefer sheets that look like the headline summary table.
+    const orderedSheets = book.SheetNames
+      .slice()
+      .sort((a, b) => {
+        const score2 = (n) => (/^table[ _]?1(\.1|\.2)?$|summary|overall/i.test(n) ? 1 : 0);
+        return score2(b) - score2(a);
+      });
+    for (const sn of orderedSheets) {
+      let rows;
+      try { rows = (await sheetRows(book, sn)).map((r) => Array.from(r ?? [])); } catch { continue; }
+      if (!rows.length) continue;
+
+      // Orientation A — years ACROSS a header row, %-gap value in a row below
+      // whose cells are mostly in the [3,12] plausible range.
+      let hdr = -1;
+      for (let i = 0; i < Math.min(rows.length, 30); i++) {
+        if (rows[i].filter((c) => taxGapYearOf(c) != null).length >= 8) { hdr = i; break; }
+      }
+      if (hdr >= 0) {
+        const yearCols = rows[hdr].map((c, j) => [j, taxGapYearOf(c)]).filter(([, y]) => y != null);
+        let best = null;
+        for (let i = hdr + 1; i < Math.min(rows.length, hdr + 40); i++) {
+          const r = rows[i];
+          const vals = yearCols.map(([j]) => taxGapNum(r[j])).filter((v) => v != null);
+          if (vals.length < Math.max(5, yearCols.length * 0.6)) continue;
+          const inRange = vals.filter((v) => v >= 3 && v <= 12).length;
+          if (inRange < vals.length * 0.8) continue; // most cells must be plausible %-gap values
+          if (!best || inRange > best.inRange) best = { row: i, inRange, label: String(r[0] ?? "").slice(0, 60) };
+        }
+        console.log(`  tax-gap[A] sheet="${sn}" hdr=${hdr} years=${yearCols.length} bestRow=${best?.row} label="${best?.label}"`);
+        if (best) {
+          const points = [];
+          for (const [j, y] of yearCols) {
+            const v = taxGapNum(rows[best.row][j]);
+            if (v != null && v >= 3 && v <= 12) points.push({ date: `${y}-04-01`, value: +v.toFixed(1) });
+          }
+          const deduped = dedupeSortByDate(points);
+          if (deduped.length >= 5) { console.log(`  tax-gap matched [A] sheet="${sn}" row="${best.label}" pts=${deduped.length}`); return deduped; }
+        }
+      }
+
+      // Orientation B — years DOWN a column, %-gap value in a column whose
+      // cells are mostly in [3,12].
+      let yearCol = -1;
+      for (let j = 0; j < 6; j++) {
+        let n = 0;
+        for (const r of rows) if (taxGapYearOf(r[j]) != null) n++;
+        if (n >= 8) { yearCol = j; break; }
+      }
+      if (yearCol >= 0) {
+        const yearRows = rows.map((r, i) => [i, taxGapYearOf(r[yearCol])]).filter(([, y]) => y != null);
+        const ncols = Math.max(...rows.map((r) => r.length));
+        let best = null;
+        for (let j = 0; j < ncols; j++) {
+          if (j === yearCol) continue;
+          const vals = yearRows.map(([i]) => taxGapNum(rows[i][j])).filter((v) => v != null);
+          if (vals.length < Math.max(5, yearRows.length * 0.6)) continue;
+          const inRange = vals.filter((v) => v >= 3 && v <= 12).length;
+          if (inRange < vals.length * 0.8) continue;
+          if (!best || inRange > best.inRange) best = { col: j, inRange };
+        }
+        console.log(`  tax-gap[B] sheet="${sn}" yearCol=${yearCol} years=${yearRows.length} bestCol=${best?.col}`);
+        if (best) {
+          const points = [];
+          for (const [i, y] of yearRows) {
+            const v = taxGapNum(rows[i][best.col]);
+            if (v != null && v >= 3 && v <= 12) points.push({ date: `${y}-04-01`, value: +v.toFixed(1) });
+          }
+          const deduped = dedupeSortByDate(points);
+          if (deduped.length >= 5) { console.log(`  tax-gap matched [B] sheet="${sn}" col=${best.col} pts=${deduped.length}`); return deduped; }
+        }
+      }
+    }
+    // Miss on this file — dump first rows of the first couple of sheets to
+    // reveal the real layout on the CI diagnostic run.
+    for (const sn of book.SheetNames.slice(0, 3)) {
+      let rows;
+      try { rows = await sheetRows(book, sn); } catch { continue; }
+      console.log(`  tax-gap dump sheet="${sn}" rows0-8: ${rows.slice(0, 8).map((r) => JSON.stringify(Array.from(r ?? []).slice(0, 14)).slice(0, 200)).join(" / ")}`);
+    }
+  }
+  throw new Error("tax-gap: overall %-tax-gap series not found across attachments/sheets (see diagnostics)");
+}
+
+// --- 2. HMRC — average speed of answer (ASA) to a phone adviser, MINUTES,
+// MONTHLY. Each "HMRC monthly performance report {Month} {Year}" publication
+// in the government/collections/hmrc-monthly-performance-reports collection
+// carries an "..._data_table.xlsx" attachment (confirmed via WebSearch — e.g.
+// "HMRC_monthly_performance_report_March_2025_-_data_table.xlsx", ~118KB).
+// There is no single consolidated back-series file (same shape of problem as
+// FCDO ODA / GMPP): walk recent monthly editions newest-first like gmppEntries
+// does for GMPP CSVs, read each month's data table, and merge one point per
+// edition. ASA may be stored as minutes:seconds text ("14:44"), a decimal
+// Excel time fraction (0.0102... = 14m44s as a day-fraction), or a plain
+// decimal-minutes number — handle all three. Collection doc titles are
+// "HMRC monthly performance report: {Month} {Year}" (varying case/colon) so
+// month/year are parsed from the title, not assumed from the slug.
+const HMRC_MONTHS = {
+  january: 1, february: 2, march: 3, april: 4, may: 5, june: 6,
+  july: 7, august: 8, september: 9, october: 10, november: 11, december: 12,
+};
+function hmrcMonthFromTitle(title) {
+  const m = String(title ?? "").toLowerCase().match(/(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{4})/);
+  if (!m) return null;
+  const mon = HMRC_MONTHS[m[1]];
+  return mon ? `${m[2]}-${String(mon).padStart(2, "0")}-01` : null;
+}
+// "14:44" → 14.733; "14m 44s" / "14 minutes 44 seconds" → 14.733; a bare
+// number already in plausible minutes range passes through; an Excel time
+// serial (0 < v < 1, i.e. a fraction of a day) is converted to minutes.
+function hmrcParseAsa(cell) {
+  if (cell == null) return null;
+  if (typeof cell === "number") {
+    if (cell > 0 && cell < 1) return +(cell * 24 * 60).toFixed(2); // Excel time-of-day serial
+    if (cell >= 1 && cell <= 40) return +cell.toFixed(2); // already decimal minutes
+    return null;
+  }
+  const s = String(cell).trim();
+  let m = s.match(/^(\d{1,3}):(\d{2})(?::(\d{2}))?$/); // "14:44" (mm:ss) or "1:14:44" (h:mm:ss, unlikely)
+  if (m) {
+    const mm = Number(m[1]), ss = Number(m[2]);
+    return +(mm + ss / 60).toFixed(2);
+  }
+  m = s.match(/(\d{1,3})\s*min(?:ute)?s?\s*(?:(\d{1,2})\s*sec(?:ond)?s?)?/i); // "14 minutes 44 seconds"
+  if (m) {
+    const mm = Number(m[1]), ss = Number(m[2] || 0);
+    return +(mm + ss / 60).toFixed(2);
+  }
+  const v = parseFloat(s.replace(/[,%]/g, ""));
+  if (Number.isFinite(v) && v > 0 && v <= 40) return +v.toFixed(2);
+  return null;
+}
+// Scan an array-of-arrays sheet for a row whose label mentions "speed of
+// answer" (or "asa"), then take the first cell in that row that parses to a
+// plausible ASA value (1-40 minutes) — VALUE-RANGE extraction, same approach
+// as fcdoReadGniRatio/fcdoReadTotalOda, so we don't depend on a stable column
+// position (months/quarters/YTD columns vary report to report).
+function hmrcFindAsaInSheet(rows, sn, diag) {
+  for (let i = 0; i < rows.length; i++) {
+    const r = Array.from(rows[i] ?? []);
+    const label = String(r[0] ?? "").toLowerCase();
+    if (!/speed of answer|\basa\b/.test(label)) continue;
+    if (diag) console.log(`  hmrc-call-wait sheet="${sn}" row${i} label="${label.slice(0, 60)}" cells=${JSON.stringify(r.slice(0, 14))}`);
+    for (let j = 1; j < r.length; j++) {
+      const v = hmrcParseAsa(r[j]);
+      if (v != null && v >= 1 && v <= 40) return v;
+    }
+  }
+  return null;
+}
+async function hmrcCallWaitEditions(maxEditions = 24) {
+  const j = await govukContent("government/collections/hmrc-monthly-performance-reports");
+  const docs = (j?.links?.documents || [])
+    .map((d) => ({ ...d, date: hmrcMonthFromTitle(d.title) }))
+    .filter((d) => d.date)
+    .sort((a, b) => (a.date < b.date ? 1 : -1)); // newest first
+  console.log(`  hmrc-call-wait: collection has ${docs.length} dated editions, newest=${docs[0]?.date} oldest=${docs[docs.length - 1]?.date}`);
+  if (!docs.length) throw new Error("hmrc-call-wait: no dated editions found in collection");
+  return docs.slice(0, maxEditions);
+}
+async function hmrcCallWait() {
+  const editions = await hmrcCallWaitEditions();
+  const points = [];
+  let diagDone = false;
+  for (const ed of editions) {
+    const path = String(ed.base_path || "").replace(/^\//, "");
+    try {
+      const atts = await govukAttachments(path);
+      const file = atts.find((a) => /data[\s_-]*table/i.test(`${a.title || ""} ${a.url || ""}`) && /\.(ods|xlsx?)$/i.test(a.url || ""))
+        || atts.find((a) => /\.(ods|xlsx?)$/i.test(a.url || ""));
+      if (!file) {
+        if (!diagDone) { console.log(`  hmrc-call-wait ${ed.date}: no spreadsheet attachment (atts: ${atts.map((a) => (a.url || "").split("/").pop()).slice(0, 8).join(",")})`); diagDone = true; }
+        continue;
+      }
+      const book = await xlsxBook(file.url);
+      const diag = points.length === 0; // verbose on the first successfully-fetched edition only
+      if (diag) console.log(`  hmrc-call-wait ${ed.date} file=${(file.url || "").split("/").pop()} sheets=[${book.SheetNames.join("|")}]`);
+      let value = null, hitSheet = null;
+      for (const sn of book.SheetNames) {
+        let rows;
+        try { rows = await sheetRows(book, sn); } catch { continue; }
+        value = hmrcFindAsaInSheet(rows, sn, diag);
+        if (value != null) { hitSheet = sn; break; }
+      }
+      if (value == null) {
+        if (diag) {
+          for (const sn of book.SheetNames.slice(0, 2)) {
+            let rows; try { rows = await sheetRows(book, sn); } catch { continue; }
+            console.log(`  hmrc-call-wait ${ed.date} dump sheet="${sn}" rows0-15 col0: ${rows.slice(0, 15).map((r) => String((r || [])[0] ?? "").slice(0, 50)).join(" | ")}`);
+          }
+        }
+        console.log(`  hmrc-call-wait ${ed.date}: ASA not found in any sheet`);
+        continue;
+      }
+      console.log(`  hmrc-call-wait ${ed.date}: ASA=${value} min (sheet="${hitSheet}")`);
+      points.push({ date: ed.date, value });
+    } catch (e) {
+      console.log(`  hmrc-call-wait ${ed.date} err ${e.message}`);
+    }
+  }
+  const deduped = dedupeSortByDate(points);
+  if (deduped.length < 3) throw new Error(`hmrc-call-wait: only ${deduped.length} monthly points resolved across ${editions.length} editions (need >=3) — see diagnostics`);
+  console.log(`  hmrc-call-wait: ${deduped.length} monthly points from ${editions.length} editions checked`);
+  return deduped;
+}
+
+// Shared small helper used by both fetchers above (sort ascending by date,
+// drop exact-date duplicates keeping the first/most-recently-pushed one).
+function dedupeSortByDate(points) {
+  const seen = new Set();
+  const out = [];
+  for (const p of points) {
+    if (seen.has(p.date)) continue;
+    seen.add(p.date);
+    out.push(p);
+  }
+  return out.sort((a, b) => (a.date < b.date ? -1 : 1));
+}
+
+// ----------------------------------------------------------------------------
+// DESNZ — average UK standard domestic electricity unit price, pence per kWh.
+// Source: DESNZ "Quarterly Energy Prices" (QEP) statistical-data-set
+// "Quarterly domestic energy price statistics" — table 2.2.4 "Average unit
+// costs of electricity for domestic consumers" (electricity, p/kWh, by
+// payment method — we want the "All payment methods"/weighted-average row).
+// This is published as a statistical-data-set (like ho-visa-sla), so its
+// attachments list is the CURRENT edition directly via govukContent — no
+// year-walk needed, unlike GHG/FCDO which are yearly-republished documents.
+// Periods in the sheet are like "2024 Q1"/"2024Q1"/"Jan-Mar 2024"; we parse
+// the leading year + quarter token. Guard [5,50] disambiguates p/kWh from a
+// £-bill row (hundreds) or an index row (~100) sharing the same sheet.
+async function electricityPrice() {
+  const SLUG = "government/statistical-data-sets/quarterly-domestic-energy-price-statistics";
+  let atts;
+  try {
+    atts = await govukAttachments(SLUG);
+  } catch (e) {
+    // Fall back to the QEP collection's latest edition if the data-set slug
+    // has moved/renamed (mirrors the ghgEmissions/fuelPoverty resilience
+    // pattern — try the stable structural slug first, then the collection).
+    console.log(`  desnz-elec-price: statistical-data-set ${SLUG} failed (${e.message}); trying collection`);
+    const path = await govukCollectionLatest("quarterly-energy-prices", (d) => /quarterly energy prices/i.test(d.title || ""));
+    atts = await govukAttachments(path);
+  }
+  console.log(`  desnz-elec-price atts=[${atts.map((a) => (a.url || "").split("/").pop()).slice(0, 16).join("|")}]`);
+
+  // Prefer a file whose title/url names the domestic electricity price table;
+  // QEP table numbering has the unit-cost-of-electricity table as 2.2.4 (and
+  // some editions ship table 2.2.4 alone, others a combined "Tables 2.1-2.6"
+  // workbook) — accept either, falling back to any spreadsheet present.
+  const file = atts.find((a) => /\.(ods|xlsx?)$/i.test(a.url || "") && /2\.2\.4|domestic.*electric|electric.*domestic|unit.*cost/i.test(`${a.title || ""} ${a.url || ""}`))
+    || atts.find((a) => /\.(ods|xlsx?)$/i.test(a.url || ""));
+  if (!file) throw new Error(`desnz-elec-price: no spreadsheet found (atts: ${atts.map((a) => (a.url || "").split("/").pop()).slice(0, 8).join(",")})`);
+  const book = await xlsxBook(file.url);
+  console.log(`  desnz-elec-price file=${(file.url || "").split("/").pop()} sheets=[${book.SheetNames.join("|")}]`);
+
+  const num = (c) => { const v = typeof c === "number" ? c : parseFloat(String(c ?? "").replace(/[,£%]/g, "")); return Number.isFinite(v) ? v : null; };
+  // Periods appear as "2024 Q1", "2024Q1", "Q1 2024", or "Jan-Mar 2024" —
+  // normalise to {year, q}. Leading-anchored so trailing footnote markers
+  // ("2024 Q1 [r]") don't break the match.
+  const periodOf = (c) => {
+    const s = String(c ?? "").replace(/[\r\n]+/g, " ").trim();
+    let m = s.match(/^(19|20)\d{2}\s*Q?\s*([1-4])\b/i);
+    if (m) return { year: +m[0].match(/^(19|20)\d{2}/)[0], q: +m[2] };
+    m = s.match(/^Q\s*([1-4])\s*(19|20)\d{2}\b/i);
+    if (m) return { year: +s.match(/(19|20)\d{2}/)[0], q: +m[1] };
+    m = s.match(/^(Jan|Apr|Jul|Oct)[a-z]*[\s-]+\w+\s+((19|20)\d{2})\b/i);
+    if (m) {
+      const q = { jan: 1, apr: 2, jul: 3, oct: 4 }[m[1].toLowerCase()];
+      return { year: +m[2], q };
+    }
+    m = s.match(/^(19|20)\d{2}\b/);
+    if (m) return { year: +m[0], q: null }; // annual table fallback
+    return null;
+  };
+  const periodDate = (p) => `${p.year}-${String(p.q ? (p.q - 1) * 3 + 1 : 1).padStart(2, "0")}-01`;
+  const inRange = (v) => v != null && v >= 5 && v <= 50; // p/kWh guard
+
+  const sheetOrder = book.SheetNames.filter((n) => /2\.2\.4|electric/i.test(n)).concat(book.SheetNames);
+  const rowLabelRe = /all\s*payment\s*methods|weighted\s*average|uk\s*average|average\s*unit\s*cost|all\s*methods|standard\s*credit.*direct\s*debit.*prepay/i;
+  const excludeRowRe = /direct\s*debit\s*only|standard\s*credit\s*only|prepay(ment)?\s*only|gas\b/i;
+
+  let dumpCount = 0;
+  for (const sn of [...new Set(sheetOrder)]) {
+    let rows;
+    try { rows = await sheetRows(book, sn); } catch { continue; }
+    if (!rows.length) continue;
+    const dense = rows.map((r) => Array.from(r ?? []));
+
+    // Orientation A — periods ACROSS a header row, payment-method rows below;
+    // take the "all payment methods"/weighted-average row (or the only row if
+    // there is just one electricity series in the sheet).
+    let hdr = -1;
+    for (let i = 0; i < Math.min(dense.length, 25); i++) {
+      if (dense[i].filter((c) => periodOf(c)).length >= 5) { hdr = i; break; }
+    }
+    if (hdr >= 0) {
+      const periodCols = dense[hdr].map((c, j) => [j, periodOf(c)]).filter(([, p]) => p);
+      let valRow = dense.find((r) => rowLabelRe.test(String(r[0] ?? "").trim()) && !excludeRowRe.test(String(r[0] ?? "").trim()));
+      if (!valRow) {
+        // Single-series sheet: take the first data row below hdr whose values
+        // are mostly in [5,50].
+        for (let i = hdr + 1; i < dense.length; i++) {
+          const vals = periodCols.map(([j]) => num(dense[i][j])).filter((v) => v != null);
+          if (vals.length >= 4 && vals.filter(inRange).length / vals.length > 0.7) { valRow = dense[i]; break; }
+        }
+      }
+      console.log(`  desnz-elec-price[A] sheet="${sn}" hdr=${hdr} periods=${periodCols.length} rowLabel="${valRow ? String(valRow[0]).slice(0, 40) : null}"`);
+      if (valRow) {
+        const points = [];
+        for (const [j, p] of periodCols) { const v = num(valRow[j]); if (inRange(v)) points.push({ date: periodDate(p), value: v }); }
+        if (points.length >= 5) return points.sort((a, b) => (a.date < b.date ? -1 : 1));
+      }
+    }
+
+    // Orientation B — periods DOWN a column, electricity unit cost in a
+    // labelled column (tidy layout: one row per period).
+    let perCol = -1;
+    for (let j = 0; j < 4; j++) {
+      let n = 0;
+      for (const r of dense) if (periodOf(r[j])) n++;
+      if (n >= 5) { perCol = j; break; }
+    }
+    if (perCol >= 0) {
+      const firstRow = dense.findIndex((r) => periodOf(r[perCol]));
+      const hdrB = firstRow > 0 ? firstRow - 1 : 0;
+      const hdrRow = (dense[hdrB] || []).map((c) => String(c ?? "").toLowerCase());
+      let valCol = hdrRow.findIndex((c) => /electric/.test(c) && !/gas/.test(c));
+      console.log(`  desnz-elec-price[B] sheet="${sn}" perCol=${perCol} hdrB=${hdrB} valCol=${valCol} hdr=[${hdrRow.slice(0, 10).join("|")}]`);
+      if (valCol >= 0) {
+        const points = [];
+        for (const r of dense) {
+          const p = periodOf(r[perCol]);
+          if (!p) continue;
+          const v = num(r[valCol]);
+          if (inRange(v)) points.push({ date: periodDate(p), value: v });
+        }
+        if (points.length >= 5) return points.sort((a, b) => (a.date < b.date ? -1 : 1));
+      }
+    }
+
+    if (!dumpCount && dumpCount < 6) {
+      dumpCount++;
+      console.log(`  desnz-elec-price sheet="${sn}" no match; first 8 rows:`);
+      for (const r of dense.slice(0, 8)) console.log(`    ${JSON.stringify(r.slice(0, 14)).slice(0, 220)}`);
+    }
+  }
+  throw new Error("desnz-elec-price: domestic electricity p/kWh series not found across sheets (see diagnostics)");
+}
+
+// ----------------------------------------------------------------------------
+// Cabinet Office — % of Freedom of Information requests answered "in time"
+// (within the 20-working-day statutory deadline incl. permitted extensions),
+// monitored bodies (central government), quarterly.
+//
+// FOI statistics are republished EVERY QUARTER under a period-named slug
+// (like FCDO's annual-edition pattern, but quarterly): each release's data
+// tables ODS reports headline timeliness for THAT quarter — and some editions
+// also recap several recent quarters in a "historic" worksheet. We walk
+// editions newest-first (similar to fcdoOdaEditions), take each edition's
+// OWN quarter's in-time % via value-range extraction (the % is the only
+// number in [70,100] in the "all monitored bodies" timeliness row — counts in
+// the same row run into the thousands), and merge one point per quarter
+// (de-duplicating if a later run's "historic" worksheet repeats one we
+// already have, mirroring fcdoMergeEditionPoints).
+const QUARTER_SLUGS = [
+  ["january-to-march", 1], ["april-to-june", 2],
+  ["july-to-september", 3], ["october-to-december", 4],
+];
+
+async function foiEditions(maxEditions = 12) {
+  const now = new Date();
+  const thisYear = now.getFullYear();
+  // Start from the most recent quarter that has plausibly already been
+  // published (releases lag ~6-8 weeks after quarter-end).
+  const editions = [];
+  outer:
+  for (let y = thisYear; y >= 2017; y--) {
+    for (let qi = 3; qi >= 0; qi--) {
+      const [label, q] = QUARTER_SLUGS[qi];
+      const slug = `government/statistics/freedom-of-information-statistics-${label}-${y}`;
+      try {
+        const atts = await govukAttachments(slug);
+        const file = atts.find((a) => /\.(ods|xlsx?)$/i.test(a.url || "") && /table/i.test(a.title || ""))
+          || atts.find((a) => /\.(ods|xlsx?)$/i.test(a.url || ""));
+        if (file) editions.push({ year: y, q, path: slug, fileUrl: file.url });
+      } catch { /* not yet published for this quarter, or wrong year — skip */ }
+      if (editions.length >= maxEditions) break outer;
+    }
+  }
+  if (!editions.length) throw new Error("cab-foi: no freedom-of-information-statistics editions resolved");
+  return editions;
+}
+
+// Reads one edition's ODS: finds the timeliness worksheet (FOI bulletins
+// describe it as "Worksheet 4" — responses "in time" by monitored body), then
+// the "all monitored bodies"/total row, then the % cell by VALUE RANGE
+// (counts in the same row are in the thousands; only the %-in-time cell sits
+// in [70,100]) rather than by column position (headers vary release to
+// release: "% in time", "% answered in time", "Percentage responded to in
+// time", sometimes with a footnote-numbered superscript).
+function foiNorm(c) { return String(c ?? "").replace(/[\r\n]+/g, " ").replace(/\s+/g, " ").trim(); }
+function foiNum(c) {
+  const v = typeof c === "number" ? c : parseFloat(foiNorm(c).replace(/[,%]/g, ""));
+  return Number.isFinite(v) ? v : null;
+}
+
+async function foiReadInTimePct(book, edition) {
+  const sheetNameRe = /worksheet\s*4|in\s*time|timeliness/i;
+  const sheets = book.SheetNames.filter((s) => sheetNameRe.test(s)).concat(book.SheetNames);
+  const totalRowRe = /all\s*monitored\s*bodies|all\s*bodies|total\b|overall/i;
+  const excludeRowRe = /departments?\s*of\s*state\s*only|other\s*monitored\s*bodies\s*only/i;
+
+  for (const sn of sheets) {
+    let rows;
+    try { rows = (await sheetRows(book, sn)).map((r) => Array.from(r ?? [])); } catch { continue; }
+    if (!rows.length) continue;
+    const blob = rows.slice(0, 5).map((r) => r.map(foiNorm).join(" ")).join(" ").toLowerCase();
+    // Only consider sheets that plausibly carry timeliness data, unless we've
+    // exhausted the name-matched candidates (then take whatever is left).
+    if (sn.toLowerCase().indexOf("worksheet 4") < 0 && !/in\s*time|timeliness|response/i.test(blob)) continue;
+
+    const totalRow = rows.find((r) => totalRowRe.test(foiNorm(r[0])) && !excludeRowRe.test(foiNorm(r[0])))
+      ?? rows.find((r) => totalRowRe.test(foiNorm(r[1])) && !excludeRowRe.test(foiNorm(r[1])));
+    if (!totalRow) { console.log(`  cab-foi[${edition.year}Q${edition.q}] sheet="${sn}": no all-monitored-bodies row`); continue; }
+
+    let best = null;
+    for (let j = 0; j < totalRow.length; j++) {
+      const v = foiNum(totalRow[j]);
+      if (v != null && v >= 70 && v <= 100) best = { col: j, value: v }; // rightmost in-range wins (latest/total column)
+    }
+    if (best) {
+      console.log(`  cab-foi[${edition.year}Q${edition.q}] sheet="${sn}" inTime=${best.value} col=${best.col} label="${foiNorm(totalRow[0]).slice(0, 40)}"`);
+      return { year: edition.year, q: edition.q, value: best.value };
+    }
+    console.log(`  cab-foi[${edition.year}Q${edition.q}] sheet="${sn}": total row found but no in-range (70-100) value; row=${JSON.stringify(totalRow.slice(0, 12).map(foiNorm))}`);
+  }
+  // Diagnostic dump of the first couple of sheets if nothing matched, so a
+  // failed CI run reveals the real worksheet names/layout.
+  for (const sn of book.SheetNames.slice(0, 3)) {
+    let rows;
+    try { rows = await sheetRows(book, sn); } catch { continue; }
+    console.log(`  cab-foi[${edition.year}Q${edition.q}] dump sheet="${sn}" rows0-6: ${rows.slice(0, 6).map((r) => JSON.stringify(Array.from(r ?? []).slice(0, 8).map(foiNorm))).join(" / ")}`);
+  }
+  return null;
+}
+
+function foiMergeEditionPoints(points) {
+  const seen = new Set(), ordered = [];
+  // Newest-first input (editions walked newest-first); de-dup by year+quarter,
+  // keeping the FIRST (most-recently-published, hence most-revised) value.
+  for (const p of points) {
+    if (!p) continue;
+    const key = `${p.year}Q${p.q}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    ordered.push(p);
+  }
+  return ordered
+    .map(({ year, q, value }) => ({ date: `${year}-${String((q - 1) * 3 + 1).padStart(2, "0")}-01`, value }))
+    .sort((a, b) => (a.date < b.date ? -1 : 1));
+}
+
+async function foiInTime() {
+  const editions = await foiEditions();
+  const points = [];
+  for (const edition of editions) {
+    try {
+      const book = await xlsxBook(edition.fileUrl);
+      console.log(`  cab-foi edition=${edition.year}Q${edition.q} file=${(edition.fileUrl || "").split("/").pop()} sheets=[${book.SheetNames.join("|")}]`);
+      const pt = await foiReadInTimePct(book, edition);
+      if (pt) points.push(pt);
+    } catch (e) { console.log(`  cab-foi edition=${edition.year}Q${edition.q} err ${e.message}`); }
+  }
+  const merged = foiMergeEditionPoints(points);
+  if (merged.length < 3) throw new Error(`cab-foi: only ${merged.length} edition points merged (need >=3) — see diagnostics`);
+  console.log(`  cab-foi: merged ${merged.length} points from ${editions.length} editions`);
+  return merged;
 }
 
 const SOURCES = [
@@ -587,6 +1810,59 @@ const SOURCES = [
   // DfT — AR5 GHG-basis CO2e per capita (intentionally NOT the legacy
   // fossil-only EN.ATM.CO2E.PC code referenced by the illustrative fallback).
   ...wbCompare("dft-co2-pc", "EN.GHG.CO2.PC.CE.AR5", { min: 1, max: 20 }),
+
+  // --- World Bank wave 3: DESNZ / DSIT / DBT / DCMS ---
+  // DESNZ: renewables as % of total final energy consumption (WB/IEA).
+  { id: "desnz-renewables-share", min: 0, max: 60, get: () => wb("EG.FEC.RNEW.ZS") },
+  // DESNZ: UK net territorial GHG emissions, MtCO2e (gov.uk final emissions ODS).
+  { id: "desnz-ghg-emissions", min: 200, max: 900, get: () => ghgEmissions() },
+  // DSIT: R&D as % of GDP (GERD), and researchers per million people (WB/OECD/UNESCO).
+  { id: "dsit-rd-gdp", min: 0.5, max: 5, get: () => wb("GB.XPD.RSDV.GD.ZS") },
+  { id: "dsit-researchers", min: 1000, max: 12000, get: () => wb("SP.POP.SCIE.RD.P6") },
+  // DBT: exports % of GDP, and high-tech share of manufactured exports (WB).
+  { id: "dbt-exports-gdp", min: 10, max: 60, get: () => wb("NE.EXP.GNFS.ZS") },
+  { id: "dbt-hightech-exports", min: 5, max: 45, get: () => wb("TX.VAL.TECH.MF.ZS") },
+  // DCMS: international tourist arrivals (absolute count) (WB/UN Tourism).
+  { id: "dcms-tourism-arrivals", min: 5000000, max: 60000000, get: () => wb("ST.INT.ARVL") },
+  // DBT: UK business investment, quarterly, chained volume £m → £bn (ONS CDID
+  // NPEL, QNA dataset). Clean time series — no ODS parsing needed.
+  { id: "dbt-business-investment", min: 20, max: 90, scale: 0.001, get: () => ons(GDP, "NPEL", ["cxnv", "qna"], "quarters") },
+
+  // --- World Bank/ONS wave 4: deepen the newer departments (real, long series) ---
+  { id: "desnz-energy-use-pc", min: 1000, max: 6000, get: () => wb("EG.USE.PCAP.KG.OE") },
+  { id: "dsit-internet-users", min: 0, max: 100, get: () => wb("IT.NET.USER.ZS") },
+  { id: "dsit-mobile-subs", min: 0, max: 200, get: () => wb("IT.CEL.SETS.P2") },
+  { id: "dbt-fdi", min: -40, max: 60, get: () => wb("BX.KLT.DINV.WD.GD.ZS") },
+  // DBT retail sales volume index (ONS CDID J5EK, incl. fuel, SA, monthly).
+  { id: "dbt-retail-sales", min: 40, max: 130, get: () => ons("businessindustryandtrade/retailindustry", "J5EK", "drsi", "months") },
+
+  // --- New-department bespoke gov.uk-ODS series (deepening wave) ---
+  // HMRC tax gap — overall % of total theoretical tax liabilities (annual).
+  { id: "hmrc-tax-gap", min: 3, max: 12, get: () => taxGapPercent() },
+  // HMRC phone-line average speed of answer, minutes (monthly editions).
+  { id: "hmrc-call-wait", min: 1, max: 40, get: () => hmrcCallWait() },
+  // DESNZ average domestic electricity price, pence/kWh (QEP table 2.2.4).
+  { id: "desnz-electricity-price", min: 5, max: 50, get: () => electricityPrice() },
+  // Cabinet Office FOI requests answered in time, % (quarterly editions).
+  { id: "cab-foi-intime", min: 70, max: 100, get: () => foiInTime() },
+  // Cabinet Office civil service headcount (FTE) — ONS public-sector-employment
+  // CDID G7G6, quarterly, reported in thousands (scale → raw FTE).
+  { id: "cab-civil-service-headcount", min: 300000, max: 600000, scale: 1000, get: () => ons(PUBSECPERS, "G7G6", "pse", "quarters") },
+
+  // --- New-department placeholder fetchers (gov.uk ODS / scrape / IPA) ---
+  // DESNZ fuel poverty (England LILEE %) — gov.uk "Fuel poverty trends" ODS.
+  { id: "desnz-fuel-poverty", min: 5, max: 30, get: () => fuelPoverty() },
+  // DCMS Creative Industries GVA — DCMS Economic Estimates ODS (already in £bn).
+  { id: "dcms-creative-gva", min: 20, max: 300, get: () => creativeGva() },
+  // Cabinet Office GMPP whole-portfolio delivery confidence (% green/amber-green).
+  { id: "cab-gmpp-confidence", min: 0, max: 100, get: () => gmppPortfolioConfidence() },
+  // FCDO ODA: % of GNI, and total £m → £bn — gov.uk SID final-spend ODS tables.
+  { id: "fcdo-oda-gni", min: 0.2, max: 1.0, get: () => fcdoOdaGni() },
+  { id: "fcdo-oda-total", min: 5, max: 25, scale: 0.001, get: () => fcdoOdaTotal() },
+  // DCMS adult sport participation (% active) — Sport England Active Lives scrape.
+  { id: "dcms-sport-participation", min: 40, max: 80, get: () => sportActiveLives() },
+  // DSIT gigabit-capable broadband coverage (% premises) — Ofcom Connected Nations.
+  { id: "dsit-gigabit-broadband", min: 0, max: 100, get: () => gigabitBroadband() },
 
   // --- MHCLG & Defra (new departments) ---
   // Defra air pollution: mean PM2.5 exposure (World Bank / OECD-IHME) — reliable.

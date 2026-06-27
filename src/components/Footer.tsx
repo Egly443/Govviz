@@ -8,7 +8,7 @@ export function Footer() {
         trends.
       </div>
       <a
-        href="https://github.com/egly443/govviz"
+        href="https://github.com/Egly443/Govviz"
         target="_blank"
         rel="noopener noreferrer"
         className="hover:text-foreground"

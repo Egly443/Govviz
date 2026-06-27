@@ -124,9 +124,77 @@ Read the latest CI **"Fetch live data"** log (`mcp__github__get_job_logs`) for t
 `ok`/`SKIP` tally — the manifest is cumulative so one run shows everything. Only `turnover` is a
 consistent `SKIP` (digital.nhs.uk 403); `defra-sewage-hours` fetches intermittently (`ok` with a
 partial year-range, or `SKIP`, depending on whether the EA host rate-limits that run). ~90 series
-IDs now bake real data across all ten departments (HMT/DHSC via ONS+World Bank; DfE via EES; DWP via
-World Bank; MHCLG/Defra via gov.uk-ODS + ONS + World Bank; plus the gov.uk-ODS / statistical-data-set
-/ england.nhs.uk operational series listed below).
+IDs now bake real data across the original ten departments (HMT/DHSC via ONS+World Bank; DfE via EES;
+DWP via World Bank; MHCLG/Defra via gov.uk-ODS + ONS + World Bank; plus the gov.uk-ODS /
+statistical-data-set / england.nhs.uk operational series listed below).
+
+### Whole-of-government expansion (2026-06): six more departments
+The registry grew from ten to **sixteen** departments (the major missing ministerial departments).
+All wiring is data-driven from the `departments` array — no new routes/tabs/treemap code. CI tally
+after this work: **110 ok / 2 skip** (data-check run #128; only `turnover` and `dsit-gigabit-broadband`
+SKIP, both hard-blocked by HTTP 403 — not parser bugs).
+- **DESNZ, DSIT, DBT, DCMS** real World Bank series — **all CI-verified `ok`**: `desnz-renewables-share`
+  EG.FEC.RNEW.ZS (32 pts); `dsit-rd-gdp` GB.XPD.RSDV.GD.ZS + `dsit-researchers` SP.POP.SCIE.RD.P6;
+  `dbt-exports-gdp` NE.EXP.GNFS.ZS + `dbt-hightech-exports` TX.VAL.TECH.MF.ZS; `dcms-tourism-arrivals`
+  ST.INT.ARVL. Guards reject wrong-but-resolving values.
+- **Two more converted illustrative→real this session (CI-verified):**
+  - `dbt-business-investment` — ONS CDID **NPEL** (business investment, chained volume, SA), £m→£bn via
+    `scale`, quarterly. 117 pts 1997–2026. Clean time series, no ODS parsing.
+  - `desnz-ghg-emissions` — gov.uk final UK GHG emissions ODS. **Lesson:** the recency-ordered
+    `govukLatest` search buried the annual release under news items, and `govukCollectionLatest`
+    matched nothing (this collection groups documents differently). What worked: walk the **stable
+    yearly release slug** `final-uk-greenhouse-gas-emissions-national-statistics-1990-to-{YEAR}`
+    newest-first to the first page carrying an ODS, then a **dual-orientation parser** (years-across-
+    columns *or* years-down-a-column) finds the net-total row. 33 pts 1990–2022 via the 2022 tables.
+- **FCDO, Cabinet Office now have real data** (no longer placeholder shells):
+  - `cab-civil-service-headcount` — ONS CDID **G7G6** (public-sector employment, FTE, thousands→raw via
+    `scale: 1000`), quarterly, 109 pts 1999–2026. Clean one-liner.
+  - `cab-gmpp-confidence` — IPA GMPP whole-portfolio delivery confidence (% Green/Amber-Green). Factored
+    a shared `gmppEntries()` discovery out of `gmppVariance` (which powers mod-procurement/dft-capital-
+    overrun) and added `gmppPortfolioConfidence()` aggregating across all departments. 4 pts (2021–2024).
+  - `fcdo-oda-gni` (8 pts 2017–2024) + `fcdo-oda-total` (3 pts) — gov.uk SID **multi-edition merge**: the
+    "final UK ODA spend {Y}" ODS is a 2–3yr snapshot, so walk yearly editions (`final-uk-oda-spend-{Y}`
+    and the older `final-uk-aid-spend-{Y}` slug) and take each edition's headline year. **Lesson:** the
+    ODS uses years embedded in column headers and note-suffixed cells (`"2023\r\n…"`) — robust extraction
+    is by **value range**, not header/position matching: ODA:GNI ratio = the cell in [0.2,1.0]; total ODA
+    = the TOTAL-ODA-row cell in [5000,25000]£m; date = the edition's headline year.
+- **Plus the rest of the placeholder backlog landed this session (7 of 8):**
+  - `desnz-fuel-poverty` — gov.uk "Fuel poverty trends" xlsx, England LILEE %, 16 pts (2010–2025).
+  - `dcms-creative-gva` — DCMS Economic Estimates "All sectors" ODS, 15 pts (2010–2024). **Lesson:** the
+    GVA tables put DCMS **sectors as COLUMN headers** with years down col0 (sheets 1a-1c are SIC-definition
+    lookups, not values), and sheet 2a is **current prices £bn** (not £m, no `scale`). Orientation-C parser
+    (sector-as-column) + a current-prices-title tiebreak (over chained-volume 2b).
+  - `dcms-sport-participation` — Sport England Active Lives landing-page scrape, 4 pts (2021–2025).
+    **Lesson:** "Active" is a COLUMN group; the % is the "Rate (%)" sub-column stored as a **proportion**
+    (0.6207 → ×100); read the "All adults (aged 16+)" row.
+- **Only hard block left among the new departments:** `dsit-gigabit-broadband` (Ofcom Connected Nations)
+  — every Ofcom data-downloads page **HTTP 403s** automated clients (same class as `turnover`/digital.nhs.uk).
+  Fetcher kept as a documented SKIP; needs a non-gated mirror (the data.gov.uk CKAN copy is LA/postcode-only).
+- TODO: freeze the new real series into `tools/loop/fixtures/ok-series.json` via `ci-reward.mjs --freeze`
+  once stable, so a future regression fails CI.
+
+### Deepening pass + HMRC (2026-06): 17 departments, ~120 series
+Added **HMRC as the 17th department** (non-ministerial; hero = phone wait times, core = tax gap) and
+deepened the six newer departments with long-run "ordinary people" indicators. Data-driven as always —
+no route/tab/treemap changes. CI tally: **117 ok / 5 skip** (data-check run #131).
+- **7 new real series landed `ok`:**
+  - DESNZ `desnz-energy-use-pc` (WB EG.USE.PCAP.KG.OE, 35 pts).
+  - DSIT `dsit-internet-users` (WB IT.NET.USER.ZS, 35 pts) + `dsit-mobile-subs` (IT.CEL.SETS.P2, 53 pts).
+  - DBT `dbt-fdi` (WB BX.KLT.DINV.WD.GD.ZS, 55 pts) + `dbt-retail-sales` (ONS CDID **J5EK**, 365 monthly
+    pts 1996–2026 — clean `ons()` one-liner, no ODS).
+  - HMRC `hmrc-tax-gap` (gov.uk "Measuring tax gaps tables" consolidated ODS, **20 pts 2005–2024** —
+    dual-orientation + [3,12]% value-range; the strong HMRC anchor).
+- **Dropped:** `dcms-tourism-receipts` (WB ST.INT.RCPT.CD) — resolved `ok` but only 4 stale points
+  (1995–1998; WB discontinued it for the UK) and redundant with the `dcms-tourism-arrivals` hero. Removed
+  rather than ship a 1998-latest chart.
+- **3 bespoke gov.uk-ODS series still SKIP (placeholders, need a diagnostic round — drafted, wired, guarded):**
+  - `hmrc-call-wait` (HMRC monthly performance reports) — walks 24 editions but the "average speed of
+    answer" row label didn't match in any sheet → 0 points. Hardest: each month is a separate publication.
+  - `desnz-electricity-price` (DESNZ Quarterly Energy Prices table 2.2.4, p/kWh) — file/sheet found but the
+    p/kWh row/orientation missed.
+  - `cab-foi-intime` (Cabinet Office FOI statistics, quarterly editions) — 0 edition points merged; the
+    "all monitored bodies" timeliness row/worksheet didn't match.
+  Each emits rich CI diagnostics for the next iteration (same loop that landed FCDO/sport/creative-GVA).
 
 Converted illustrative→real in the 2026-06 campaign: dwp-fraud-error, dfe-teacher-recruitment,
 dfe-attainment-gap, moj-crown-backlog, moj-cost-per-prisoner, moj-officer-resignations,

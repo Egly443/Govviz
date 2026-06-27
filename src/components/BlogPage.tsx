@@ -26,7 +26,7 @@ export function BlogPage() {
           (also served as a static, no-JavaScript page). If this is useful, you
           can{" "}
           <a
-            href="https://github.com/egly443/govviz#support-this-work"
+            href="https://github.com/Egly443/Govviz#support-this-work"
             target="_blank"
             rel="noopener noreferrer"
             className="text-primary hover:underline"
@@ -35,7 +35,7 @@ export function BlogPage() {
           </a>{" "}
           or read the source on{" "}
           <a
-            href="https://github.com/egly443/govviz/blob/main/docs/blog-open-data-for-ai.md"
+            href="https://github.com/Egly443/Govviz/blob/main/docs/blog-open-data-for-ai.md"
             target="_blank"
             rel="noopener noreferrer"
             className="text-primary hover:underline"
