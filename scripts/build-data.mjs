@@ -535,46 +535,72 @@ async function gmppVariance(deptRe, deptFull) {
 // row + a net-total label and read across. Diagnostics print sheet structure so
 // a first CI run reveals the exact shape if the heuristics miss.
 async function ghgEmissions() {
-  // Newest "final UK greenhouse gas emissions" release (slug drifts yearly).
-  const path = await govukLatest(
-    "final UK greenhouse gas emissions national statistics",
-    (r) => /greenhouse-gas-emissions/.test(String(r.link || "")),
+  // Use the stable collection (not a recency search — annual releases get
+  // crowded out by news items) and pick the newest "final" emissions edition.
+  const path = await govukCollectionLatest(
+    "uk-greenhouse-gas-emissions-statistics",
+    (d) => /final/i.test(d.title || "") && /greenhouse/i.test(d.title || ""),
   );
   const atts = await govukAttachments(path);
-  const ods = atts.find((a) => /\.ods$/i.test(a.url || "") && /data\s*tab|table|emission/i.test(`${a.title} ${a.url}`))
+  const ods = atts.find((a) => /\.ods$/i.test(a.url || "") && /data\s*tab|table/i.test(a.title || ""))
     || atts.find((a) => /\.ods$/i.test(a.url || ""));
-  if (!ods) throw new Error(`ghg: no ODS attachment at ${path} (atts: ${atts.map((a) => (a.url || "").split("/").pop()).slice(0, 8).join(",")})`);
+  if (!ods) throw new Error(`ghg: no ODS at ${path} (atts: ${atts.map((a) => (a.url || "").split("/").pop()).slice(0, 8).join(",")})`);
   const book = await xlsxBook(ods.url);
   console.log(`  ghg release=${path} ods=${(ods.url || "").split("/").pop()} sheets=[${book.SheetNames.join("|")}]`);
   const yearRe = /^(19|20)\d{2}$/;
-  const totalRe = /net\s*emission|net\s*territorial|grand\s*total|^total\b.*greenhouse|^total\s*$/i;
+  const totalRe = /net\s*(territorial\s*)?(greenhouse|emission|ghg|co2e?)|grand\s*total|total\s*greenhouse|total\s*net|net\s*total/i;
   for (const sn of book.SheetNames) {
     const rows = (await sheetRows(book, sn)).map((r) => Array.from(r ?? []));
-    // Find the header row whose cells are mostly years.
+    if (!rows.length) continue;
+    // Orientation A — years across a header row (transposed), total down rows.
     let hdr = -1;
-    for (let i = 0; i < Math.min(rows.length, 25); i++) {
-      const yrs = rows[i].filter((c) => yearRe.test(String(c).trim())).length;
-      if (yrs >= 5) { hdr = i; break; }
+    for (let i = 0; i < Math.min(rows.length, 30); i++) {
+      if (rows[i].filter((c) => yearRe.test(String(c).trim())).length >= 5) { hdr = i; break; }
     }
-    if (hdr < 0) continue;
-    const yearCols = rows[hdr].map((c, j) => [j, String(c).trim()]).filter(([, c]) => yearRe.test(c));
-    // First data row whose label matches a national-total pattern.
-    const labelCol = 0;
-    let totRow = -1;
-    for (let i = hdr + 1; i < rows.length; i++) {
-      const label = String(rows[i][labelCol] ?? "").trim();
-      if (totalRe.test(label)) { totRow = i; break; }
+    if (hdr >= 0) {
+      const yearCols = rows[hdr].map((c, j) => [j, String(c).trim()]).filter(([, c]) => yearRe.test(c));
+      let totRow = -1;
+      for (let i = hdr + 1; i < rows.length; i++) {
+        if (totalRe.test(String(rows[i][0] ?? "").trim())) { totRow = i; break; }
+      }
+      console.log(`  ghg[A] sheet="${sn}" hdr=${hdr} years=${yearCols.length} totRow=${totRow} labels=[${rows.slice(hdr + 1, hdr + 8).map((r) => String(r[0] ?? "").slice(0, 20)).join(" / ")}]`);
+      if (totRow >= 0) {
+        const pts = [];
+        for (const [j, yr] of yearCols) {
+          const v = parseFloat(rows[totRow][j]);
+          if (Number.isFinite(v)) pts.push({ date: `${yr}-01-01`, value: v });
+        }
+        if (pts.length >= 5) return pts;
+      }
     }
-    console.log(`  ghg sheet="${sn}" hdr=${hdr} years=${yearCols.length} totRow=${totRow} sampleLabels=[${rows.slice(hdr + 1, hdr + 6).map((r) => String(r[0] ?? "").slice(0, 22)).join(" / ")}]`);
-    if (totRow < 0) continue;
-    const points = [];
-    for (const [j, yr] of yearCols) {
-      const v = parseFloat(rows[totRow][j]);
-      if (Number.isFinite(v)) points.push({ date: `${yr}-01-01`, value: v });
+    // Orientation B — years down a column, total across a labelled column.
+    let yearCol = -1;
+    for (let j = 0; j < 6; j++) {
+      let n = 0;
+      for (const r of rows) if (yearRe.test(String(r[j] ?? "").trim())) n++;
+      if (n >= 5) { yearCol = j; break; }
     }
-    if (points.length >= 5) return points;
+    if (yearCol >= 0) {
+      const firstYearRow = rows.findIndex((r) => yearRe.test(String(r[yearCol] ?? "").trim()));
+      const hdrB = firstYearRow > 0 ? firstYearRow - 1 : 0;
+      let totCol = -1;
+      for (let j = 0; j < (rows[hdrB] || []).length; j++) {
+        if (totalRe.test(String(rows[hdrB][j] ?? "").trim())) { totCol = j; break; }
+      }
+      console.log(`  ghg[B] sheet="${sn}" yearCol=${yearCol} hdrB=${hdrB} totCol=${totCol} hdr=[${(rows[hdrB] || []).slice(0, 12).map((c) => String(c).slice(0, 14)).join("|")}]`);
+      if (totCol >= 0) {
+        const pts = [];
+        for (const r of rows) {
+          const y = String(r[yearCol] ?? "").trim();
+          if (!yearRe.test(y)) continue;
+          const v = parseFloat(r[totCol]);
+          if (Number.isFinite(v)) pts.push({ date: `${y}-01-01`, value: v });
+        }
+        if (pts.length >= 5) return pts;
+      }
+    }
   }
-  throw new Error("ghg: no net-total row found across sheets (see diagnostics)");
+  throw new Error("ghg: no net-total series found across sheets (see diagnostics)");
 }
 
 const SOURCES = [
