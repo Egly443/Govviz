@@ -130,19 +130,30 @@ statistical-data-set / england.nhs.uk operational series listed below).
 
 ### Whole-of-government expansion (2026-06): six more departments
 The registry grew from ten to **sixteen** departments (the major missing ministerial departments).
-All wiring is data-driven from the `departments` array — no new routes/tabs/treemap code.
-- **DESNZ, DSIT, DBT, DCMS** ship with a **real World Bank hero/series** wired in `build-data.mjs`
-  (`desnz-renewables-share` EG.FEC.RNEW.ZS; `dsit-rd-gdp` GB.XPD.RSDV.GD.ZS + `dsit-researchers`
-  SP.POP.SCIE.RD.P6; `dbt-exports-gdp` NE.EXP.GNFS.ZS + `dbt-hightech-exports` TX.VAL.TECH.MF.ZS;
-  `dcms-tourism-arrivals` ST.INT.ARVL) **— pending CI verification of the indicator codes** (validate
-  on `data-check.yml`; guards reject wrong-but-resolving values). Their gov.uk/ONS/Ofcom secondary
-  indicators (GHG emissions, fuel poverty, gigabit broadband, business investment, creative GVA,
-  sport participation) render **placeholders** until a fetcher is wired.
-- **FCDO, Cabinet Office** ship as **placeholder-only shells** (no clean machine-readable source yet):
-  FCDO ODA % GNI / total ODA (gov.uk SID ODS); Cabinet Office GMPP delivery confidence (IPA) +
-  civil-service headcount (ONS). All `realPoints` placeholders, sources documented in `sourceUrl`.
-- TODO: wire the gov.uk/ONS/IPA/Ofcom fetchers for the placeholder indicators above (IPA GMPP can
-  reuse the proven consolidated-CSV pattern already powering `mod-procurement`/`dft-capital-overrun`).
+All wiring is data-driven from the `departments` array — no new routes/tabs/treemap code. CI tally
+after this work: **103 ok / 1 skip** (data-check run #122; only `turnover` still SKIPs).
+- **DESNZ, DSIT, DBT, DCMS** real World Bank series — **all CI-verified `ok`**: `desnz-renewables-share`
+  EG.FEC.RNEW.ZS (32 pts); `dsit-rd-gdp` GB.XPD.RSDV.GD.ZS + `dsit-researchers` SP.POP.SCIE.RD.P6;
+  `dbt-exports-gdp` NE.EXP.GNFS.ZS + `dbt-hightech-exports` TX.VAL.TECH.MF.ZS; `dcms-tourism-arrivals`
+  ST.INT.ARVL. Guards reject wrong-but-resolving values.
+- **Two more converted illustrative→real this session (CI-verified):**
+  - `dbt-business-investment` — ONS CDID **NPEL** (business investment, chained volume, SA), £m→£bn via
+    `scale`, quarterly. 117 pts 1997–2026. Clean time series, no ODS parsing.
+  - `desnz-ghg-emissions` — gov.uk final UK GHG emissions ODS. **Lesson:** the recency-ordered
+    `govukLatest` search buried the annual release under news items, and `govukCollectionLatest`
+    matched nothing (this collection groups documents differently). What worked: walk the **stable
+    yearly release slug** `final-uk-greenhouse-gas-emissions-national-statistics-1990-to-{YEAR}`
+    newest-first to the first page carrying an ODS, then a **dual-orientation parser** (years-across-
+    columns *or* years-down-a-column) finds the net-total row. 33 pts 1990–2022 via the 2022 tables.
+- **FCDO, Cabinet Office** remain **placeholder-only shells** (no fetcher yet): FCDO ODA % GNI / total
+  ODA (gov.uk SID — PDF-first, ODS tables harder to locate); Cabinet Office GMPP delivery confidence
+  (IPA) + civil-service headcount (ONS). All `realPoints` placeholders, sources in `sourceUrl`.
+- TODO (each its own discovery loop): the remaining placeholder indicators — DESNZ fuel poverty,
+  DSIT gigabit broadband (Ofcom), DCMS creative GVA + sport participation, FCDO ODA, Cabinet Office
+  GMPP + civil-service headcount. IPA GMPP can reuse the consolidated-CSV `gmpp()` pattern already
+  powering `mod-procurement`/`dft-capital-overrun` (it computes a per-dept RAG; a whole-portfolio
+  variant gives Cabinet Office's number). Freeze new real series into `tools/loop/fixtures/ok-series.json`
+  via `ci-reward.mjs --freeze` once stable.
 
 Converted illustrative→real in the 2026-06 campaign: dwp-fraud-error, dfe-teacher-recruitment,
 dfe-attainment-gap, moj-crown-backlog, moj-cost-per-prisoner, moj-officer-resignations,
