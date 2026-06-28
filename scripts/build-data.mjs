@@ -1676,22 +1676,32 @@ async function electricityPrice() {
       try { rows = await sheetRows(book, sn); } catch { continue; }
       if (!rows.length) continue;
       const dense = rows.map((r) => Array.from(r ?? []));
+      const fn = (file.url || "").split("/").pop();
+
+      // DIAGNOSTIC: force-dump the plain "2.2.4" unit-price sheet (the table we
+      // want) in full, so a CI run reveals its exact layout regardless of the
+      // gate/dump cap below. (E7/real/financial-year variants excluded.)
+      if (/2\.2\.4/.test(sn) && !/economy|e7|real/i.test(sn)) {
+        console.log(`  desnz-elec-price FORCE DUMP file=${fn} sheet="${sn}" (${dense.length} rows):`);
+        for (let i = 0; i < Math.min(dense.length, 34); i++) console.log(`    [${i}] ${JSON.stringify(dense[i].slice(0, 14)).slice(0, 260)}`);
+      }
 
       // CONTENT GATE (fail-safe): the [5,50] value-range guard alone is too
       // loose — a petroleum/road-fuel pence-per-litre or a rebased price-INDEX
       // column can also land in [5,50] (CI run #134 wrongly accepted QEP table
       // 2.1.1/2.1.3 → a fuel-price index, 1990–2017). So require positive
-      // evidence this sheet is a DOMESTIC ELECTRICITY UNIT-COST table before
-      // trusting any number on it, and reject index / petroleum / gas /
-      // customer-number sheets outright. If no sheet qualifies we throw →
-      // the series SKIPs and renders a "no source yet" placeholder rather than
-      // shipping believably-wrong data.
-      const sheetBlob = `${sn} ${dense.slice(0, 8).map((r) => r.map((c) => String(c ?? "")).join(" ")).join(" ")}`.toLowerCase();
-      const isElecSheet = /electric/.test(sheetBlob)
-        && !/index|indices|petroleum|road\s*fuel|crude|\bgas\b/.test(sheetBlob)
-        && !/customer|number\s*of|proportion|economy\s*7/.test(sheetBlob);
+      // evidence this sheet is a DOMESTIC ELECTRICITY table (scan the WHOLE
+      // sheet, not just the first rows — the "electricity" word is often in a
+      // title row below the header), and reject index/petroleum sheets plus
+      // gas/Economy-7 variants by name. If no sheet qualifies we throw → the
+      // series SKIPs to a "no source yet" placeholder rather than ship wrong data.
+      const fullBlob = dense.map((r) => r.map((c) => String(c ?? "")).join(" ")).join(" ").toLowerCase();
+      const nameBlob = sn.toLowerCase();
+      const isElecSheet = /electric/.test(fullBlob)
+        && !/index|indices|petroleum|road\s*fuel|crude/.test(fullBlob)
+        && !/\bgas\b|economy\s*7|\be7\b/.test(nameBlob);
       if (!isElecSheet) {
-        if (dumpCount < 6) { dumpCount++; console.log(`  desnz-elec-price file=${(file.url || "").split("/").pop()} sheet="${sn}" gated out (not a domestic-electricity unit-cost sheet)`); }
+        if (dumpCount < 6) { dumpCount++; console.log(`  desnz-elec-price file=${fn} sheet="${sn}" gated out (not a domestic-electricity sheet)`); }
         continue;
       }
 
