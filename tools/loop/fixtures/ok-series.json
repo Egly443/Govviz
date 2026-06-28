@@ -34,6 +34,16 @@
       "minPoints": 4,
       "frozenAt": "2026-06-28",
       "note": "Observed 6 annual pts (2020-2025) from the EA EDM zip-of-workbooks. The environment.data.gov.uk host rate-limits/403s intermittently and can serve fewer zips on a bad run, so floor hand-set low to 4 (2020-2023 are the most reliably served). A full host outage makes the whole series SKIP — a known transient, not a code regression."
+    },
+    "hmt-food-prices": {
+      "minPoints": 300,
+      "frozenAt": "2026-06-28",
+      "note": "Observed 461 monthly pts (1988-2026) from a deterministic ONS CPI CDID (D7BU). Clean one-liner, very reliable; floor 300 leaves wide headroom while still catching a parser/CDID breakage (which would drop to ~0)."
+    },
+    "dfe-persistent-absence": {
+      "minPoints": 4,
+      "frozenAt": "2026-06-28",
+      "note": "Observed 6 annual pts (2018/19-2024/25) from the DfE EES absence-by-characteristics data set. Floor hand-set to 4: the EES column names shift by edition and the matched PA% column could move, so leave room while still catching a full break."
     }
   }
 }
