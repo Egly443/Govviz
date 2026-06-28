@@ -187,11 +187,11 @@ no route/tab/treemap changes. CI tally: **117 ok / 5 skip** (data-check run #131
 - **Dropped:** `dcms-tourism-receipts` (WB ST.INT.RCPT.CD) — resolved `ok` but only 4 stale points
   (1995–1998; WB discontinued it for the UK) and redundant with the `dcms-tourism-arrivals` hero. Removed
   rather than ship a 1998-latest chart.
-### DONE — 2 of the 3 bespoke ODS placeholders landed (2026-06-28)
+### DONE — all 3 bespoke ODS placeholders landed + sewage/desnz deepened (2026-06-28)
 Iterated the three remaining bespoke gov.uk-ODS SKIPs via the CI-diagnostic loop (data-check runs
-#134–136). **Two landed `ok`; the third now fails safe** (no wrong data). CI tally after this work:
-**118 ok / 3 skip** (run #136) — the 3 remaining SKIPs are `turnover` and `dsit-gigabit-broadband`
-(both hard HTTP-403 walls) plus `desnz-electricity-price` (fails safe, below):
+#134–143). **All three now resolve `ok`** (desnz took a final round once the right table was found).
+CI tally after this work: **119 ok / 2 skip** (run #143) — the only remaining SKIPs are `turnover`
+and `dsit-gigabit-broadband` (both hard HTTP-403 walls):
 - **`hmrc-call-wait` — `ok`, 23 monthly pts (2023-05..2025-03).** HMRC's monthly performance reports
   publish ASA on an **In-month measures** worksheet (preferred over the cumulative *Year-to-date* sheet).
   The hard part was the cell encoding: **ASA is typed "mm:ss" but Excel stores it two different ways
@@ -208,14 +208,23 @@ Iterated the three remaining bespoke gov.uk-ODS SKIPs via the CI-diagnostic loop
   cell in [70,100]; counts in the same row are in the thousands). The bug was a missing `foiIsTitleRow`
   helper (every edition errored `foiIsTitleRow is not defined`) — added it (skips "Table 3a:" / "Source:" /
   "Worksheet" caption rows so they can't be mistaken for the header or the total row). 74–92% in-time.
-- **`desnz-electricity-price` — still SKIP, now *correctly*.** CI run #134 had wrongly resolved it `ok`
-  with 109 pts (1990–2017) by grabbing a **petroleum/price-index** table (QEP 2.1.1/2.1.3) whose values
-  happened to fall in the [5,50] p/kWh guard — a believably-wrong series. Added a **content gate**: a sheet
-  must show positive evidence it's a *domestic electricity unit-cost* table (mentions "electric", not
-  index/petroleum/gas/customer-numbers) before any number on it is trusted, plus an `index|indices` header
-  exclusion. The right QEP unit-cost table (2.2.4) isn't reachably attached to the discovered release, so it
-  now **fails safe to a "no source yet" placeholder** rather than ship the index. Needs a future round to
-  locate the genuine p/kWh table; the gate guarantees it can't regress to wrong data meanwhile.
+- **`desnz-electricity-price` — `ok`, 16 annual pts (2010–2025).** The hard part was getting to the RIGHT
+  table without shipping a believably-wrong one. Dead ends (all caught by guards/gates, never shipped):
+  CI #134 grabbed a **petroleum/price-index** table (QEP 2.1.1/2.1.3) in [5,50]; #140 grabbed a
+  tariff-MIX **percentage** column (also in [5,50]); both were rejected by a content gate + value-range
+  guard. The genuine source is QEP **table 2.2.4** (`table_224.xlsx`, "Average variable unit costs and
+  standing charges for standard electricity"), reached via the `annual-domestic-energy-price-statistics`
+  statistical-data-set (the `quarterly-energy-prices` collection has no per-table 2.2.4 document). Its
+  unit price is **`Credit/…: Average variable unit price (£/kWh)`** with a per-year **"United Kingdom"**
+  row — so: restrict to `table_224` by filename and the plain "2.2.4" sheet; pick a per-kWh unit-price
+  column (preferring overall/all-payment) and **exclude the `… fixed cost (£/year)` standing-charge**
+  column; **scale £/kWh ×100 → pence** to meet the [5,50] guard; take the UK row. ~12→25 p/kWh 2010→2025.
+- **`defra-sewage-hours` — `ok`, 4 annual pts (2020–2023)** via the EA EDM zip-of-workbooks sum (the host
+  served the 2020–2023 zips this run). Added a **gov.uk press-release news-scrape fallback** (reachable
+  host) for years the rate-limited EA zip host or a changed workbook layout drops — wired and entity-
+  decoding `&nbsp;`, but it did **not** yet extract 2024/2025 (the article phrases the total differently
+  than the regex expects, and the 2024/2025 zip workbooks changed the duration-column layout → undercount).
+  TODO: dump the 2024 article body / 2024 zip header in a diagnostic round to capture the two newest years.
 - TODO (optional): freeze `hmrc-call-wait` / `cab-foi-intime` into `tools/loop/fixtures/ok-series.json`
   once observed stable across a few runs. Note `--freeze` auto-sets the floor to *observed* points, which is
   too tight for `hmrc-call-wait` (24-edition walk; a single transient edition-download drop would falsely
@@ -300,7 +309,7 @@ Bearer` — it's actually an `APIKey` header (see below).
 | Series | Blocker |
 |---|---|
 | `turnover` | digital.nhs.uk Cloudflare-blocks automated access (403 even with a browser UA); data.gov.uk `nhs-workforce-turnover` resources point back to digital.nhs.uk. Needs a non-gated source. |
-| `defra-sewage-hours` | EA Event Duration Monitoring annual returns are `.zip`-of-xlsx on data.gov.uk (pkg `19f6064d…`); parser unzips (fflate) and sums "Total Duration (hours)" across per-company sheets, but the `environment.data.gov.uk/api/file/download` endpoint rate-limit/403s automated requests (first zip occasionally succeeds, rest 403). Needs a non-gated mirror. Defra hero is `defra-recycling` instead. |
+| ~~`defra-sewage-hours`~~ | **Now `ok` (2026-06-28, see DONE block above):** EA EDM `.zip`-of-xlsx sum (pkg `19f6064d…`) yields 2020–2023; a gov.uk press-release news-scrape fallback is wired for years the rate-limited `environment.data.gov.uk` host or a changed workbook layout drops. 2024/2025 still TODO (article phrasing + new zip layout). |
 
 **Hard-blocked (no fetcher; charts intentionally illustrative):** DWP Stat-Xplore series
 (`dwp-pip-clearance`, `dwp-work-coach-ratio`, `dwp-uc-mr`) need a free API key as CI secret
