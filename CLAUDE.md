@@ -116,17 +116,18 @@ find ONS CDIDs/WB codes/EES dataset IDs/gov.uk collection slugs, then wire the f
 - **Transposed/grouped ODS:** gov.uk "accessible" workbooks often put periods in columns (DASA 3a/5e, MHCLG LT120 net-additional-dwellings, Defra recycling tonnages) or per-period `{date} Rate` triplets (HMPPS); detect the header/year row and iterate columns. Anchor row-label matches (`/^total net additional dwellings/`) so a "Source: …" caption doesn't match first.
 - **Quarterly carry-forward sheet:** MHCLG homelessness TA1 puts the year in col 0 (blank on Q2–Q4, carry forward), the quarter in col 1, and the value in a labelled column — read year+quarter from separate columns.
 - **ONS dataset workbook (not a CDID):** scrape the dataset landing-page HTML for the current `.xlsx`, read the **Contents** sheet to pick the right table by description (e.g. *median* vs lower-quartile ratio — both pass the guard, so disambiguate by label), then parse (mhclg-affordability).
-- **data.gov.uk CKAN `.zip`:** `package_show` → resource `.zip` URLs → `unzipUrl` → `xlsxBookFromBuffer` per entry; sum across per-entity sheets (defra-sewage EDM — works only when the EA endpoint isn't rate-limiting). Watch `\b` word boundaries on years flanked by underscores (`EDM_2020_…` needs digit boundaries, not `\b`).
+- **data.gov.uk CKAN `.zip`:** `package_show` → resource `.zip` URLs → `unzipUrl` → `xlsxBookFromBuffer` per entry; sum the duration column across per-company sheets (defra-sewage EDM, pkg `19f6064d…`, 6 pts 2020–2025). Watch `\b` word boundaries on years flanked by underscores (`EDM_2020_…` needs digit boundaries, not `\b`). **Two layout traps (2026-06-28):** 2024+ stores the duration as `(hh:mm:ss)` = an Excel day-fraction serial (×24 → hours); and the 2025 workbook adds an **"All WaSC" aggregate sheet** that duplicates the per-company sheets — **skip aggregate sheets by name** (never per-row dedup: that strips legit within-permit repeats the official total counts). The `environment.data.gov.uk` host still rate-limits intermittently.
 - **Branch CI harness:** `.github/workflows/data-check.yml` runs the fetcher on non-main pushes **without deploying** — validate parsers against live sources here (the sandbox has no internet), then promote to main. Production deploy (`deploy.yml`) runs only on `main`.
 
-### Coverage — current state (95 ok / 1 skip as of 2026-06-25)
+### Coverage — current state (119 ok / 2 skip as of 2026-06-28)
 Read the latest CI **"Fetch live data"** log (`mcp__github__get_job_logs`) for the authoritative
-`ok`/`SKIP` tally — the manifest is cumulative so one run shows everything. Only `turnover` is a
-consistent `SKIP` (digital.nhs.uk 403); `defra-sewage-hours` fetches intermittently (`ok` with a
-partial year-range, or `SKIP`, depending on whether the EA host rate-limits that run). ~90 series
-IDs now bake real data across the original ten departments (HMT/DHSC via ONS+World Bank; DfE via EES;
-DWP via World Bank; MHCLG/Defra via gov.uk-ODS + ONS + World Bank; plus the gov.uk-ODS /
-statistical-data-set / england.nhs.uk operational series listed below).
+`ok`/`SKIP` tally — the manifest is cumulative so one run shows everything. The **only two consistent
+`SKIP`s are `turnover`** (digital.nhs.uk Cloudflare 403) **and `dsit-gigabit-broadband`** (Ofcom 403) —
+both hard HTTP-403 walls, not parser bugs. ~120 series IDs bake real data across **17 departments**
+(HMT/DHSC via ONS+World Bank; DfE via EES; DWP via World Bank; MHCLG/Defra via gov.uk-ODS + ONS + World
+Bank; the six 2026-06 departments DESNZ/DSIT/DBT/DCMS/FCDO/Cabinet Office; HMRC as the 17th; plus the
+gov.uk-ODS / statistical-data-set / england.nhs.uk operational series listed below). The history of how
+this grew is logged in the dated sections that follow.
 
 ### Whole-of-government expansion (2026-06): six more departments
 The registry grew from ten to **sixteen** departments (the major missing ministerial departments).
@@ -170,8 +171,8 @@ SKIP, both hard-blocked by HTTP 403 — not parser bugs).
 - **Only hard block left among the new departments:** `dsit-gigabit-broadband` (Ofcom Connected Nations)
   — every Ofcom data-downloads page **HTTP 403s** automated clients (same class as `turnover`/digital.nhs.uk).
   Fetcher kept as a documented SKIP; needs a non-gated mirror (the data.gov.uk CKAN copy is LA/postcode-only).
-- TODO: freeze the new real series into `tools/loop/fixtures/ok-series.json` via `ci-reward.mjs --freeze`
-  once stable, so a future regression fails CI.
+- DONE (2026-06-28): the new real series are frozen into `tools/loop/fixtures/ok-series.json` (see the
+  later DONE block) — a future parser regression now fails the `data-check` fixture gate.
 
 ### Deepening pass + HMRC (2026-06): 17 departments, ~120 series
 Added **HMRC as the 17th department** (non-ministerial; hero = phone wait times, core = tax gap) and
@@ -187,6 +188,7 @@ no route/tab/treemap changes. CI tally: **117 ok / 5 skip** (data-check run #131
 - **Dropped:** `dcms-tourism-receipts` (WB ST.INT.RCPT.CD) — resolved `ok` but only 4 stale points
   (1995–1998; WB discontinued it for the UK) and redundant with the `dcms-tourism-arrivals` hero. Removed
   rather than ship a 1998-latest chart.
+
 ### DONE — all 3 bespoke ODS placeholders landed + sewage/desnz deepened (2026-06-28)
 Iterated the three remaining bespoke gov.uk-ODS SKIPs via the CI-diagnostic loop (data-check runs
 #134–143). **All three now resolve `ok`** (desnz took a final round once the right table was found).
@@ -233,10 +235,11 @@ and `dsit-gigabit-broadband` (both hard HTTP-403 walls):
   duplication was a whole redundant sheet, not repeated ids. A gov.uk press-release news-scrape fallback
   is also wired (reachable host, `&nbsp;`-decoding) but the 2024 article states only a % change, so the
   zip remains the source of record.
-- TODO (optional): freeze `hmrc-call-wait` / `cab-foi-intime` into `tools/loop/fixtures/ok-series.json`
-  once observed stable across a few runs. Note `--freeze` auto-sets the floor to *observed* points, which is
-  too tight for `hmrc-call-wait` (24-edition walk; a single transient edition-download drop would falsely
-  flag a regression) — hand-set a conservative floor (~12, a year) like the NHS-RTT entries instead.
+- **DONE (2026-06-28): all four landed series frozen** into `tools/loop/fixtures/ok-series.json` with
+  **hand-set conservative floors** (not `--freeze`'s observed default): `hmrc-call-wait` 12 (obs 23, 24-edition
+  walk), `cab-foi-intime` 8 (obs 12, quarterly walk), `desnz-electricity-price` 14 (obs 16, deterministic
+  single ODS), `defra-sewage-hours` 4 (obs 6, intermittent EA zip host). Floors stay below observed so a
+  transient edition/host drop won't trip a false regression.
 
 Converted illustrative→real in the 2026-06 campaign: dwp-fraud-error, dfe-teacher-recruitment,
 dfe-attainment-gap, moj-crown-backlog, moj-cost-per-prisoner, moj-officer-resignations,
@@ -272,9 +275,10 @@ single-arg. (Done via the agentic loop — see "Agentic coding loop" below.)
 
 **TODO — indicators still needing a real source** (currently render placeholders;
 see the per-series notes in `docs/backlog-research/` and the rows below):
-`turnover`, `defra-sewage-hours` (intermittent), plus the hard-blocked DWP
-Stat-Xplore / PDF-only series. (`waiting-list` + `rtt-18-week` landed
-2026-06-22; `defra-bathing-water` landed 2026-06-24 — see below.)
+`turnover` and `dsit-gigabit-broadband` (both hard 403), plus the hard-blocked DWP
+Stat-Xplore / PDF-only series. (`waiting-list` + `rtt-18-week` landed 2026-06-22;
+`defra-bathing-water` 2026-06-24; the three bespoke ODS series + `defra-sewage-hours`
+2024/2025 landed 2026-06-28 — all `ok`, see below.)
 
 ### DONE — `defra-bathing-water` (2026-06-24)
 The CLAUDE.md blocker claim ("HTML/PDF only, EA API on the same 403-prone
@@ -316,8 +320,10 @@ Bearer` — it's actually an `APIKey` header (see below).
 **Fetchers wired but currently SKIP (CI-verified blockers):**
 | Series | Blocker |
 |---|---|
-| `turnover` | digital.nhs.uk Cloudflare-blocks automated access (403 even with a browser UA); data.gov.uk `nhs-workforce-turnover` resources point back to digital.nhs.uk. Needs a non-gated source. |
-| ~~`defra-sewage-hours`~~ | **Now `ok` (2026-06-28, see DONE block above):** EA EDM `.zip`-of-xlsx sum (pkg `19f6064d…`) yields 2020–2023; a gov.uk press-release news-scrape fallback is wired for years the rate-limited `environment.data.gov.uk` host or a changed workbook layout drops. 2024/2025 still TODO (article phrasing + new zip layout). |
+| `turnover` | digital.nhs.uk Cloudflare-blocks automated access (403 even with a browser UA); data.gov.uk `nhs-workforce-turnover` resources (CKAN run #142) are HTML/XLS pointing back to digital.nhs.uk. Needs a non-gated source. |
+| `dsit-gigabit-broadband` | Ofcom Connected Nations data-downloads pages HTTP-403 automated clients; the data.gov.uk CKAN copy is LA/postcode-only (no clean national % series). Needs a non-gated mirror (try the House of Commons Library broadband briefing). |
+
+(`defra-sewage-hours` was on this list; **now `ok`, 6 pts 2020–2025** — see the DONE block above.)
 
 **Hard-blocked (no fetcher; charts intentionally illustrative):** DWP Stat-Xplore series
 (`dwp-pip-clearance`, `dwp-work-coach-ratio`, `dwp-uc-mr`) need a free API key as CI secret
@@ -327,11 +333,12 @@ Bearer` — it's actually an `APIKey` header (see below).
 
 Per-series research notes (sources, drafted fetchers, dead-ends) live in `docs/backlog-research/`.
 **Non-gated-mirror leads (2026-06-28):** `docs/backlog-research/non-gated-mirrors.md` has CI-testable
-candidates for all three — strongest is `defra-sewage-hours`: the national headline total spill hours is
-quoted each year in the gov.uk/EA-blog press release (reachable host) so a news-article-scrape fallback
-can replace the rate-limited EA zip host. `turnover` → probe data.gov.uk CKAN turnover datasets
-(`5b243950…`, `56059f48…`) for a non-`digital.nhs.uk` resource host. `dsit-gigabit-broadband` → probe the
-House of Commons Library broadband briefing for a downloadable file (Ofcom-sourced, friendlier host).
+candidates. `defra-sewage-hours` is now **resolved via the EA zip itself** (the news-scrape fallback is
+wired but the 2024 article gives only a % change, so the zip stays the source of record). Remaining:
+`turnover` → the data.gov.uk CKAN turnover datasets (`5b243950…`, `56059f48…`) were probed (run #142) and
+resolve back to the 403-walled digital.nhs.uk host — likely dead, needs a genuinely different source.
+`dsit-gigabit-broadband` → probe the House of Commons Library broadband briefing for a downloadable file
+(Ofcom-sourced, friendlier host).
 
 
 ### Workflow notes
@@ -341,7 +348,7 @@ House of Commons Library broadband briefing for a downloadable file (Ofcom-sourc
   noreply@anthropic.com && git config user.name Claude`) so commits verify.
 - Working branch: varies per session/task — check `git branch --show-current`
   rather than relying on a name hardcoded here (most recently
-  `claude/essay-factual-review-flwbgt`).
+  `claude/govviz-blog-errors-sb1hot`).
 - **WebSearch reaches the internet** (curl/WebFetch don't). Use it to find stable
   CSV/Excel URLs or dataset IDs, then wire in CI — the actual fetch happens in CI.
 - `eesCsv(datasetId)` helper already in `build-data.mjs` — reuse for any new EES
@@ -400,17 +407,17 @@ sparse rows whose holes survive `.map()` → build dense rows with `Array.from` 
 running header predicates; (b) the fetch step costs ~+4.5 min on every build (18 ×
 9 MB downloads), so each monthly file is wrapped resilient and `RTT_MONTHS` caps it.
 
-**NEXT STEP — next real-data candidate:** `turnover` is hard-blocked (Cloudflare
-403); `defra-bathing-water` landed 2026-06-24 (see above). `defra-sewage-hours`
-remains blocked on the 403-prone `environment.data.gov.uk` host — needs a
-non-gated mirror. The new NHS RTT interactive dashboard
-(`data.england.nhs.uk/dashboard/rtt`) was checked 2026-06-24 as a possible
-lighter-weight replacement for the per-provider aggregation — CI-verified
-HTTP 200 but zero static CSV/JSON/API links (likely a JS-rendered SPA,
-invisible to a plain HTML probe); closed as a documented no-op, see
-`docs/backlog-research/nhs-rtt.md`. `parseRtt()`'s per-provider aggregation
-remains the approach of record. See `docs/backlog-research/` for per-series
-notes.
+**NEXT STEP — next real-data candidate:** `defra-sewage-hours` landed 2026-06-28
+(6 pts 2020–2025, via the EA zip — see DONE block). The remaining blocked series
+are `turnover` and `dsit-gigabit-broadband` (both hard 403) plus the **DWP
+Stat-Xplore** trio (`dwp-pip-clearance`, `dwp-work-coach-ratio`, `dwp-uc-mr`) — the
+highest-value unblock, needing only a free API key as CI secret `DWP_STATXPLORE_KEY`
+(see Hard-blocked above). The NHS RTT interactive dashboard
+(`data.england.nhs.uk/dashboard/rtt`) was checked 2026-06-24 as a lighter-weight
+replacement for the per-provider aggregation — CI-verified HTTP 200 but zero static
+CSV/JSON/API links (likely a JS-rendered SPA); closed as a documented no-op, see
+`docs/backlog-research/nhs-rtt.md`. `parseRtt()`'s per-provider aggregation remains
+the approach of record. See `docs/backlog-research/` for per-series notes.
 
 ## TODO / follow-ups
 - **Enable blog analytics (GoatCounter):** the `/blog` route + cookieless beacon
