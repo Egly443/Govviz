@@ -1772,14 +1772,24 @@ async function electricityPrice() {
           ? periodRows.filter(([i]) => nationalRowRe.test(String(dense[i][regionCol] ?? "")))
           : periodRows;
 
-        // table 2.2.4 carries BOTH a variable unit price (p/kWh, pence) and a
-        // standing charge, alongside sibling £-bill and payment-mix-% columns —
-        // pick the pence unit-price column and never a standing-charge, a
-        // £-pounds bill, or a percentage column (num() strips £/% so only the
-        // header can tell them apart).
-        const badCol = (c) => /standing|fixed|index|indices|customer|number|count|gas|pound|£|percent|%|proportion|payment\s*method/.test(c);
-        let valCol = hdrRow.findIndex((c) => /(unit\s*cost|unit\s*price|p\/kwh|pence\s*per\s*kwh|pence)/.test(c) && !badCol(c));
-        if (valCol < 0) valCol = hdrRow.findIndex((c) => /electric/.test(c) && !badCol(c));
+        // table 2.2.4 (CI #142 dump) has, per year × region, a unit price and a
+        // standing charge for each payment method: header cells like "Credit:
+        // Average variable unit price (£/kWh)" and "Credit: Average fixed cost
+        // (£/year)". We want a UNIT PRICE (per-kWh) column and never a
+        // standing-charge/fixed-cost, a £-bill, a percentage or a count column.
+        // The unit price is in £/kWh (~0.25), so scale ×100 → pence to match the
+        // [5,50] p/kWh guard. (num() strips £/% so only the header disambiguates;
+        // note we do NOT bad-list "£" here — the unit price itself is £/kWh.)
+        const badCol = (c) => /standing|fixed\s*cost|\bfixed\b|index|indices|customer|number|count|gas|percent|%|proportion|payment\s*method|\/year|per\s*year/.test(c);
+        const unitCol = (c) => /(unit\s*price|unit\s*cost)/.test(c) && /kwh/.test(c) && !badCol(c);
+        // Prefer an "overall"/"all payment methods" unit price; else the first.
+        let valCol = hdrRow.findIndex((c) => unitCol(c) && /overall|all\s*payment/.test(c));
+        if (valCol < 0) valCol = hdrRow.findIndex((c) => unitCol(c));
+        if (valCol < 0) valCol = hdrRow.findIndex((c) => /(p\/kwh|pence\s*per\s*kwh)/.test(c) && !badCol(c));
+        if (valCol < 0) valCol = hdrRow.findIndex((c) => /electric/.test(c) && !badCol(c) && !/£|pound/.test(c));
+        // £/kWh → pence: scale ×100 unless the header already says pence/p per kWh.
+        const valHdr = hdrRow[valCol] || "";
+        const unitScale = (/£\s*\/?\s*kwh|£\s*per\s*kwh|pounds?\s*per\s*kwh/.test(valHdr) && !/pence|p\/kwh/.test(valHdr)) ? 100 : 1;
         if (valCol < 0) {
           // Value-range fallback: scan every numeric column and pick the one
           // whose values are mostly in [5,50] across the candidate rows —
@@ -1801,10 +1811,19 @@ async function electricityPrice() {
           const points = [];
           for (const [i] of rowsForPeriod) {
             const p = periodOf(dense[i][perCol]);
-            const v = num(dense[i][valCol]);
+            const raw = num(dense[i][valCol]);
+            const v = raw == null ? null : +(raw * unitScale).toFixed(2);
             if (p && inRange(v)) points.push({ date: periodDate(p), value: v });
           }
-          if (points.length >= 5) return points.sort((a, b) => (a.date < b.date ? -1 : 1));
+          if (points.length >= 5) {
+            // Average duplicate years (the sheet has one row per region/PES area;
+            // even after the national-row filter a year can recur) → one p/kWh
+            // per year.
+            const byYear = new Map();
+            for (const pt of points) { (byYear.get(pt.date) || byYear.set(pt.date, []).get(pt.date)).push(pt.value); }
+            const merged = [...byYear].map(([date, vs]) => ({ date, value: +(vs.reduce((a, b) => a + b, 0) / vs.length).toFixed(2) }));
+            return merged.sort((a, b) => (a.date < b.date ? -1 : 1));
+          }
         }
       }
 
@@ -2431,7 +2450,7 @@ const SOURCES = [
           re.lastIndex = 0;
           let m;
           while ((m = re.exec(text))) {
-            const pre = text.slice(Math.max(0, m.index - 24), m.index).toLowerCase();
+            const pre = text.slice(Math.max(0, m.index - 13), m.index).toLowerCase();
             if (/average|per spill|each|mean/.test(pre)) continue;
             const v = re.source.includes("million") ? Math.round(Number(m[1]) * 1e6) : Number(m[1].replace(/,/g, ""));
             if (v >= 1000000 && v <= 6000000) return v;
@@ -2457,7 +2476,14 @@ const SOURCES = [
           } catch { /* no search hit for this year */ }
         }
         if (!body) continue;
-        const text = body.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+        // gov.uk Govspeak bodies separate digits from "hours" with &nbsp; and
+        // use HTML entities — decode them so "3,614,428&nbsp;hours" matches.
+        const text = body
+          .replace(/<[^>]+>/g, " ")
+          .replace(/&nbsp;|&#160;|&#xa0;/gi, " ")
+          .replace(/&amp;/gi, "&")
+          .replace(/&[a-z]+;|&#\d+;/gi, " ")
+          .replace(/\s+/g, " ");
         const val = grabHours(text);
         if (val != null) { console.log(`  sewage ${y}: ${val} hrs (gov.uk news scrape)`); points.push({ date: `${y}-01-01`, value: val }); haveYear.add(String(y)); setSrc(srcUrl); }
         else console.log(`  sewage ${y}: no in-range hours figure in news article`);
