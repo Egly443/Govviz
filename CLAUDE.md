@@ -309,6 +309,12 @@ Bearer` — it's actually an `APIKey` header (see below).
 `dft-dvla-backlog`, `dft-srn-degradation` (PDF / parliamentary-answer / LA-return only).
 
 Per-series research notes (sources, drafted fetchers, dead-ends) live in `docs/backlog-research/`.
+**Non-gated-mirror leads (2026-06-28):** `docs/backlog-research/non-gated-mirrors.md` has CI-testable
+candidates for all three — strongest is `defra-sewage-hours`: the national headline total spill hours is
+quoted each year in the gov.uk/EA-blog press release (reachable host) so a news-article-scrape fallback
+can replace the rate-limited EA zip host. `turnover` → probe data.gov.uk CKAN turnover datasets
+(`5b243950…`, `56059f48…`) for a non-`digital.nhs.uk` resource host. `dsit-gigabit-broadband` → probe the
+House of Commons Library broadband briefing for a downloadable file (Ofcom-sourced, friendlier host).
 
 
 ### Workflow notes

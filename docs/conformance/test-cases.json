@@ -1,7 +1,7 @@
 {
   "name": "Agentic Open Data — Conformance Suite",
   "version": "0.1",
-  "updated": "2026-06-21",
+  "updated": "2026-06-28",
   "summary": "An adversarial test set for 'AI-ready' public statistics, drawn from real datasets a downstream integrator (Govviz) had to consume. It deliberately targets the high-accountability tail — the cases a tractable six-source prototype does not reach — so that 'AI-ready' is measured at the tail, not the mean. Each case is scored on two axes and carries explicit pass criteria and a machine-checkable probe. A working reference harness that exercises every source live already exists in this repository at scripts/build-data.mjs.",
   "axes": {
     "T": {
@@ -195,6 +195,26 @@
         "DCAT catalogue record"
       ],
       "probe": "Resolve the series 'latest' alias twice across releases; assert the same identifier resolves to the current data without scraping a human page."
+    },
+    {
+      "id": "hmrc-average-speed-of-answer",
+      "title": "HMRC phone wait — average speed of answer, UK, monthly",
+      "domain": "HMRC",
+      "govviz_series_id": "hmrc-call-wait",
+      "source": "gov.uk — government/collections/hmrc-monthly-performance-reports (per-month data-table workbook)",
+      "current": { "T": 3, "M": 2, "status": "semantically-unsafe-cell-encoding" },
+      "guard": { "min": 1, "max": 40, "unit": "minutes" },
+      "failure_modes": [
+        "each month is a separate publication (no consolidated series); the national figure must be assembled by walking ~24 monthly editions",
+        "the 'mm:ss'-labelled cell is stored inconsistently across editions: as a proper Excel time serial (minutes/1440), as an 'mm:ss' string mistyped into an h:mm time (so '23:49' is 0.99 of a day), or as a plain decimal — a naive read yields a credible-but-wrong value (24 seconds or 1,429 minutes instead of ~24 minutes)",
+        "the manifest range guard only checks the latest point, so a wrongly-decoded interior month can pass unnoticed without per-cell format-sniffing"
+      ],
+      "pass_criteria": [
+        "the monthly average-speed-of-answer published as a machine-readable series with an unambiguous numeric unit (e.g. seconds or decimal minutes), not a display-formatted time cell",
+        "a stable series identifier with a 'latest' alias spanning all months, not one workbook per edition",
+        "in-band unit + coverage + provenance"
+      ],
+      "probe": "Resolve the series id; GET a tabular series; assert each monthly value parses to the same numeric unit within the guard range without inferring the cell's storage type — the bytes must declare minutes vs seconds."
     },
     {
       "id": "ons-cdid-timeseries",
