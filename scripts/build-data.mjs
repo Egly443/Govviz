@@ -1549,37 +1549,56 @@ function dedupeSortByDate(points) {
 }
 
 // ----------------------------------------------------------------------------
-// DESNZ — average UK standard domestic electricity unit price, pence per kWh.
-// Source: DESNZ "Quarterly Energy Prices" (QEP) statistical-data-set
-// "Quarterly domestic energy price statistics" — table 2.2.4 "Average unit
-// costs of electricity for domestic consumers" (electricity, p/kWh, by
-// payment method — we want the "All payment methods"/weighted-average row).
-// This is published as a statistical-data-set (like ho-visa-sla), so its
-// attachments list is the CURRENT edition directly via govukContent — no
-// year-walk needed, unlike GHG/FCDO which are yearly-republished documents.
-// Periods in the sheet are like "2024 Q1"/"2024Q1"/"Jan-Mar 2024"; we parse
-// the leading year + quarter token. Guard [5,50] disambiguates p/kWh from a
-// £-bill row (hundreds) or an index row (~100) sharing the same sheet.
+// DESNZ — average UK domestic electricity variable unit price, pence per kWh.
+// Source: DESNZ "Quarterly Energy Prices" (QEP) table 2.2.4 ("table_224.xlsx",
+// "Average annual domestic electricity bills") — it carries the variable unit
+// price (p/kWh) and the standing charge, by payment method, quarterly. We read
+// the unit-price column (NOT the standing charge), national/overall row.
+// In the `quarterly-energy-prices` collection each table is its OWN document,
+// so we resolve the 2.2.4 document specifically (CI run #134 had wrongly
+// grabbed table 2.1.1/2.1.3, a petroleum/price-index table — see the content
+// gate in the parser). Periods are like "2024 Q1"/"Jan-Mar 2024"; we parse the
+// leading year+quarter. Guard [5,50] keeps p/kWh apart from a £-bill (hundreds)
+// or index (~100), and the parser excludes standing-charge columns by header.
 async function electricityPrice() {
-  // The p/kWh "average unit cost of electricity for domestic consumers" is QEP
-  // table 2.2.4, published in DESNZ's "Quarterly Energy Prices" release (home:
-  // the `domestic-energy-prices` collection). NOT the
-  // `quarterly-domestic-energy-price-statistics` data-set, which (CI-confirmed)
-  // is customer numbers / Economy-7 tariff mix (tables 2.4.x/2.5.x), no price.
+  const want224 = (s) => /2\.2\.4|table_?224/i.test(s || "");
   let atts = [];
   let relPath = "";
-  const discoveries = [
-    () => govukCollectionLatest("domestic-energy-prices", (d) => /price|quarterly energy prices/i.test(d.title || "")),
-    () => govukCollectionLatest("quarterly-energy-prices", (d) => /quarterly energy prices/i.test(d.title || "")),
-  ];
-  for (const disc of discoveries) {
-    try {
-      const p = await disc();
+
+  // (a) QEP collection: pick the table-2.2.4 document (not the newest-updated).
+  try {
+    const col = await govukContent("government/collections/quarterly-energy-prices");
+    const doc = (col?.links?.documents || []).find((d) => want224(d.title) || want224(d.base_path));
+    if (doc) {
+      const p = String(doc.base_path || "").replace(/^\//, "");
       const a = await govukAttachments(p);
-      if (a.some((x) => /\.(ods|xlsx?)$/i.test(x.url || ""))) { atts = a; relPath = p; break; }
-    } catch (e) { console.log(`  desnz-elec-price discovery err ${e.message}`); }
+      if (a.length) { atts = a; relPath = p; }
+    } else {
+      console.log("  desnz-elec-price: no 2.2.4 document in quarterly-energy-prices collection");
+    }
+  } catch (e) { console.log(`  desnz-elec-price collection discovery err ${e.message}`); }
+
+  // (b) "Annual domestic energy bills" statistical-data-set lists the 2.2.x
+  // tables directly in its attachments.
+  if (!atts.length) {
+    try {
+      const p = "government/statistical-data-sets/annual-domestic-energy-price-statistics";
+      const a = await govukAttachments(p);
+      if (a.length) { atts = a; relPath = p; }
+    } catch (e) { console.log(`  desnz-elec-price sds discovery err ${e.message}`); }
   }
-  if (!atts.length) throw new Error("desnz-elec-price: no QEP release with spreadsheet attachments resolved");
+
+  // (c) gov.uk search fallback → latest QEP statistics release page (which
+  // attaches every table_NNN, table_224 included).
+  if (!atts.length) {
+    try {
+      const p = await govukLatest("quarterly energy prices", (r) => /quarterly energy prices/i.test(r.title || ""));
+      const a = await govukAttachments(p);
+      if (a.length) { atts = a; relPath = p; }
+    } catch (e) { console.log(`  desnz-elec-price search discovery err ${e.message}`); }
+  }
+
+  if (!atts.length) throw new Error("desnz-elec-price: no QEP table-2.2.4 source resolved");
   console.log(`  desnz-elec-price release=${relPath} atts=[${atts.map((a) => (a.url || "").split("/").pop()).slice(0, 20).join("|")}]`);
 
   // CI diagnostics (2026-06-27) showed this data-set's attachments are QEP
@@ -1734,15 +1753,20 @@ async function electricityPrice() {
           ? periodRows.filter(([i]) => nationalRowRe.test(String(dense[i][regionCol] ?? "")))
           : periodRows;
 
-        let valCol = hdrRow.findIndex((c) => /electric/.test(c) && !/gas/.test(c) && !(/customer|number|count|index|indices/.test(c)));
-        if (valCol < 0) valCol = hdrRow.findIndex((c) => /unit\s*cost|p\/kwh|pence/.test(c) && !/index|indices/.test(c));
+        // table 2.2.4 carries BOTH a variable unit price (p/kWh) and a standing
+        // charge — pick the unit-price column and never the standing charge.
+        const badCol = (c) => /standing|fixed|index|indices|customer|number|count|gas/.test(c);
+        let valCol = hdrRow.findIndex((c) => /unit\s*cost|unit\s*price|p\/kwh|pence\s*per\s*kwh|variable/.test(c) && !badCol(c));
+        if (valCol < 0) valCol = hdrRow.findIndex((c) => /electric/.test(c) && !badCol(c));
         if (valCol < 0) {
           // Value-range fallback: scan every numeric column and pick the one
-          // whose values are mostly in [5,50] across the candidate rows.
+          // whose values are mostly in [5,50] across the candidate rows —
+          // skipping any column whose header marks it standing-charge/fixed.
           const ncols = Math.max(...dense.map((r) => r.length));
           let best = -1, bestFrac = 0;
           for (let j = 0; j < ncols; j++) {
             if (j === perCol || j === regionCol) continue;
+            if (badCol(hdrRow[j] || "")) continue;
             const vals = rowsForPeriod.map(([i]) => num(dense[i][j])).filter((v) => v != null);
             if (vals.length < 5) continue;
             const frac = vals.filter(inRange).length / vals.length;
