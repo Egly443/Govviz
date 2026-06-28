@@ -2416,6 +2416,53 @@ const SOURCES = [
           }
         } catch (e) { console.log(`  sewage ${year} err ${e.message}`); }
       }
+
+      // Fallback: the EA `environment.data.gov.uk` zip host rate-limits/403s
+      // automated clients, so the per-company sum above is non-deterministic. The
+      // national headline we plot — total monitored spill hours — is also quoted
+      // verbatim in the annual EA/Defra press release on the reachable gov.uk
+      // Content API. Scrape each year's article for the first in-range "X hours"
+      // (or "X million hours") figure, skipping per-spill/average mentions. Each
+      // article leads with its own year's total, so the first match is that year.
+      const haveYear = new Set(points.map((p) => p.date.slice(0, 4)));
+      const nowY = new Date().getFullYear();
+      const grabHours = (text) => {
+        for (const re of [/([0-9][0-9,]{6,})\s*(?:hours|hrs)\b/gi, /([0-9]+(?:\.[0-9]+)?)\s*million\s*hours/gi]) {
+          re.lastIndex = 0;
+          let m;
+          while ((m = re.exec(text))) {
+            const pre = text.slice(Math.max(0, m.index - 24), m.index).toLowerCase();
+            if (/average|per spill|each|mean/.test(pre)) continue;
+            const v = re.source.includes("million") ? Math.round(Number(m[1]) * 1e6) : Number(m[1].replace(/,/g, ""));
+            if (v >= 1000000 && v <= 6000000) return v;
+          }
+        }
+        return null;
+      };
+      for (let y = nowY; y >= 2018 && points.length < 12; y--) {
+        if (haveYear.has(String(y))) continue;
+        let body = null, srcUrl = null;
+        const slugs = [
+          `government/news/environment-agency-storm-overflow-spill-data-for-${y}`,
+          `government/news/environment-agency-publishes-storm-overflow-spill-data-for-${y}`,
+        ];
+        for (const slug of slugs) {
+          try { const jj = await govukContent(slug); body = String(jj?.details?.body || ""); if (body) { srcUrl = `https://www.gov.uk/${slug}`; break; } } catch { /* wrong slug for this year */ }
+        }
+        if (!body) {
+          try {
+            const path = await govukLatest(`storm overflow spill data ${y}`, (r) => new RegExp(`\\b${y}\\b`).test(`${r.title || ""} ${r.link || ""}`) && /storm overflow|spill/i.test(r.title || ""));
+            const jj = await govukContent(path);
+            body = String(jj?.details?.body || ""); srcUrl = `https://www.gov.uk/${path}`;
+          } catch { /* no search hit for this year */ }
+        }
+        if (!body) continue;
+        const text = body.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+        const val = grabHours(text);
+        if (val != null) { console.log(`  sewage ${y}: ${val} hrs (gov.uk news scrape)`); points.push({ date: `${y}-01-01`, value: val }); haveYear.add(String(y)); setSrc(srcUrl); }
+        else console.log(`  sewage ${y}: no in-range hours figure in news article`);
+      }
+
       if (points.length >= 3) return points.sort((a, b) => (a.date < b.date ? -1 : 1));
       throw new Error(`defra-sewage: only ${points.length} annual totals`);
     },
