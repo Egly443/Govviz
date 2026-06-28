@@ -119,15 +119,53 @@ find ONS CDIDs/WB codes/EES dataset IDs/gov.uk collection slugs, then wire the f
 - **data.gov.uk CKAN `.zip`:** `package_show` → resource `.zip` URLs → `unzipUrl` → `xlsxBookFromBuffer` per entry; sum the duration column across per-company sheets (defra-sewage EDM, pkg `19f6064d…`, 6 pts 2020–2025). Watch `\b` word boundaries on years flanked by underscores (`EDM_2020_…` needs digit boundaries, not `\b`). **Two layout traps (2026-06-28):** 2024+ stores the duration as `(hh:mm:ss)` = an Excel day-fraction serial (×24 → hours); and the 2025 workbook adds an **"All WaSC" aggregate sheet** that duplicates the per-company sheets — **skip aggregate sheets by name** (never per-row dedup: that strips legit within-permit repeats the official total counts). The `environment.data.gov.uk` host still rate-limits intermittently.
 - **Branch CI harness:** `.github/workflows/data-check.yml` runs the fetcher on non-main pushes **without deploying** — validate parsers against live sources here (the sandbox has no internet), then promote to main. Production deploy (`deploy.yml`) runs only on `main`.
 
-### Coverage — current state (119 ok / 2 skip as of 2026-06-28)
+### Coverage — current state (130 ok / 4 skip as of 2026-06-28)
 Read the latest CI **"Fetch live data"** log (`mcp__github__get_job_logs`) for the authoritative
-`ok`/`SKIP` tally — the manifest is cumulative so one run shows everything. The **only two consistent
-`SKIP`s are `turnover`** (digital.nhs.uk Cloudflare 403) **and `dsit-gigabit-broadband`** (Ofcom 403) —
-both hard HTTP-403 walls, not parser bugs. ~120 series IDs bake real data across **17 departments**
+`ok`/`SKIP` tally — the manifest is cumulative so one run shows everything. The **four `SKIP`s are
+`turnover`** (digital.nhs.uk Cloudflare 403), **`dsit-gigabit-broadband`** (Ofcom 403) — both hard
+HTTP-403 walls — plus the two diagnostic probes **`dhsc-gp-access`** (data on gp-patient.co.uk, no static
+file surfaced) and **`ho-passport-times`** (HMPO transparency, no collection slug resolved). ~130 series
+IDs bake real data across **17 departments**
 (HMT/DHSC via ONS+World Bank; DfE via EES; DWP via World Bank; MHCLG/Defra via gov.uk-ODS + ONS + World
 Bank; the six 2026-06 departments DESNZ/DSIT/DBT/DCMS/FCDO/Cabinet Office; HMRC as the 17th; plus the
 gov.uk-ODS / statistical-data-set / england.nhs.uk operational series listed below). The history of how
 this grew is logged in the dated sections that follow.
+
+### Citizen-experience indicators landed (2026-06-28) — the measurement-gap backlog
+Acted on `docs/measurement-gap-thesis.md` + `docs/backlog-citizen-indicators.md`: wired the consumer-side
+indicators the thesis predicts are missing. **13 new series now bake real data** (130 ok / 4 skip):
+- **Phase 1 one-liners:** `hmt-food-prices` (ONS CPI D7BU, 461 pts), `dfe-persistent-absence` (EES, 6),
+  `mhclg-private-rents` (ONS PIPR, 122), `ho-net-migration` (ONS LTIM, 55 — read the "Net migration"
+  block's col2 total, not immigration), `ho-shoplifting` (ONS CSEW Table A5a, 25).
+- **gov.uk-ODS:** `mhclg-rough-sleeping` (16), `mhclg-social-waitlist` (Live Table 600, **sum of the nine
+  E12 region rows** — no national total row, 39), `dft-local-roads` (RDC0121, **mean of E12 regions**, 18),
+  `dft-rail-fares` (ONS CPI D7EF, 449), `mhclg-council-tax` (34, see ODS lessons below), `hmt-regional-gap`
+  (ONS GVA-per-head, **London ÷ UK = 1.79×**, 26).
+- **Helper added — `regionYearSeries(book,{rowMatch,agg})`:** aggregates (sum/mean) across by-region rows
+  for tables with no national row (the social-waitlist / local-roads pattern). Plus `onsLandingXlsx`,
+  `parseMonthCell`, `parsePeriodEnd` (FY "1993-94"→1994, 2-digit "YE Jun 12"), `xlsxBook`/`onsLandingXlsx`
+  429-retry.
+- **NEW — in-house ODS parser `odsBookRaw(buf)`:** SheetJS's ODS reader throws "Unsupported value type" on
+  some gov.uk "accessible" workbooks (council-tax Band D). `xlsxBook` now falls back to `odsBookRaw` —
+  unzip (fflate) + parse `content.xml` (`table:table`/`-row`/`-cell`, honouring `number-columns/rows-
+  repeated`, `office:value` for numerics) → a `{__raw,SheetNames,Sheets}` book that `sheetRows` reads
+  transparently. Reusable for any future ODS-bug file.
+- **Two believably-wrong traps caught before shipping** (both passed the guard range; caught by
+  cross-checking the latest value against the published headline): (1) **council-tax** — the Band D ODS
+  is an *interactive workbook*; the England average is a right-hand block with the **financial-year label
+  in the "England"-anchored column and the £ value in the NEXT column**. The first cut read the FY column
+  as a value, so `parseFloat("2026-27")=2026` leaked through as a fake "£2,026" (real headline £2,392).
+  Fixed by reading FY=engCol, value=engCol+1 → £567.95 (1993-94) … £2,391.52 (2026-27) ✓. (2) **net
+  migration** — the immigration row (~1.2M) sits just under the 1.3M guard, so anchoring on the explicit
+  "Net migration" label matters.
+- **Still SKIP (diagnostic probes, need a dedicated round):** `dhsc-gp-access` — the data is on
+  gp-patient.co.uk (Ipsos), not england.nhs.uk; the surveys/analysis-tool pages surfaced 0 static
+  `.xlsx/.csv` links (likely JS-rendered), and the 2024 survey redesign breaks the series — needs the
+  per-year national report data file + a pre/post split. `ho-passport-times` — no gov.uk *collection*
+  slug resolves (passport-processing-times / hm-passport-office-transparency-data both 404,
+  migration-transparency-data lists 0 docs); HMPO publishes per-quarter *transparency data* statistics
+  pages instead — needs `govukLatest`/search discovery + per-quarter ODS parsing (SLA basis changed
+  over time).
 
 ### Whole-of-government expansion (2026-06): six more departments
 The registry grew from ten to **sixteen** departments (the major missing ministerial departments).
