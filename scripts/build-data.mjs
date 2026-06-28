@@ -1621,10 +1621,16 @@ async function electricityPrice() {
   //   3. dump rich diagnostics per file (sheet names) and per attempted sheet
   //      (header row + first ~8 data rows, first ~14 cells) so a CI run that
   //      still comes up empty hands us the exact layout to fix next time.
-  // Prefer the domestic-electricity unit-cost table (2.2.4 / "table_224"); the
-  // value-range parser below still confirms by [5,50] p/kWh regardless.
-  const is224 = (a) => /2[._]?2[._]?4|table_?224|unit\s*cost.*electric|electric.*unit\s*cost|domestic.*electric/i.test(`${a.title || ""} ${a.url || ""}`);
-  const files = atts.filter((a) => /\.(ods|xlsx?)$/i.test(a.url || "")).sort((a, b) => (is224(b) ? 1 : 0) - (is224(a) ? 1 : 0));
+  // table 2.2.4 ("table_224.xlsx") is the ELECTRICITY UNIT-PRICE table (p/kWh +
+  // standing charge). Restrict to it by FILENAME — every table in this data-set
+  // has "domestic electricity" in its title, and the sibling tables are annual
+  // BILLS (£, table 2.2.1) and tariff-MIX percentages (table 2.2.1 Payment
+  // Methods) whose values can also fall in the p/kWh [5,50] guard and ship a
+  // believably-wrong series (CI run #140). If table_224 isn't present, keep all
+  // spreadsheets but let the gate + column exclusions below fail safe.
+  const spreadsheets = atts.filter((a) => /\.(ods|xlsx?)$/i.test(a.url || ""));
+  const only224 = spreadsheets.filter((a) => /table_?224/i.test((a.url || "").split("/").pop() || ""));
+  const files = only224.length ? only224 : spreadsheets;
   if (!files.length) throw new Error(`desnz-elec-price: no spreadsheets found (atts: ${atts.map((a) => (a.url || "").split("/").pop()).slice(0, 8).join(",")})`);
 
   const num = (c) => { const v = typeof c === "number" ? c : parseFloat(String(c ?? "").replace(/[,£%]/g, "")); return Number.isFinite(v) ? v : null; };
@@ -1662,9 +1668,12 @@ async function electricityPrice() {
     }
     console.log(`  desnz-elec-price file=${(file.url || "").split("/").pop()} sheets=[${book.SheetNames.join("|")}]`);
 
-    // Prefer "(Annual)" sheets (cleaner national series), then "(Quarterly)",
-    // then anything else mentioning "electric" in its name, then all sheets.
-    const sheetOrder = [
+    // When we have table_224, only the plain "2.2.4" unit-price sheet (and its
+    // Financial-Year variant) is the p/kWh table — its Economy-7 / Real-terms
+    // siblings are different measures. Restrict to those; otherwise fall back to
+    // the old name-preference order (annual → quarterly → electric → all).
+    const plain224 = book.SheetNames.filter((n) => /2\.2\.4/.test(n) && !/economy|e7|real/i.test(n));
+    const sheetOrder = plain224.length ? plain224 : [
       ...book.SheetNames.filter((n) => /annual/i.test(n)),
       ...book.SheetNames.filter((n) => /quarter/i.test(n)),
       ...book.SheetNames.filter((n) => /electric/i.test(n)),
@@ -1763,10 +1772,13 @@ async function electricityPrice() {
           ? periodRows.filter(([i]) => nationalRowRe.test(String(dense[i][regionCol] ?? "")))
           : periodRows;
 
-        // table 2.2.4 carries BOTH a variable unit price (p/kWh) and a standing
-        // charge — pick the unit-price column and never the standing charge.
-        const badCol = (c) => /standing|fixed|index|indices|customer|number|count|gas/.test(c);
-        let valCol = hdrRow.findIndex((c) => /unit\s*cost|unit\s*price|p\/kwh|pence\s*per\s*kwh|variable/.test(c) && !badCol(c));
+        // table 2.2.4 carries BOTH a variable unit price (p/kWh, pence) and a
+        // standing charge, alongside sibling £-bill and payment-mix-% columns —
+        // pick the pence unit-price column and never a standing-charge, a
+        // £-pounds bill, or a percentage column (num() strips £/% so only the
+        // header can tell them apart).
+        const badCol = (c) => /standing|fixed|index|indices|customer|number|count|gas|pound|£|percent|%|proportion|payment\s*method/.test(c);
+        let valCol = hdrRow.findIndex((c) => /(unit\s*cost|unit\s*price|p\/kwh|pence\s*per\s*kwh|pence)/.test(c) && !badCol(c));
         if (valCol < 0) valCol = hdrRow.findIndex((c) => /electric/.test(c) && !badCol(c));
         if (valCol < 0) {
           // Value-range fallback: scan every numeric column and pick the one
