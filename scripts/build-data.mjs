@@ -101,7 +101,13 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // ONS dataset workbooks aren't CDID timeseries (see mhclg-affordability) — the
 // landing page lists the spreadsheet; `pick` chooses among multiple links.
 async function onsLandingXlsx(landing, pick) {
-  const res = await fetch(landing, fetchOpts({ accept: "text/html,*/*" }));
+  let res;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    res = await fetch(landing, fetchOpts({ accept: "text/html,*/*" }));
+    if (res.ok) break;
+    if ((res.status === 429 || res.status >= 500) && attempt < 3) { await sleep(2000 * (attempt + 1)); continue; }
+    break;
+  }
   if (!res.ok) throw new Error(`landing HTTP ${res.status}`);
   const html = await res.text();
   const links = [...html.matchAll(/href="([^"]*\.xlsx?(?:\?[^"]*)?)"/gi)]
@@ -3234,6 +3240,36 @@ const SOURCES = [
       if (!file) throw new Error("council-tax: no Band D spreadsheet attachment");
       console.log(`  council-tax file=${(file.url || "").split("/").pop()}`);
       const book = await xlsxBook(file.url);
+      // This table is years-DOWN-a-column with regions as separate columns, so the
+      // generic [B] picker would grab the first in-range column (any region), not
+      // England. Target the England column by its header explicitly, and log the
+      // latest value so it can be sanity-checked (~£2,280 for 2026-27).
+      for (const sn of book.SheetNames) {
+        if (/cover|content|notes?|metadata|definition|guidance|contact/i.test(sn)) continue;
+        const rows = (await sheetRows(book, sn)).map((r) => Array.from(r ?? []));
+        let perCol = -1;
+        for (let j = 0; j < 3; j++) { let n = 0; for (const r of rows) if (parsePeriodEnd(r[j])) n++; if (n >= 10) { perCol = j; break; } }
+        if (perCol < 0) continue;
+        let engCol = -1;
+        for (let i = 0; i < Math.min(rows.length, 15); i++) {
+          const idx = rows[i].findIndex((c) => /^england$/i.test(String(c ?? "").trim()));
+          if (idx >= 0) { engCol = idx; break; }
+        }
+        if (engCol < 0) { console.log(`  council-tax "${sn}" no England header; hdr=${JSON.stringify(rows.slice(0, 6).map((r) => r.slice(0, 14)))}`); continue; }
+        const points = [];
+        for (const r of rows) {
+          const d = parsePeriodEnd(r[perCol]); if (!d) continue;
+          const v = parseFloat(String(r[engCol] ?? "").replace(/[,£]/g, ""));
+          if (Number.isFinite(v) && v >= 400 && v <= 3500) points.push({ date: d, value: +v.toFixed(2) });
+        }
+        if (points.length >= 5) {
+          points.sort((a, b) => (a.date < b.date ? -1 : 1));
+          const last = points[points.length - 1];
+          console.log(`  council-tax ${points.length} pts via "${sn}" engCol=${engCol} latest=${last.date}:${last.value}`);
+          return points;
+        }
+      }
+      // Fallback: years-across layout with an England row (safe — matches by label).
       return areaYearSeries(book, { areaRe: /^england$/i, min: 400, max: 3500, label: "council-tax" });
     },
   },
