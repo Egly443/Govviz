@@ -3240,43 +3240,40 @@ const SOURCES = [
       if (!file) throw new Error("council-tax: no Band D spreadsheet attachment");
       console.log(`  council-tax file=${(file.url || "").split("/").pop()}`);
       const book = await xlsxBook(file.url);
-      // This table is years-DOWN-a-column with several England variants as columns
-      // (e.g. inc. parish precepts vs area-only vs excl. ASC). The plain "England"
-      // header gives £2,026 for 2026-27 — the EXCLUDING-precepts figure, NOT the
-      // headline £2,392 (incl. all precepts). Pin the headline by picking, among
-      // England-headed columns, the one whose latest value is highest (the all-
-      // precepts total is always the largest England Band D figure). Dump for record.
+      // Interactive workbook: a left block is a selectable authority; the right
+      // block (anchored by the "England" cell) is the England average, with the
+      // financial year DOWN one column and the £ "Band D average (includes parish
+      // precepts)" in the NEXT column. (The plain "England"-text column holds the
+      // FY label, so reading it as a value yields the YEAR — that was the £2,026
+      // bug: parseFloat("2026-27") = 2026.) Read FY=engBlock, value=engBlock+1.
       for (const sn of book.SheetNames) {
         if (/cover|content|notes?|metadata|definition|guidance|contact/i.test(sn)) continue;
         const rows = (await sheetRows(book, sn)).map((r) => Array.from(r ?? []));
-        let perCol = -1;
-        for (let j = 0; j < 3; j++) { let n = 0; for (const r of rows) if (parsePeriodEnd(r[j])) n++; if (n >= 10) { perCol = j; break; } }
-        if (perCol < 0) continue;
-        // Every column whose header (in the first 15 rows) mentions England.
-        const engCols = new Set();
+        let engCol = -1;
         for (let i = 0; i < Math.min(rows.length, 15); i++) {
-          rows[i].forEach((c, idx) => { if (/england/i.test(String(c ?? ""))) engCols.add(idx); });
+          const idx = rows[i].findIndex((c) => /^england$/i.test(String(c ?? "").trim()));
+          if (idx >= 0) { engCol = idx; break; }
         }
-        if (!engCols.size) { console.log(`  council-tax "${sn}" no England header; hdr=${JSON.stringify(rows.slice(0, 8).map((r) => r.slice(0, 20)))}`); continue; }
-        // One-time: dump the header block so the all-precepts column can be pinned.
-        console.log(`  council-tax HDR "${sn}" engCols=[${[...engCols].join(",")}] rows0-11=${JSON.stringify(rows.slice(0, 12).map((r) => r.slice(0, 24)))}`);
-        // Build a series per England-headed column; keep the one with the highest
-        // latest value (= all-precepts headline) that also rises over time.
-        let best = null;
-        for (const col of engCols) {
+        if (engCol < 0) continue;
+        // The England block's FY column is the period column at/near engCol.
+        let fyCol = -1;
+        for (const j of [engCol, engCol + 1, engCol - 1]) { let n = 0; for (const r of rows) if (parsePeriodEnd(r[j])) n++; if (n >= 10) { fyCol = j; break; } }
+        if (fyCol < 0) continue;
+        // Value column: nearest column right of the FY whose England figures form a
+        // ≥5-point series in range (the includes-parish-precepts average).
+        for (let vc = fyCol + 1; vc <= fyCol + 3; vc++) {
           const pts = [];
           for (const r of rows) {
-            const d = parsePeriodEnd(r[perCol]); if (!d) continue;
-            const v = parseFloat(String(r[col] ?? "").replace(/[,£]/g, ""));
+            const d = parsePeriodEnd(r[fyCol]); if (!d) continue;
+            const v = parseFloat(String(r[vc] ?? "").replace(/[,£]/g, ""));
             if (Number.isFinite(v) && v >= 400 && v <= 3500) pts.push({ date: d, value: +v.toFixed(2) });
           }
-          if (pts.length < 5) continue;
-          pts.sort((a, b) => (a.date < b.date ? -1 : 1));
-          const last = pts[pts.length - 1].value;
-          console.log(`  council-tax cand col=${col} n=${pts.length} latest=${pts[pts.length - 1].date}:${last}`);
-          if (!best || last > best.last) best = { col, pts, last };
+          if (pts.length >= 5) {
+            pts.sort((a, b) => (a.date < b.date ? -1 : 1));
+            console.log(`  council-tax ${pts.length} pts via "${sn}" fyCol=${fyCol} valCol=${vc} latest=${pts[pts.length - 1].date}:${pts[pts.length - 1].value}`);
+            return pts;
+          }
         }
-        if (best) { console.log(`  council-tax ${best.pts.length} pts via "${sn}" col=${best.col} latest=${best.pts[best.pts.length - 1].value}`); return best.pts; }
       }
       // Fallback: years-across layout with an England row (safe — matches by label).
       return areaYearSeries(book, { areaRe: /^england$/i, min: 400, max: 3500, label: "council-tax" });
