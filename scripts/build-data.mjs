@@ -2877,6 +2877,55 @@ const SOURCES = [
     },
   },
 
+  // ── Citizen-experience indicators (Phase 1 — docs/backlog-citizen-indicators.md) ──
+  // Food prices: ONS CPI food & non-alcoholic beverages index (2015=100), CDID
+  // D7BU, monthly — a clean one-liner. ~100 (2015) → ~135 (2024).
+  { id: "hmt-food-prices", min: 70, max: 220, get: () => ons(INFLATION, "D7BU", "mm23", "months") },
+
+  // Persistent absence from school: DfE "Pupil absence in schools in England"
+  // via EES (absence-by-pupil-characteristics data set). Take the national,
+  // all-pupils ("Total" characteristic), all-school-types row's persistent-
+  // absence % per academic year. Column names vary by edition, so match the
+  // PA-percentage header by pattern (and dump headers if the match misses).
+  {
+    id: "dfe-persistent-absence",
+    min: 5,
+    max: 30, // percent
+    get: async () => {
+      const { headers, rows } = await eesCsv("e2eb493a-dc95-41f4-96ef-b886c5cd2019");
+      // Persistent-absentee percentage column: contains "pa"/"persist" + a
+      // percent marker, but NOT "severe" (10%+ vs the stricter 50%+ measure)
+      // and NOT a session-count column.
+      const paCol =
+        headers.find((h) => /persist/.test(h) && /per?c/.test(h) && !/severe/.test(h)) ??
+        headers.find((h) => /(^|_)pa(_|10)/.test(h) && /per?c/.test(h) && !/severe|sess/.test(h)) ??
+        headers.find((h) => h.includes("pa") && h.includes("perc") && !h.includes("severe"));
+      const charKey = ["characteristic", "pupil_characteristic", "characteristic_name", "breakdown"].find((k) => headers.includes(k));
+      const schoolKey = ["school_type", "phase_type_grouping"].find((k) => headers.includes(k));
+      if (!paCol) throw new Error(`dfe-persistent-absence: no PA% col in [${headers.join(",")}]`);
+      const isTotal = (v) => { const s = String(v ?? "").toLowerCase().trim(); return s === "" || s === "total" || s === "all pupils" || s === "all"; };
+      const byYear = new Map();
+      for (const r of rows) {
+        if (!/national/i.test(r["geographic_level"] ?? "")) continue;
+        if (charKey && !isTotal(r[charKey])) continue;
+        if (schoolKey && !isTotal(r[schoolKey]) && !/total/i.test(r[schoolKey] ?? "")) continue;
+        const m = String(r["time_period"] ?? "").match(/^(\d{4})/);
+        if (!m) continue;
+        const v = parseFloat(String(r[paCol] ?? "").replace(/[%,]/g, ""));
+        if (!Number.isFinite(v) || v < 3 || v > 35) continue;
+        byYear.set(m[1], v); // CSV is one row per year for the national total; last wins
+      }
+      const points = [...byYear].map(([y, v]) => ({ date: `${y}-09-01`, value: +v.toFixed(2) }));
+      if (points.length < 5) {
+        const chars = charKey ? [...new Set(rows.slice(0, 400).map((r) => r[charKey]))].slice(0, 12) : [];
+        console.log(`  dfe-persistent-absence: only ${points.length} pts; paCol="${paCol}" charKey="${charKey}" schoolKey="${schoolKey}" headers=[${headers.join(",")}] chars=[${chars.join("|")}]`);
+        throw new Error(`dfe-persistent-absence: only ${points.length} national pts`);
+      }
+      console.log(`  dfe-persistent-absence: ${points.length} pts via "${paCol}" (${points[0].date}..${points[points.length - 1].date})`);
+      return points.sort((a, b) => (a.date < b.date ? -1 : 1));
+    },
+  },
+
   // --- in progress ---
   // AWE pay growth — KAC3 is monthly YoY %; request months (annual key returns index).
   { id: "hmt-cost-of-living", line: "wages", min: -10, max: 30, get: () => ons(EARN, ["KAC3"], ["lms", "emp"], "months") },

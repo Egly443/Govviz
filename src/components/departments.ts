@@ -1404,6 +1404,49 @@ const hmrcTaxGap: TrendSeries = {
 };
 
 // ============================================================
+// Citizen-experience indicators (2026-06, Phase 1 of the gap-closing backlog —
+// docs/backlog-citizen-indicators.md). Consumer-side, externally sourced, long
+// series: what households actually feel, not departmental throughput.
+// ============================================================
+// HMT — food prices (the weekly shop). ONS CPI food & non-alcoholic beverages
+// index, 2015 = 100 (CDID D7BU) — a clean ons() one-liner.
+const hmtFoodPrices: TrendSeries = {
+  id: "hmt-food-prices",
+  title: "Food prices",
+  subtitle: "CPI food & non-alcoholic drink price index (2015 = 100)",
+  unit: "count",
+  format: (v) => v.toFixed(1),
+  shortFormat: (v) => v.toFixed(0),
+  yFormat: (v) => v.toFixed(0),
+  deltaFormat: (v) => `${v > 0 ? "+" : ""}${v.toFixed(1)}`,
+  goodDirection: "down",
+  source: "ONS Consumer Prices Index — food & non-alcoholic beverages (D7BU)",
+  sourceUrl: "https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/d7bu/mm23",
+  cadence: "monthly",
+  points: realPoints("hmt-food-prices"),
+  annotations: [{ date: "2022-01-01", label: "Cost-of-living crisis" }],
+};
+
+// DfE — persistent absence from school (kids missing 10%+ of sessions). DfE
+// "Pupil absence in schools in England" via EES (absence-by-characteristics
+// data set), national all-pupils row, full year.
+const dfePersistentAbsence: TrendSeries = {
+  id: "dfe-persistent-absence",
+  title: "Persistent absence from school",
+  subtitle: "% of pupils missing 10%+ of sessions, state schools, England",
+  unit: "percent",
+  format: fmtPct,
+  shortFormat: fmtPct,
+  goodDirection: "down",
+  source: "DfE, Pupil absence in schools in England (EES)",
+  sourceUrl:
+    "https://explore-education-statistics.service.gov.uk/find-statistics/pupil-absence-in-schools-in-england",
+  cadence: "annual",
+  points: realPoints("dfe-persistent-absence"),
+  annotations: [{ date: "2020-01-01", label: "Pandemic" }],
+};
+
+// ============================================================
 // Registry
 // ============================================================
 export const departments: Department[] = [
@@ -1432,7 +1475,7 @@ export const departments: Department[] = [
       "The disadvantaged attainment gap has widened back beyond its pre-2019 level. Early-career attrition is structurally higher than a decade ago, training recruitment is missing target by a third, and high-needs deficits are compounding.",
     themes: ["Attainment", "Workforce", "Funding", "Pipeline"],
     hero: dfeAttainmentGap,
-    core: [dfeEctAttrition, dfeDsgDeficit, dfeTeacherRecruitment, dfeSpendPerPupil],
+    core: [dfePersistentAbsence, dfeEctAttrition, dfeDsgDeficit, dfeTeacherRecruitment, dfeSpendPerPupil],
     supporting: [dfeEduSpendGdp, dfePupilTeacher, dfeTertiary],
   },
   {
@@ -1517,7 +1560,7 @@ export const departments: Department[] = [
       "Real incomes per head have barely grown since 2008 and pay has lagged prices through the cost-of-living crisis. Debt is near 100% of GDP and debt interest has surged with rates. The tax burden is its highest since the 1940s, while productivity — the ultimate driver of pay and receipts — has flatlined.",
     themes: ["Living standards", "Debt", "Tax", "Cost of living"],
     hero: hmtGdpPerCapita,
-    core: [hmtCostOfLiving, hmtDebt, hmtDebtCash, hmtTaxBurden, hmtDebtInterest],
+    core: [hmtCostOfLiving, hmtFoodPrices, hmtDebt, hmtDebtCash, hmtTaxBurden, hmtDebtInterest],
     supporting: [hmtUnemployment, hmtGdpGrowth, hmtEmployment, hmtParticipation, hmtInvestment, hmtTrade, hmtSavings, hmtCurrentAccount, hmtGniPerCapita, hmtRealIncome, hmtProductivity, hmtTaxSplit, hmtDeficit],
   },
   {
