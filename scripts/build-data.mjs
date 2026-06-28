@@ -129,7 +129,7 @@ function parseMonthCell(c) {
 function parsePeriodEnd(c) {
   if (c == null) return null;
   const s = String(c).trim();
-  let m = s.match(/(?:year ending|ye)\s*([a-z]{3})[a-z]*\s*((19|20)\d\d)/i); if (m && MONTHS3[m[1].toLowerCase()]) return `${m[2]}-${String(MONTHS3[m[1].toLowerCase()]).padStart(2, "0")}-01`;
+  let m = s.match(/(?:year ending|ye)\s*([a-z]{3})[a-z]*\s*'?(\d{2,4})/i); if (m && MONTHS3[m[1].toLowerCase()]) { let y = +m[2]; if (y < 100) y += 2000; return `${y}-${String(MONTHS3[m[1].toLowerCase()]).padStart(2, "0")}-01`; }
   m = s.match(/\b((19|20)\d\d)\s*[\/\-]\s*(\d{2})\b/); // financial year "1993-94" / "2011/12" → ending year
   if (m) { const start = +m[1], century = Math.floor(start / 100) * 100; let end = century + +m[3]; if (end < start) end += 100; return `${end}-01-01`; }
   m = s.match(/\b((19|20)\d\d)\b/); if (m) return `${m[1]}-01-01`;
@@ -181,6 +181,34 @@ async function areaYearSeries(book, { areaRe, min, max, label, scale = 1 }) {
     }
   }
   throw new Error(`${label}: area×year series not found`);
+}
+
+// Like areaYearSeries but for tables that are BY-REGION with no national row:
+// aggregate (sum or mean) across the rows matching `rowMatch` (e.g. the nine
+// English-region E12 codes) for each year column → a national series.
+async function regionYearSeries(book, { rowMatch, agg, min, max, label, perRowMin = -Infinity, perRowMax = Infinity }) {
+  const num = (c) => { const v = typeof c === "number" ? c : parseFloat(String(c ?? "").replace(/[,£%]/g, "")); return Number.isFinite(v) ? v : null; };
+  for (const sn of book.SheetNames) {
+    if (/cover|content|notes?|metadata|definition|guidance|contact/i.test(sn)) continue;
+    const rows = (await sheetRows(book, sn)).map((r) => Array.from(r ?? []));
+    let hi = -1, yearCols = [];
+    for (let i = 0; i < Math.min(rows.length, 20); i++) {
+      const yc = rows[i].map((c, idx) => [idx, parsePeriodEnd(c)]).filter(([, d]) => d);
+      if (yc.length >= 5) { hi = i; yearCols = yc; break; }
+    }
+    if (hi < 0) continue;
+    const regionRows = rows.slice(hi + 1).filter(rowMatch);
+    if (regionRows.length < 3) continue;
+    const points = [];
+    for (const [idx, d] of yearCols) {
+      const vals = regionRows.map((r) => num(r[idx])).filter((v) => v != null && v >= perRowMin && v <= perRowMax);
+      if (vals.length < 3) continue;
+      const a = agg === "mean" ? vals.reduce((x, y) => x + y, 0) / vals.length : vals.reduce((x, y) => x + y, 0);
+      if (a >= min && a <= max) points.push({ date: d, value: +a.toFixed(2) });
+    }
+    if (points.length >= 5) { console.log(`  ${label} ${points.length} pts via "${sn}" (${agg} of ${regionRows.length} rows)`); return points.sort((a, b) => (a.date < b.date ? -1 : 1)); }
+  }
+  throw new Error(`${label}: region rows not found`);
 }
 
 // EES (Explore Education Statistics) — DfE's open data catalogue.
@@ -338,12 +366,22 @@ async function sheetjs() {
 }
 // Fetch a spreadsheet URL and return the parsed SheetJS workbook.
 async function xlsxBook(url) {
-  const res = await fetch(url, fetchOpts({ accept: "application/octet-stream,*/*" }));
-  if (!res.ok) throw new Error(`spreadsheet ${url} → HTTP ${res.status}`);
-  const buf = Buffer.from(await res.arrayBuffer());
-  const XLSX = await sheetjs();
-  setSrc(url);
-  return XLSX.read(buf, { type: "buffer" });
+  // Retry transient rate-limits / 5xx (the ONS file server 429s when we pull
+  // many workbooks in one run) with backoff before giving up.
+  let lastErr;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const res = await fetch(url, fetchOpts({ accept: "application/octet-stream,*/*" }));
+    if (res.ok) {
+      const buf = Buffer.from(await res.arrayBuffer());
+      const XLSX = await sheetjs();
+      setSrc(url);
+      return XLSX.read(buf, { type: "buffer" });
+    }
+    lastErr = new Error(`spreadsheet ${url} → HTTP ${res.status}`);
+    if ((res.status === 429 || res.status >= 500) && attempt < 3) { await sleep(2000 * (attempt + 1)); continue; }
+    throw lastErr;
+  }
+  throw lastErr;
 }
 // Parse an in-memory spreadsheet buffer (e.g. an entry unzipped from a .zip).
 async function xlsxBookFromBuffer(buf) {
@@ -3062,31 +3100,29 @@ const SOURCES = [
         "https://www.ons.gov.uk/peoplepopulationandcommunity/populationandmigration/internationalmigration/datasets/longterminternationalimmigrationemigrationandnetmigrationflowsprovisional",
       );
       console.log(`  net-migration xlsx=${url.split("/").pop()} sheets=[${book.SheetNames.join("|")}]`);
-      let dumped = false;
+      // Layout (CI #161): metric blocks stacked vertically — the "Net migration"
+      // label sits in col0 of the block's first row, periods run DOWN col1
+      // ("YE Jun 12"), and the total net is the first value column (col2). Read
+      // down from the Net migration row to the next metric block.
       for (const sn of book.SheetNames) {
-        if (/cover|content|notes?|metadata|related/i.test(sn)) continue;
+        if (/cover|content|notes?|metadata|related|definition/i.test(sn)) continue;
         const rows = (await sheetRows(book, sn)).map((r) => Array.from(r ?? []));
-        const netRow = rows.findIndex((r) => r.some((c) => /^net migration|net migration$|net long-term|net flow/i.test(String(c ?? "").trim())));
+        const netRow = rows.findIndex((r) => /^net migration\b/i.test(String(r[0] ?? "").trim()));
         if (netRow < 0) continue;
-        let periodCols = [];
-        for (let i = 0; i < netRow; i++) {
-          const pc = rows[i].map((c, idx) => [idx, parsePeriodEnd(c)]).filter(([, d]) => d);
-          if (pc.length > periodCols.length) periodCols = pc;
-        }
-        // Values may be absolute or in thousands — detect by magnitude.
-        const raw = periodCols.map(([idx]) => Number(String(rows[netRow][idx] ?? "").replace(/[,]/g, ""))).filter((v) => Number.isFinite(v));
-        const scale = raw.some((v) => Math.abs(v) > 5000) ? 1 : 1000;
         const points = [];
-        for (const [idx, d] of periodCols) {
-          const v0 = Number(String(rows[netRow][idx] ?? "").replace(/[,]/g, ""));
-          if (!Number.isFinite(v0)) continue;
-          const v = v0 * scale;
-          if (Math.abs(v) <= 1300000) points.push({ date: d, value: Math.round(v) });
+        for (let i = netRow; i < rows.length; i++) {
+          const lab = String(rows[i][0] ?? "").trim();
+          if (i > netRow && lab && !/^net migration/i.test(lab)) break; // next metric block
+          const d = parsePeriodEnd(rows[i][1]);
+          if (!d) continue;
+          let v = null;
+          for (let j = 2; j < Math.min(rows[i].length, 8); j++) { const x = Number(String(rows[i][j] ?? "").replace(/,/g, "")); if (Number.isFinite(x)) { v = x; break; } }
+          if (v != null && Math.abs(v) <= 1300000) points.push({ date: d, value: Math.round(v) });
         }
-        if (points.length >= 5) { console.log(`  net-migration ${points.length} pts via "${sn}" netRow=${netRow} scale=${scale}`); return points.sort((a, b) => (a.date < b.date ? -1 : 1)); }
-        if (!dumped) { dumped = true; console.log(`  net-migration DUMP "${sn}" netRow=${netRow} periodCols=${periodCols.length} row=${JSON.stringify(rows[netRow].slice(0, 14))} hdrAbove=${JSON.stringify((rows[netRow - 1] || []).slice(0, 14))}`); }
+        if (points.length >= 5) { console.log(`  net-migration ${points.length} pts via "${sn}" netRow=${netRow}`); return dedupeSortByDate(points); }
+        console.log(`  net-migration DUMP "${sn}" netRow=${netRow} firstRows=${JSON.stringify(rows.slice(netRow, netRow + 3).map((r) => r.slice(0, 6)))}`);
       }
-      throw new Error("net-migration: net row not found");
+      throw new Error("net-migration: net migration block not found");
     },
   },
 
@@ -3186,7 +3222,15 @@ const SOURCES = [
       if (!file) throw new Error("local-roads: no RDC spreadsheet attachment");
       console.log(`  local-roads file=${(file.url || "").split("/").pop()}`);
       const book = await xlsxBook(file.url);
-      return areaYearSeries(book, { areaRe: /^england$|all local|^a road|principal/i, min: 1, max: 40, label: "local-roads" });
+      // RDC0121 has no national row — rows are the nine English regions (E12 codes
+      // in col0) with a % "red" value per FYE column. Average them for England.
+      const e12 = (r) => /^E12\d{6}$/.test(String(r[0] ?? "").trim());
+      try {
+        return await regionYearSeries(book, { rowMatch: e12, agg: "mean", min: 1, max: 40, perRowMin: 0, perRowMax: 40, label: "local-roads" });
+      } catch (e) {
+        console.log(`  local-roads region-agg miss (${e.message}); trying area row`);
+        return areaYearSeries(book, { areaRe: /^england$|all local|^a road|principal/i, min: 1, max: 40, label: "local-roads" });
+      }
     },
   },
 
@@ -3210,7 +3254,15 @@ const SOURCES = [
       if (!file) throw new Error("social-waitlist: no Table 600 attachment");
       console.log(`  social-waitlist file=${(file.url || "").split("/").pop()}`);
       const book = await xlsxBook(file.url);
-      return areaYearSeries(book, { areaRe: /^england$/i, min: 500000, max: 2500000, label: "social-waitlist" });
+      // The Regional_Data sheet has no single England total row — every data row
+      // is an English region (E12 code in col0). Sum them for the England total.
+      const e12 = (r) => /^E12\d{6}$/.test(String(r[0] ?? "").trim());
+      try {
+        return await regionYearSeries(book, { rowMatch: e12, agg: "sum", min: 500000, max: 2500000, perRowMin: 1000, label: "social-waitlist" });
+      } catch (e) {
+        console.log(`  social-waitlist region-agg miss (${e.message}); trying England row`);
+        return areaYearSeries(book, { areaRe: /^england$/i, min: 500000, max: 2500000, label: "social-waitlist" });
+      }
     },
   },
 
