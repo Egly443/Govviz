@@ -2408,14 +2408,20 @@ const SOURCES = [
         try {
           const entries = (await unzipUrl(r.url)).filter((e) => /\.xlsx?$/i.test(e.name));
           let sum = 0, n = 0, durName = "";
-          // Dedupe overflows by their permit/unique id across all workbook
-          // entries+sheets in the year: the 2025 zip ships the same overflows in
-          // two workbooks, which would otherwise DOUBLE the national total (~3.7M
-          // vs the real ~1.9M — a believably-wrong value the [≤6M] guard misses).
+          // The 2025 zip ships the SAME overflows in two workbook entries, which
+          // would DOUBLE the national total (~3.7M vs the real ~1.9M — a
+          // believably-wrong value the [≤6M] guard misses). But 2021/2022 contain
+          // legitimately-repeating permit ids WITHIN a single workbook (one permit,
+          // several discharge points) that the official total DOES sum — so we must
+          // never drop individual rows. Instead skip an ENTIRE entry only when it
+          // is a near-full duplicate of overflows already counted from a prior
+          // entry (id-overlap > 50%). Single-entry years are untouched.
           const seenIds = new Set();
           for (const ent of entries) {
             let book;
             try { book = await xlsxBookFromBuffer(ent.buf); } catch { continue; }
+            const entVals = []; // {v} for every valid duration row in this entry
+            const entIds = [];  // ids seen in this entry (for the overlap test)
             for (const sn of book.SheetNames) {
               if (/read ?me|guide|cover|content|index|note|summary|glossary|metadata|definition/i.test(sn)) continue;
               let rows;
@@ -2430,8 +2436,6 @@ const SOURCES = [
                 if (idx >= 0) { hi = i; dc = idx; durName = h[idx]; break; }
               }
               if (dc < 0) { if (!dumped) { dumped = true; console.log(`  sewage dump-hdr ${ent.name.split("/").pop()} sheet="${sn}" hdr=${JSON.stringify((rows[0] || []).map((c) => String(c ?? "").slice(0, 40)))}`); } continue; }
-              // Identify the unique-id column (header "Unique ID"/EA permit ref)
-              // so the same overflow isn't summed twice across duplicate entries.
               const hrow = (rows[hi] || []).map((c) => String(c ?? "").toLowerCase().replace(/\s+/g, " "));
               let idCol = hrow.findIndex((x) => /unique\s*id/.test(x));
               if (idCol < 0) idCol = hrow.findIndex((x) => /\bpermit\b.*\bref/.test(x) || /^id$/.test(x));
@@ -2451,10 +2455,19 @@ const SOURCES = [
               for (const row of rows.slice(hi + 1)) {
                 const v = toHours(row[dc]);
                 if (v == null || v < 0 || v > 9000) continue;
-                if (idCol >= 0) { const id = String(row[idCol] ?? "").trim(); if (id) { if (seenIds.has(id)) continue; seenIds.add(id); } }
-                sum += v; n++;
+                entVals.push(v);
+                if (idCol >= 0) { const id = String(row[idCol] ?? "").trim(); if (id) entIds.push(id); }
               }
             }
+            // Whole-entry duplicate check: if most of this entry's overflow ids
+            // were already counted in a previous entry, it's a duplicate copy — skip.
+            const known = entIds.length ? entIds.filter((id) => seenIds.has(id)).length / entIds.length : 0;
+            if (entIds.length >= 50 && known > 0.5) {
+              console.log(`  sewage ${year}: skip duplicate entry "${ent.name.split("/").pop()}" (id-overlap ${(known * 100) | 0}%, ${entVals.length} rows)`);
+              continue;
+            }
+            for (const v of entVals) { sum += v; n++; }
+            for (const id of entIds) seenIds.add(id);
           }
           if (n > 50 && sum >= 500000 && sum <= 6000000) { console.log(`  sewage ${year}: ${Math.round(sum)} hrs from ${n} overflows (col="${durName}")`); points.push({ date: `${year}-01-01`, value: Math.round(sum) }); setSrc(r.url); }
           else {
