@@ -2425,7 +2425,20 @@ const SOURCES = [
                 if (idx >= 0) { hi = i; dc = idx; durName = h[idx]; break; }
               }
               if (dc < 0) { if (!dumped) { dumped = true; console.log(`  sewage dump-hdr ${ent.name.split("/").pop()} sheet="${sn}" hdr=${JSON.stringify((rows[0] || []).map((c) => String(c ?? "").slice(0, 40)))}`); } continue; }
-              for (const row of rows.slice(hi + 1)) { const v = num(row[dc]); if (v != null && v >= 0 && v <= 9000) { sum += v; n++; } }
+              // From 2024 the duration column is "(hh:mm:ss)" — stored as an Excel
+              // time serial (a day-fraction, e.g. 0.1875 = 4.5h), not decimal
+              // hours. Detect by header and ×24 (or parse a literal "h:mm:ss"
+              // string). 2020-2023 stay "(hours)"/"(hrs)" → scale 1.
+              const durScale = /hh:mm:ss|hh:mm|\bh:mm\b/.test(durName) ? 24 : 1;
+              const toHours = (c) => {
+                if (typeof c === "number") return c * durScale;
+                const s = String(c ?? "").trim();
+                const tm = s.match(/^(\d+):(\d{2})(?::(\d{2}))?$/);
+                if (tm) return Number(tm[1]) + Number(tm[2]) / 60 + Number(tm[3] || 0) / 3600;
+                const v = parseFloat(s.replace(/,/g, ""));
+                return Number.isFinite(v) ? v * durScale : null;
+              };
+              for (const row of rows.slice(hi + 1)) { const v = toHours(row[dc]); if (v != null && v >= 0 && v <= 9000) { sum += v; n++; } }
             }
           }
           if (n > 50 && sum >= 500000 && sum <= 6000000) { console.log(`  sewage ${year}: ${Math.round(sum)} hrs from ${n} overflows (col="${durName}")`); points.push({ date: `${year}-01-01`, value: Math.round(sum) }); setSrc(r.url); }
