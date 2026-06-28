@@ -97,6 +97,44 @@ async function ons(topic, cdid, dataset, freq = "years") {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// Scrape an ONS dataset landing page for its current .xlsx/.xls and open it.
+// ONS dataset workbooks aren't CDID timeseries (see mhclg-affordability) — the
+// landing page lists the spreadsheet; `pick` chooses among multiple links.
+async function onsLandingXlsx(landing, pick) {
+  const res = await fetch(landing, fetchOpts({ accept: "text/html,*/*" }));
+  if (!res.ok) throw new Error(`landing HTTP ${res.status}`);
+  const html = await res.text();
+  const links = [...html.matchAll(/href="([^"]*\.xlsx?(?:\?[^"]*)?)"/gi)]
+    .map((m) => (m[1].startsWith("http") ? m[1] : `https://www.ons.gov.uk${m[1]}`));
+  const url = (pick ? links.find(pick) : null) || links[0];
+  if (!url) throw new Error(`no spreadsheet link on ${landing}`);
+  return { url, book: await xlsxBook(url) };
+}
+
+const MONTHS3 = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
+// A monthly date cell: Date, Excel serial, "2005 JAN", "Jan 2005", "2005M01",
+// "2005-01" → "YYYY-MM-01"; null if not a month.
+function parseMonthCell(c) {
+  if (c == null) return null;
+  if (c instanceof Date) return `${c.getUTCFullYear()}-${String(c.getUTCMonth() + 1).padStart(2, "0")}-01`;
+  if (typeof c === "number" && c > 30000 && c < 60000) { const d = new Date(Date.UTC(1899, 11, 30) + c * 86400000); return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-01`; }
+  const s = String(c).trim();
+  let m = s.match(/(19|20)\d\d\s*[\-mM]\s*(\d{1,2})/); if (m && +m[2] >= 1 && +m[2] <= 12) return `${m[0].match(/(19|20)\d\d/)[0]}-${String(+m[2]).padStart(2, "0")}-01`;
+  m = s.match(/([a-z]{3})[a-z]*[\s\-]+((19|20)\d\d)/i); if (m && MONTHS3[m[1].toLowerCase()]) return `${m[2]}-${String(MONTHS3[m[1].toLowerCase()]).padStart(2, "0")}-01`;
+  m = s.match(/((19|20)\d\d)[\s\-]+([a-z]{3})/i); if (m && MONTHS3[m[3].toLowerCase()]) return `${m[1]}-${String(MONTHS3[m[3].toLowerCase()]).padStart(2, "0")}-01`;
+  return null;
+}
+// A period-end cell for annual/year-ending series: "Year ending March 2012",
+// "YE Jun 2024", "2011/12", "2012" → "YYYY-01-01" keyed by the ending year.
+function parsePeriodEnd(c) {
+  if (c == null) return null;
+  const s = String(c).trim();
+  let m = s.match(/(?:year ending|ye)\s*([a-z]{3})[a-z]*\s*((19|20)\d\d)/i); if (m && MONTHS3[m[1].toLowerCase()]) return `${m[2]}-${String(MONTHS3[m[1].toLowerCase()]).padStart(2, "0")}-01`;
+  m = s.match(/\b(19|20)(\d\d)\s*[\/\-]\s*(\d{2})\b/); if (m) return `20${m[3]}-01-01`; // 2011/12 → ending 2012
+  m = s.match(/\b((19|20)\d\d)\b/); if (m) return `${m[1]}-01-01`;
+  return null;
+}
+
 // EES (Explore Education Statistics) — DfE's open data catalogue.
 // https://explore-education-statistics.service.gov.uk/data-catalogue/data-set/{id}/csv
 // Returns plain CSV (no auth). Not all datasets are available this way; a 4xx skips.
@@ -2925,6 +2963,117 @@ const SOURCES = [
       }
       console.log(`  dfe-persistent-absence: ${points.length} pts via "${paCol}" (${points[0].date}..${points[points.length - 1].date})`);
       return points.sort((a, b) => (a.date < b.date ? -1 : 1));
+    },
+  },
+
+  // ── Citizen-experience indicators (Phase 2 — ONS dataset-workbook scrapes) ──
+  // Private rents (the renter's monthly cost): ONS Price Index of Private Rents
+  // historical series (chain-linked PIPR/IPHRP, monthly from 2005). Take the UK
+  // index column. Diagnostic dump on first miss reveals the sheet layout.
+  {
+    id: "mhclg-private-rents",
+    min: 40,
+    max: 250,
+    get: async () => {
+      const { url, book } = await onsLandingXlsx(
+        "https://www.ons.gov.uk/economy/inflationandpriceindices/datasets/priceindexofprivaterentsukhistoricalseries",
+      );
+      console.log(`  private-rents xlsx=${url.split("/").pop()} sheets=[${book.SheetNames.join("|")}]`);
+      let dumped = false;
+      for (const sn of book.SheetNames) {
+        if (/cover|content|notes?|metadata|related|weights/i.test(sn)) continue;
+        const rows = (await sheetRows(book, sn)).map((r) => Array.from(r ?? []));
+        let hi = -1, ukCol = -1, dateCol = -1;
+        for (let i = 0; i < Math.min(rows.length, 15); i++) {
+          const h = rows[i].map((c) => String(c ?? "").toLowerCase());
+          const u = h.findIndex((c) => /united kingdom|^uk$|^uk index|uk \(index|^uk all/.test(c));
+          if (u >= 0) { hi = i; ukCol = u; dateCol = h.findIndex((c) => /date|period|month|time/.test(c)); if (dateCol < 0) dateCol = 0; break; }
+        }
+        if (hi < 0) { if (!dumped) { dumped = true; console.log(`  private-rents DUMP "${sn}" r0=${JSON.stringify(rows[0]?.slice(0, 10))} r1=${JSON.stringify(rows[1]?.slice(0, 10))} r2=${JSON.stringify(rows[2]?.slice(0, 10))}`); } continue; }
+        const points = [];
+        for (const r of rows.slice(hi + 1)) {
+          const d = parseMonthCell(r[dateCol]);
+          const v = typeof r[ukCol] === "number" ? r[ukCol] : parseFloat(String(r[ukCol] ?? "").replace(/,/g, ""));
+          if (d && Number.isFinite(v) && v >= 40 && v <= 250) points.push({ date: d, value: +v.toFixed(2) });
+        }
+        if (points.length >= 24) { console.log(`  private-rents ${points.length} pts via "${sn}" dateCol=${dateCol} ukCol=${ukCol}`); return points.sort((a, b) => (a.date < b.date ? -1 : 1)); }
+      }
+      throw new Error("private-rents: UK index series not found");
+    },
+  },
+
+  // Net migration (the headline number): ONS Long-term international migration,
+  // net flows, year ending. Dataset workbook — find the "net migration" row and
+  // the period header. goodDirection contested; the chart just shows the number.
+  {
+    id: "ho-net-migration",
+    min: -200000,
+    max: 1300000,
+    get: async () => {
+      const { url, book } = await onsLandingXlsx(
+        "https://www.ons.gov.uk/peoplepopulationandcommunity/populationandmigration/internationalmigration/datasets/longterminternationalimmigrationemigrationandnetmigrationflowsprovisional",
+      );
+      console.log(`  net-migration xlsx=${url.split("/").pop()} sheets=[${book.SheetNames.join("|")}]`);
+      let dumped = false;
+      for (const sn of book.SheetNames) {
+        if (/cover|content|notes?|metadata|related/i.test(sn)) continue;
+        const rows = (await sheetRows(book, sn)).map((r) => Array.from(r ?? []));
+        const netRow = rows.findIndex((r) => r.some((c) => /^net migration|net migration$|net long-term|net flow/i.test(String(c ?? "").trim())));
+        if (netRow < 0) continue;
+        let periodCols = [];
+        for (let i = 0; i < netRow; i++) {
+          const pc = rows[i].map((c, idx) => [idx, parsePeriodEnd(c)]).filter(([, d]) => d);
+          if (pc.length > periodCols.length) periodCols = pc;
+        }
+        // Values may be absolute or in thousands — detect by magnitude.
+        const raw = periodCols.map(([idx]) => Number(String(rows[netRow][idx] ?? "").replace(/[,]/g, ""))).filter((v) => Number.isFinite(v));
+        const scale = raw.some((v) => Math.abs(v) > 5000) ? 1 : 1000;
+        const points = [];
+        for (const [idx, d] of periodCols) {
+          const v0 = Number(String(rows[netRow][idx] ?? "").replace(/[,]/g, ""));
+          if (!Number.isFinite(v0)) continue;
+          const v = v0 * scale;
+          if (Math.abs(v) <= 1300000) points.push({ date: d, value: Math.round(v) });
+        }
+        if (points.length >= 5) { console.log(`  net-migration ${points.length} pts via "${sn}" netRow=${netRow} scale=${scale}`); return points.sort((a, b) => (a.date < b.date ? -1 : 1)); }
+        if (!dumped) { dumped = true; console.log(`  net-migration DUMP "${sn}" netRow=${netRow} periodCols=${periodCols.length} row=${JSON.stringify(rows[netRow].slice(0, 14))} hdrAbove=${JSON.stringify((rows[netRow - 1] || []).slice(0, 14))}`); }
+      }
+      throw new Error("net-migration: net row not found");
+    },
+  },
+
+  // Shoplifting (the crime people see): ONS police-recorded crime, Crime in
+  // England & Wales appendix tables — Table A5a "Shoplifting" row by year.
+  {
+    id: "ho-shoplifting",
+    min: 100000,
+    max: 1000000,
+    get: async () => {
+      const { url, book } = await onsLandingXlsx(
+        "https://www.ons.gov.uk/peoplepopulationandcommunity/crimeandjustice/datasets/crimeinenglandandwalesappendixtables",
+      );
+      console.log(`  shoplifting xlsx=${url.split("/").pop()} sheets=[${book.SheetNames.join("|")}]`);
+      const order = [...book.SheetNames.filter((n) => /a5/i.test(n)), ...book.SheetNames];
+      let dumped = false;
+      for (const sn of [...new Set(order)]) {
+        if (/cover|content|notes?/i.test(sn)) continue;
+        const rows = (await sheetRows(book, sn)).map((r) => Array.from(r ?? []));
+        const shopRow = rows.findIndex((r) => /shoplifting/i.test(String(r[0] ?? "")) || /shoplifting/i.test(String(r[1] ?? "")));
+        if (shopRow < 0) continue;
+        let periodCols = [];
+        for (let i = 0; i < shopRow; i++) {
+          const pc = rows[i].map((c, idx) => [idx, parsePeriodEnd(c)]).filter(([, d]) => d);
+          if (pc.length > periodCols.length) periodCols = pc;
+        }
+        const points = [];
+        for (const [idx, d] of periodCols) {
+          const v = Number(String(rows[shopRow][idx] ?? "").replace(/[,]/g, ""));
+          if (Number.isFinite(v) && v >= 100000 && v <= 1000000) points.push({ date: d, value: Math.round(v) });
+        }
+        if (points.length >= 5) { console.log(`  shoplifting ${points.length} pts via "${sn}"`); return points.sort((a, b) => (a.date < b.date ? -1 : 1)); }
+        if (!dumped) { dumped = true; console.log(`  shoplifting DUMP "${sn}" shopRow=${shopRow} periodCols=${periodCols.length} row=${JSON.stringify(rows[shopRow].slice(0, 16))}`); }
+      }
+      throw new Error("shoplifting: row not found");
     },
   },
 

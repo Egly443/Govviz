@@ -1446,6 +1446,66 @@ const dfePersistentAbsence: TrendSeries = {
   annotations: [{ date: "2020-01-01", label: "Pandemic" }],
 };
 
+// MHCLG — private rents (the renter's monthly cost). ONS Price Index of Private
+// Rents historical series (chain-linked PIPR/IPHRP, monthly from 2005).
+const mhclgPrivateRents: TrendSeries = {
+  id: "mhclg-private-rents",
+  title: "Private rents",
+  subtitle: "Price Index of Private Rents, UK (rebased index)",
+  unit: "count",
+  format: (v) => v.toFixed(1),
+  shortFormat: (v) => v.toFixed(0),
+  yFormat: (v) => v.toFixed(0),
+  deltaFormat: (v) => `${v > 0 ? "+" : ""}${v.toFixed(1)}`,
+  goodDirection: "down",
+  source: "ONS Price Index of Private Rents (PIPR), historical series",
+  sourceUrl:
+    "https://www.ons.gov.uk/economy/inflationandpriceindices/datasets/priceindexofprivaterentsukhistoricalseries",
+  cadence: "monthly",
+  points: realPoints("mhclg-private-rents"),
+  annotations: [{ date: "2022-01-01", label: "Cost-of-living crisis" }],
+};
+
+// Home Office — net migration (the headline number). ONS Long-term
+// international migration. Direction is contested; oriented "down" only to
+// colour the tile, not as a value judgement (cf. civil-service headcount).
+const hoNetMigration: TrendSeries = {
+  id: "ho-net-migration",
+  title: "Net migration",
+  subtitle: "Long-term international net migration, UK, year ending",
+  unit: "count",
+  format: fmtThousands,
+  shortFormat: fmtK,
+  yFormat: fmtK,
+  deltaFormat: fmtThousandsSigned,
+  goodDirection: "down",
+  source: "ONS, Long-term international migration, provisional",
+  sourceUrl:
+    "https://www.ons.gov.uk/peoplepopulationandcommunity/populationandmigration/internationalmigration",
+  cadence: "annual",
+  points: realPoints("ho-net-migration"),
+  annotations: [{ date: "2021-01-01", label: "Post-Brexit points system" }],
+};
+
+// Home Office — shoplifting (the crime people see). ONS police-recorded crime.
+const hoShoplifting: TrendSeries = {
+  id: "ho-shoplifting",
+  title: "Shoplifting offences",
+  subtitle: "Police-recorded shoplifting, England & Wales, per year",
+  unit: "count",
+  format: fmtThousands,
+  shortFormat: fmtK,
+  yFormat: fmtK,
+  deltaFormat: fmtThousandsSigned,
+  goodDirection: "down",
+  source: "ONS / Home Office police-recorded crime (Crime in England & Wales appendix tables)",
+  sourceUrl:
+    "https://www.ons.gov.uk/peoplepopulationandcommunity/crimeandjustice/datasets/crimeinenglandandwalesappendixtables",
+  cadence: "annual",
+  points: realPoints("ho-shoplifting"),
+  annotations: [{ date: "2022-01-01", label: "Post-pandemic surge" }],
+};
+
 // ============================================================
 // Registry
 // ============================================================
@@ -1490,7 +1550,7 @@ export const departments: Department[] = [
       "The legacy asylum backlog has cleared, but new intake keeps the headline above its 2010s baseline. Hotel run-rate has fallen from the 2023 peak but remains an order of magnitude above pre-2019. Visa SLAs are recovering.",
     themes: ["Throughput", "Workforce", "Value for money", "Service standard"],
     hero: hoAsylumBacklog,
-    core: [hoChargeRate, hoCaseworkerTurnover, hoHotelSpend, hoVisaSla],
+    core: [hoNetMigration, hoChargeRate, hoShoplifting, hoCaseworkerTurnover, hoHotelSpend, hoVisaSla],
     supporting: [hoHomicideRate, hoMigrantStock],
   },
   {
@@ -1575,7 +1635,7 @@ export const departments: Department[] = [
       "Households in temporary accommodation are at their highest in the published series and housebuilding is running well below the 300,000-a-year ambition; affordability is close to its weakest on the ONS series.",
     themes: ["Homelessness", "Supply", "Affordability"],
     hero: mhclgTempAccom,
-    core: [mhclgNetDwellings, mhclgAffordability],
+    core: [mhclgPrivateRents, mhclgNetDwellings, mhclgAffordability],
   },
   {
     code: "defra",
