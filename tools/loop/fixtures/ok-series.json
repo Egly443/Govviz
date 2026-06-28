@@ -14,6 +14,26 @@
     "defra-bathing-water": {
       "minPoints": 10,
       "frozenAt": "2026-06-24"
+    },
+    "hmrc-call-wait": {
+      "minPoints": 12,
+      "frozenAt": "2026-06-28",
+      "note": "Observed 23 monthly pts; floor hand-set to 12 (a year). Built by walking ~24 monthly gov.uk editions, so a single transient edition-download drop would lower the count without being a real regression. Floor NOT auto-set to observed for that reason."
+    },
+    "cab-foi-intime": {
+      "minPoints": 8,
+      "frozenAt": "2026-06-28",
+      "note": "Observed 12 quarterly pts; floor hand-set to 8 (two years). Walks ~12 quarterly gov.uk editions; conservative floor tolerates a transient edition drop."
+    },
+    "desnz-electricity-price": {
+      "minPoints": 14,
+      "frozenAt": "2026-06-28",
+      "note": "Observed 16 annual pts (2010-2025) from a single deterministic QEP ODS (table_224 / sheet 2.2.4). All-or-nothing source, so floor near observed; 14 leaves headroom if a future edition drops a year or two."
+    },
+    "defra-sewage-hours": {
+      "minPoints": 4,
+      "frozenAt": "2026-06-28",
+      "note": "Observed 6 annual pts (2020-2025) from the EA EDM zip-of-workbooks. The environment.data.gov.uk host rate-limits/403s intermittently and can serve fewer zips on a bad run, so floor hand-set low to 4 (2020-2023 are the most reliably served). A full host outage makes the whole series SKIP — a known transient, not a code regression."
     }
   }
 }
