@@ -420,6 +420,23 @@ CSV/JSON/API links (likely a JS-rendered SPA); closed as a documented no-op, see
 the approach of record. See `docs/backlog-research/` for per-series notes.
 
 ## TODO / follow-ups
+- **Narrative thesis parked for the essay — "government measures what it does, not
+  what you get".** A developed note on *why* the missing indicators cluster on the
+  consumer side: government measures producer-side outputs (throughput, RAGs) far
+  better than consumer-side outcomes (could I get a GP, afford the bill, is my
+  street safe), and the measurement gap *is* the machine-readability gap the
+  existing essay describes — same gap, two sides. Full argument +
+  candidate-essay-structure in `docs/measurement-gap-thesis.md`. **Not yet written
+  up for publication** — strong candidate for a second pillar of the blog.
+- **Citizen-accountability indicator backlog** (turns the thesis into a buildable
+  plan): `docs/backlog-citizen-indicators.md` lists ~19 consumer-side, externally
+  sourced, long-series indicators Govviz is missing (private rents, food prices,
+  council tax, net migration, child poverty, GP access, water bills, rough sleeping,
+  shoplifting, potholes…), each with source + methodology fit + a 5-phase
+  collection plan. Proposed enhancements: a `statXplore()` helper (rides the DWP
+  key; unlocks child/pensioner poverty + PIP/UC-MR) and a `lens:"experience"|
+  "process"` tag on `TrendSeries` to make the producer/consumer split machine-visible.
+  First move when the DWP key lands: Phase 3 child poverty + Phase 1 ONS one-liners.
 - **Enable blog analytics (GoatCounter):** the `/blog` route + cookieless beacon
   are wired but dormant. To turn on: create a free site at goatcounter.com, then
   add an **Actions variable** `VITE_GOATCOUNTER=https://YOURCODE.goatcounter.com/count`
