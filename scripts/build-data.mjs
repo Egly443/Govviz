@@ -2462,6 +2462,8 @@ const SOURCES = [
             // Whole-entry duplicate check: if most of this entry's overflow ids
             // were already counted in a previous entry, it's a duplicate copy — skip.
             const known = entIds.length ? entIds.filter((id) => seenIds.has(id)).length / entIds.length : 0;
+            const entSum = Math.round(entVals.reduce((a, b) => a + b, 0));
+            console.log(`  sewage ${year} ENTRY "${ent.name.split("/").pop()}" rows=${entVals.length} ids=${entIds.length} sum=${entSum} overlap=${(known * 100) | 0}%`);
             if (entIds.length >= 50 && known > 0.5) {
               console.log(`  sewage ${year}: skip duplicate entry "${ent.name.split("/").pop()}" (id-overlap ${(known * 100) | 0}%, ${entVals.length} rows)`);
               continue;
