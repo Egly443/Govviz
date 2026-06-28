@@ -2408,6 +2408,11 @@ const SOURCES = [
         try {
           const entries = (await unzipUrl(r.url)).filter((e) => /\.xlsx?$/i.test(e.name));
           let sum = 0, n = 0, durName = "";
+          // Dedupe overflows by their permit/unique id across all workbook
+          // entries+sheets in the year: the 2025 zip ships the same overflows in
+          // two workbooks, which would otherwise DOUBLE the national total (~3.7M
+          // vs the real ~1.9M — a believably-wrong value the [≤6M] guard misses).
+          const seenIds = new Set();
           for (const ent of entries) {
             let book;
             try { book = await xlsxBookFromBuffer(ent.buf); } catch { continue; }
@@ -2425,6 +2430,11 @@ const SOURCES = [
                 if (idx >= 0) { hi = i; dc = idx; durName = h[idx]; break; }
               }
               if (dc < 0) { if (!dumped) { dumped = true; console.log(`  sewage dump-hdr ${ent.name.split("/").pop()} sheet="${sn}" hdr=${JSON.stringify((rows[0] || []).map((c) => String(c ?? "").slice(0, 40)))}`); } continue; }
+              // Identify the unique-id column (header "Unique ID"/EA permit ref)
+              // so the same overflow isn't summed twice across duplicate entries.
+              const hrow = (rows[hi] || []).map((c) => String(c ?? "").toLowerCase().replace(/\s+/g, " "));
+              let idCol = hrow.findIndex((x) => /unique\s*id/.test(x));
+              if (idCol < 0) idCol = hrow.findIndex((x) => /\bpermit\b.*\bref/.test(x) || /^id$/.test(x));
               // From 2024 the duration column is "(hh:mm:ss)" — stored as an Excel
               // time serial (a day-fraction, e.g. 0.1875 = 4.5h), not decimal
               // hours. Detect by header and ×24 (or parse a literal "h:mm:ss"
@@ -2438,7 +2448,12 @@ const SOURCES = [
                 const v = parseFloat(s.replace(/,/g, ""));
                 return Number.isFinite(v) ? v * durScale : null;
               };
-              for (const row of rows.slice(hi + 1)) { const v = toHours(row[dc]); if (v != null && v >= 0 && v <= 9000) { sum += v; n++; } }
+              for (const row of rows.slice(hi + 1)) {
+                const v = toHours(row[dc]);
+                if (v == null || v < 0 || v > 9000) continue;
+                if (idCol >= 0) { const id = String(row[idCol] ?? "").trim(); if (id) { if (seenIds.has(id)) continue; seenIds.add(id); } }
+                sum += v; n++;
+              }
             }
           }
           if (n > 50 && sum >= 500000 && sum <= 6000000) { console.log(`  sewage ${year}: ${Math.round(sum)} hrs from ${n} overflows (col="${durName}")`); points.push({ date: `${year}-01-01`, value: Math.round(sum) }); setSrc(r.url); }
