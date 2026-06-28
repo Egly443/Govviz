@@ -187,14 +187,39 @@ no route/tab/treemap changes. CI tally: **117 ok / 5 skip** (data-check run #131
 - **Dropped:** `dcms-tourism-receipts` (WB ST.INT.RCPT.CD) — resolved `ok` but only 4 stale points
   (1995–1998; WB discontinued it for the UK) and redundant with the `dcms-tourism-arrivals` hero. Removed
   rather than ship a 1998-latest chart.
-- **3 bespoke gov.uk-ODS series still SKIP (placeholders, need a diagnostic round — drafted, wired, guarded):**
-  - `hmrc-call-wait` (HMRC monthly performance reports) — walks 24 editions but the "average speed of
-    answer" row label didn't match in any sheet → 0 points. Hardest: each month is a separate publication.
-  - `desnz-electricity-price` (DESNZ Quarterly Energy Prices table 2.2.4, p/kWh) — file/sheet found but the
-    p/kWh row/orientation missed.
-  - `cab-foi-intime` (Cabinet Office FOI statistics, quarterly editions) — 0 edition points merged; the
-    "all monitored bodies" timeliness row/worksheet didn't match.
-  Each emits rich CI diagnostics for the next iteration (same loop that landed FCDO/sport/creative-GVA).
+### DONE — 2 of the 3 bespoke ODS placeholders landed (2026-06-28)
+Iterated the three remaining bespoke gov.uk-ODS SKIPs via the CI-diagnostic loop (data-check runs
+#134–136). **Two landed `ok`; the third now fails safe** (no wrong data). CI tally after this work:
+**118 ok / 3 skip** (run #136) — the 3 remaining SKIPs are `turnover` and `dsit-gigabit-broadband`
+(both hard HTTP-403 walls) plus `desnz-electricity-price` (fails safe, below):
+- **`hmrc-call-wait` — `ok`, 23 monthly pts (2023-05..2025-03).** HMRC's monthly performance reports
+  publish ASA on an **In-month measures** worksheet (preferred over the cumulative *Year-to-date* sheet).
+  The hard part was the cell encoding: **ASA is typed "mm:ss" but Excel stores it two different ways
+  across editions** — (1) a *proper* time serial (value = minutes/1440, e.g. 0.0157 = 22.6 min) and
+  (2) an **"mm:ss" mistyped as h:mm** (e.g. "23:49" stored as 23h49m = 0.99236 of a day → 23 min 49 sec
+  via value×24, floor=min, frac×60=sec). `hmrcParseAsa` disambiguates the two by magnitude (~0.035
+  boundary) and rejects anything decoding outside [1,40] min, so a stray cell can't ship a wrong interior
+  point (the manifest guard only checks the *latest* value). `hmrcFindAsaInSheet` takes the **rightmost**
+  in-range cell on the matched row (period columns run oldest→newest, so rightmost = the edition's month).
+  Values cross-check against reality: ~23–28 min through 2024 (HMRC's criticised peak), falling to ~14 min
+  by early 2025.
+- **`cab-foi-intime` — `ok`, 12 quarterly pts (2023-04..2026-01).** Cabinet Office FOI statistics, the
+  "3_Timeliness" worksheet, **"All monitored bodies"** row, % in-time read by **value range** (the only
+  cell in [70,100]; counts in the same row are in the thousands). The bug was a missing `foiIsTitleRow`
+  helper (every edition errored `foiIsTitleRow is not defined`) — added it (skips "Table 3a:" / "Source:" /
+  "Worksheet" caption rows so they can't be mistaken for the header or the total row). 74–92% in-time.
+- **`desnz-electricity-price` — still SKIP, now *correctly*.** CI run #134 had wrongly resolved it `ok`
+  with 109 pts (1990–2017) by grabbing a **petroleum/price-index** table (QEP 2.1.1/2.1.3) whose values
+  happened to fall in the [5,50] p/kWh guard — a believably-wrong series. Added a **content gate**: a sheet
+  must show positive evidence it's a *domestic electricity unit-cost* table (mentions "electric", not
+  index/petroleum/gas/customer-numbers) before any number on it is trusted, plus an `index|indices` header
+  exclusion. The right QEP unit-cost table (2.2.4) isn't reachably attached to the discovered release, so it
+  now **fails safe to a "no source yet" placeholder** rather than ship the index. Needs a future round to
+  locate the genuine p/kWh table; the gate guarantees it can't regress to wrong data meanwhile.
+- TODO (optional): freeze `hmrc-call-wait` / `cab-foi-intime` into `tools/loop/fixtures/ok-series.json`
+  once observed stable across a few runs. Note `--freeze` auto-sets the floor to *observed* points, which is
+  too tight for `hmrc-call-wait` (24-edition walk; a single transient edition-download drop would falsely
+  flag a regression) — hand-set a conservative floor (~12, a year) like the NHS-RTT entries instead.
 
 Converted illustrative→real in the 2026-06 campaign: dwp-fraud-error, dfe-teacher-recruitment,
 dfe-attainment-gap, moj-crown-backlog, moj-cost-per-prisoner, moj-officer-resignations,
