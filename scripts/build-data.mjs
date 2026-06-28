@@ -130,9 +130,57 @@ function parsePeriodEnd(c) {
   if (c == null) return null;
   const s = String(c).trim();
   let m = s.match(/(?:year ending|ye)\s*([a-z]{3})[a-z]*\s*((19|20)\d\d)/i); if (m && MONTHS3[m[1].toLowerCase()]) return `${m[2]}-${String(MONTHS3[m[1].toLowerCase()]).padStart(2, "0")}-01`;
-  m = s.match(/\b(19|20)(\d\d)\s*[\/\-]\s*(\d{2})\b/); if (m) return `20${m[3]}-01-01`; // 2011/12 → ending 2012
+  m = s.match(/\b((19|20)\d\d)\s*[\/\-]\s*(\d{2})\b/); // financial year "1993-94" / "2011/12" → ending year
+  if (m) { const start = +m[1], century = Math.floor(start / 100) * 100; let end = century + +m[3]; if (end < start) end += 100; return `${end}-01-01`; }
   m = s.match(/\b((19|20)\d\d)\b/); if (m) return `${m[1]}-01-01`;
   return null;
+}
+
+// Extract a national time series from a gov.uk ODS that is an AREA × YEAR table,
+// handling both common layouts: (A) years across a header row with area rows
+// below, and (B) years down a column with the value in another column. Picks the
+// row whose label matches `areaRe` (e.g. /^england$/). Dumps on a miss.
+async function areaYearSeries(book, { areaRe, min, max, label, scale = 1 }) {
+  const num = (c) => { const v = typeof c === "number" ? c : parseFloat(String(c ?? "").replace(/[,£%]/g, "")); return Number.isFinite(v) ? v * scale : null; };
+  let dumped = false;
+  for (const sn of book.SheetNames) {
+    if (/cover|content|notes?|metadata|definition|guidance|contact/i.test(sn)) continue;
+    const rows = (await sheetRows(book, sn)).map((r) => Array.from(r ?? []));
+    // (A) years ACROSS a header row, area rows below.
+    let hi = -1, yearCols = [];
+    for (let i = 0; i < Math.min(rows.length, 20); i++) {
+      const yc = rows[i].map((c, idx) => [idx, parsePeriodEnd(c)]).filter(([, d]) => d);
+      if (yc.length >= 5) { hi = i; yearCols = yc; break; }
+    }
+    if (hi >= 0) {
+      const areaRow = rows.slice(hi + 1).find((r) => r.slice(0, 4).some((c) => areaRe.test(String(c ?? "").trim())));
+      if (areaRow) {
+        const points = [];
+        for (const [idx, d] of yearCols) { const v = num(areaRow[idx]); if (v != null && v >= min && v <= max) points.push({ date: d, value: +v.toFixed(2) }); }
+        if (points.length >= 5) { console.log(`  ${label} ${points.length} pts via "${sn}" [A]`); return points.sort((a, b) => (a.date < b.date ? -1 : 1)); }
+      }
+      if (!dumped) { dumped = true; console.log(`  ${label} DUMP[A] "${sn}" hdr=${JSON.stringify(rows[hi].slice(0, 12))} rows=${JSON.stringify(rows.slice(hi + 1, hi + 5).map((r) => r.slice(0, 4)))}`); }
+    }
+    // (B) years DOWN a column; value in another column (single-area sheet, or an
+    // area column to filter on).
+    let perCol = -1;
+    for (let j = 0; j < 4; j++) { let n = 0; for (const r of rows) if (parsePeriodEnd(r[j])) n++; if (n >= 5) { perCol = j; break; } }
+    if (perCol >= 0) {
+      const areaCol = rows.some((r) => areaRe.test(String(r[perCol + 1] ?? ""))) ? perCol + 1 : -1;
+      const ncols = Math.max(...rows.map((r) => r.length));
+      for (let vc = perCol + 1; vc < ncols; vc++) {
+        if (vc === areaCol) continue;
+        const points = [];
+        for (const r of rows) {
+          if (areaCol >= 0 && !areaRe.test(String(r[areaCol] ?? "").trim())) continue;
+          const d = parsePeriodEnd(r[perCol]); const v = num(r[vc]);
+          if (d && v != null && v >= min && v <= max) points.push({ date: d, value: +v.toFixed(2) });
+        }
+        if (points.length >= 5) { console.log(`  ${label} ${points.length} pts via "${sn}" [B] perCol=${perCol} valCol=${vc}`); return points.sort((a, b) => (a.date < b.date ? -1 : 1)); }
+      }
+    }
+  }
+  throw new Error(`${label}: area×year series not found`);
 }
 
 // EES (Explore Education Statistics) — DfE's open data catalogue.
@@ -3074,6 +3122,71 @@ const SOURCES = [
         if (!dumped) { dumped = true; console.log(`  shoplifting DUMP "${sn}" shopRow=${shopRow} periodCols=${periodCols.length} row=${JSON.stringify(rows[shopRow].slice(0, 16))}`); }
       }
       throw new Error("shoplifting: row not found");
+    },
+  },
+
+  // ── Citizen-experience indicators (Phase 2b — gov.uk statistical-data-set ODS) ──
+  // Council tax (the bill that rises every year): MHCLG live tables, average
+  // Band D council tax, England, financial year since 1993-94. £568 (1993) →
+  // ~£2,280 (2025). areaYearSeries finds the England row across the FY columns.
+  {
+    id: "mhclg-council-tax",
+    min: 400,
+    max: 3500,
+    get: async () => {
+      const atts = await govukAttachments("government/statistical-data-sets/live-tables-on-council-tax");
+      console.log(`  council-tax atts=[${atts.map((a) => (a.url || "").split("/").pop()).slice(0, 24).join("|")}]`);
+      const file =
+        atts.find((a) => /band\s*d/i.test(`${a.title || ""} ${a.url || ""}`) && /average/i.test(`${a.title || ""} ${a.url || ""}`) && /\.(ods|xlsx?)$/i.test(a.url || "")) ||
+        atts.find((a) => /band\s*d/i.test(`${a.title || ""} ${a.url || ""}`) && /\.(ods|xlsx?)$/i.test(a.url || "")) ||
+        atts.find((a) => /\.(ods|xlsx?)$/i.test(a.url || ""));
+      if (!file) throw new Error("council-tax: no Band D spreadsheet attachment");
+      console.log(`  council-tax file=${(file.url || "").split("/").pop()}`);
+      const book = await xlsxBook(file.url);
+      return areaYearSeries(book, { areaRe: /^england$/i, min: 400, max: 3500, label: "council-tax" });
+    },
+  },
+
+  // Rough sleeping (people on the street): MHCLG rough sleeping snapshot, England
+  // total per autumn since 2010. ~1,768 (2010) → ~4,751 (2017) → ~3,898 (2024).
+  {
+    id: "mhclg-rough-sleeping",
+    min: 500,
+    max: 12000,
+    get: async () => {
+      const atts = await govukAttachments("government/statistical-data-sets/tables-on-rough-sleeping");
+      console.log(`  rough-sleeping atts=[${atts.map((a) => (a.url || "").split("/").pop()).slice(0, 20).join("|")}]`);
+      const file =
+        atts.find((a) => /\.(ods|xlsx?)$/i.test(a.url || "") && /(total|time series|snapshot|number)/i.test(`${a.title || ""} ${a.url || ""}`)) ||
+        atts.find((a) => /\.(ods|xlsx?)$/i.test(a.url || ""));
+      if (!file) throw new Error("rough-sleeping: no spreadsheet attachment");
+      console.log(`  rough-sleeping file=${(file.url || "").split("/").pop()}`);
+      const book = await xlsxBook(file.url);
+      return areaYearSeries(book, { areaRe: /^england$/i, min: 500, max: 12000, label: "rough-sleeping" });
+    },
+  },
+
+  // Local road condition / potholes (the road I drive): DfT road condition
+  // statistics — % of local-authority 'A' roads that should be considered for
+  // maintenance ("red"), England, per year. ~4-6%. RDC by-LA tables; look for a
+  // national/England or road-class summary row. Diagnostic dump on a miss.
+  {
+    id: "dft-local-roads",
+    min: 1,
+    max: 40, // percent
+    get: async () => {
+      const atts = await govukAttachments("government/statistical-data-sets/road-condition-statistics-data-tables-rdc");
+      console.log(`  local-roads atts=[${atts.map((a) => (a.url || "").split("/").pop()).slice(0, 24).join("|")}]`);
+      // Prefer a regional/national 'A'-road maintenance table (RDC0121) over the
+      // big by-LA files.
+      const file =
+        atts.find((a) => /rdc0?121|region/i.test(`${a.title || ""} ${a.url || ""}`) && /\.(ods|xlsx?)$/i.test(a.url || "")) ||
+        atts.find((a) => /rdc01|principal|classified.*maintenance|should.*maintenance/i.test(`${a.title || ""} ${a.url || ""}`) && /\.(ods|xlsx?)$/i.test(a.url || "")) ||
+        atts.find((a) => /\.(ods|xlsx?)$/i.test(a.url || ""));
+      if (!file) throw new Error("local-roads: no RDC spreadsheet attachment");
+      console.log(`  local-roads file=${(file.url || "").split("/").pop()}`);
+      const book = await xlsxBook(file.url);
+      return areaYearSeries(book, { areaRe: /^england$|all local|^a road|principal/i, min: 1, max: 40, label: "local-roads" });
     },
   },
 

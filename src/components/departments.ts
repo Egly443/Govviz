@@ -1506,6 +1506,60 @@ const hoShoplifting: TrendSeries = {
   annotations: [{ date: "2022-01-01", label: "Post-pandemic surge" }],
 };
 
+// MHCLG — council tax (the bill that rises every year). MHCLG live tables,
+// average Band D, England, financial year since 1993-94.
+const mhclgCouncilTax: TrendSeries = {
+  id: "mhclg-council-tax",
+  title: "Council tax",
+  subtitle: "Average Band D council tax, England (£/yr)",
+  unit: "currency",
+  format: (v) => `£${Math.round(v).toLocaleString("en-GB")}`,
+  shortFormat: (v) => `£${(v / 1000).toFixed(1)}k`,
+  yFormat: (v) => `£${(v / 1000).toFixed(1)}k`,
+  deltaFormat: (v) => `${v > 0 ? "+" : ""}£${Math.round(v)}`,
+  goodDirection: "down",
+  source: "MHCLG, Council Tax levels set by local authorities (live tables)",
+  sourceUrl: "https://www.gov.uk/government/statistical-data-sets/live-tables-on-council-tax",
+  cadence: "annual",
+  points: realPoints("mhclg-council-tax"),
+  annotations: [],
+};
+
+// MHCLG — rough sleeping (people on the street). MHCLG annual autumn snapshot.
+const mhclgRoughSleeping: TrendSeries = {
+  id: "mhclg-rough-sleeping",
+  title: "Rough sleeping",
+  subtitle: "People estimated sleeping rough on a single night, England",
+  unit: "count",
+  format: fmtThousands,
+  shortFormat: (v) => `${(v / 1000).toFixed(1)}k`,
+  yFormat: (v) => `${(v / 1000).toFixed(1)}k`,
+  deltaFormat: fmtThousandsSigned,
+  goodDirection: "down",
+  source: "MHCLG, Rough sleeping snapshot in England",
+  sourceUrl: "https://www.gov.uk/government/statistical-data-sets/tables-on-rough-sleeping",
+  cadence: "annual",
+  points: realPoints("mhclg-rough-sleeping"),
+  annotations: [{ date: "2020-01-01", label: "Everyone In" }],
+};
+
+// DfT — local road condition (potholes). DfT road condition statistics: % of
+// local-authority 'A' roads that should be considered for maintenance.
+const dftLocalRoads: TrendSeries = {
+  id: "dft-local-roads",
+  title: "Local road condition",
+  subtitle: "% of local 'A' roads that should be considered for maintenance, England",
+  unit: "percent",
+  format: fmtPct,
+  shortFormat: fmtPct,
+  goodDirection: "down",
+  source: "DfT, Road condition statistics (RDC)",
+  sourceUrl: "https://www.gov.uk/government/statistical-data-sets/road-condition-statistics-data-tables-rdc",
+  cadence: "annual",
+  points: realPoints("dft-local-roads"),
+  annotations: [],
+};
+
 // ============================================================
 // Registry
 // ============================================================
@@ -1605,7 +1659,7 @@ export const departments: Department[] = [
       "Rail cancellation scores have not returned to pre-pandemic levels. DVLA has recovered most of its 2021 backlog. Capital portfolio overruns have risen sharply; SRN pavement condition is deteriorating.",
     themes: ["Reliability", "Service", "Delivery", "Assets"],
     hero: dftCancellations,
-    core: [dftDvlaBacklog, dftCapitalOverrun, dftSrnDegradation],
+    core: [dftLocalRoads, dftDvlaBacklog, dftCapitalOverrun, dftSrnDegradation],
     supporting: [dftRoadDeathRate, dftCo2],
   },
   {
@@ -1635,7 +1689,7 @@ export const departments: Department[] = [
       "Households in temporary accommodation are at their highest in the published series and housebuilding is running well below the 300,000-a-year ambition; affordability is close to its weakest on the ONS series.",
     themes: ["Homelessness", "Supply", "Affordability"],
     hero: mhclgTempAccom,
-    core: [mhclgPrivateRents, mhclgNetDwellings, mhclgAffordability],
+    core: [mhclgPrivateRents, mhclgCouncilTax, mhclgRoughSleeping, mhclgNetDwellings, mhclgAffordability],
   },
   {
     code: "defra",
