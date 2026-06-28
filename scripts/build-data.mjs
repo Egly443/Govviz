@@ -3190,6 +3190,49 @@ const SOURCES = [
     },
   },
 
+  // ── Citizen-experience indicators (batch 4) ──
+  // Rail fares (the fare that rises every January): ONS CPI passenger transport
+  // by railway index (2015=100), CDID D7EF — a clean one-liner.
+  { id: "dft-rail-fares", min: 30, max: 250, get: () => ons(INFLATION, "D7EF", "mm23", "months") },
+
+  // Social housing waiting list (years on the council-house list): MHCLG live
+  // tables, Table 600 — households on LA waiting lists, England, from 1987.
+  {
+    id: "mhclg-social-waitlist",
+    min: 500000,
+    max: 2500000,
+    get: async () => {
+      const atts = await govukAttachments("government/statistical-data-sets/live-tables-on-rents-lettings-and-tenancies");
+      console.log(`  social-waitlist atts=[${atts.map((a) => (a.url || "").split("/").pop()).slice(0, 24).join("|")}]`);
+      const file =
+        atts.find((a) => /(table[\s_]*600|waiting list)/i.test(`${a.title || ""} ${a.url || ""}`) && /\.(ods|xlsx?)$/i.test(a.url || "")) ||
+        atts.find((a) => /\.(ods|xlsx?)$/i.test(a.url || ""));
+      if (!file) throw new Error("social-waitlist: no Table 600 attachment");
+      console.log(`  social-waitlist file=${(file.url || "").split("/").pop()}`);
+      const book = await xlsxBook(file.url);
+      return areaYearSeries(book, { areaRe: /^england$/i, min: 500000, max: 2500000, label: "social-waitlist" });
+    },
+  },
+
+  // GP appointment access (can't get a GP appointment): GP Patient Survey. The
+  // survey changed methodology in 2024 (breaking the series) and has no single
+  // trends spreadsheet, so this PROBE surfaces the available files and SKIPs —
+  // a dedicated round will wire the right file + handle the 2024 discontinuity.
+  {
+    id: "dhsc-gp-access",
+    min: 30,
+    max: 100,
+    get: async () => {
+      const page = "https://www.england.nhs.uk/statistics/statistical-work-areas/gp-patient-survey/";
+      const res = await fetch(page, fetchOpts({ accept: "text/html,*/*" }));
+      if (!res.ok) throw new Error(`gp-access page HTTP ${res.status}`);
+      const html = await res.text();
+      const links = [...html.matchAll(/href="([^"]*\.(?:xlsx?|csv|ods)(?:\?[^"]*)?)"/gi)].map((m) => m[1]);
+      console.log(`  gp-access spreadsheet links (${links.length}): ${links.slice(0, 25).join(" | ")}`);
+      throw new Error("gp-access: trends spreadsheet not yet identified — probe only (see links)");
+    },
+  },
+
   // --- in progress ---
   // AWE pay growth — KAC3 is monthly YoY %; request months (annual key returns index).
   { id: "hmt-cost-of-living", line: "wages", min: -10, max: 30, get: () => ons(EARN, ["KAC3"], ["lms", "emp"], "months") },

@@ -1560,6 +1560,59 @@ const dftLocalRoads: TrendSeries = {
   annotations: [],
 };
 
+// DfT — rail fares (the fare that rises every January). ONS CPI rail index.
+const dftRailFares: TrendSeries = {
+  id: "dft-rail-fares",
+  title: "Rail fares",
+  subtitle: "CPI rail fares index — passenger transport by railway (2015 = 100)",
+  unit: "count",
+  format: (v) => v.toFixed(1),
+  shortFormat: (v) => v.toFixed(0),
+  yFormat: (v) => v.toFixed(0),
+  deltaFormat: (v) => `${v > 0 ? "+" : ""}${v.toFixed(1)}`,
+  goodDirection: "down",
+  source: "ONS Consumer Prices Index — passenger transport by railway (D7EF)",
+  sourceUrl: "https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/d7ef/mm23",
+  cadence: "monthly",
+  points: realPoints("dft-rail-fares"),
+  annotations: [],
+};
+
+// MHCLG — social housing waiting list (years on the council-house list).
+const mhclgWaitlist: TrendSeries = {
+  id: "mhclg-social-waitlist",
+  title: "Social housing waiting list",
+  subtitle: "Households on local authority housing waiting lists, England",
+  unit: "count",
+  format: fmtThousands,
+  shortFormat: (v) => `${(v / 1e6).toFixed(2)}m`,
+  yFormat: (v) => `${(v / 1e6).toFixed(1)}m`,
+  deltaFormat: fmtThousandsSigned,
+  goodDirection: "down",
+  source: "MHCLG live tables on rents, lettings and tenancies (Table 600)",
+  sourceUrl: "https://www.gov.uk/government/statistical-data-sets/live-tables-on-rents-lettings-and-tenancies",
+  cadence: "annual",
+  points: realPoints("mhclg-social-waitlist"),
+  annotations: [],
+};
+
+// DHSC — GP appointment access (the everyday NHS front door). GP Patient Survey;
+// wiring pending a dedicated round (2024 survey redesign broke the series).
+const dhscGpAccess: TrendSeries = {
+  id: "dhsc-gp-access",
+  title: "GP appointment access",
+  subtitle: "% of patients with a good experience of making a GP appointment (GP Patient Survey)",
+  unit: "percent",
+  format: fmtPct,
+  shortFormat: fmtPct,
+  goodDirection: "up",
+  source: "NHS England / Ipsos, GP Patient Survey",
+  sourceUrl: "https://www.england.nhs.uk/statistics/statistical-work-areas/gp-patient-survey/",
+  cadence: "annual",
+  points: realPoints("dhsc-gp-access"),
+  annotations: [{ date: "2024-01-01", label: "Survey redesign" }],
+};
+
 // ============================================================
 // Registry
 // ============================================================
@@ -1576,7 +1629,7 @@ export const departments: Department[] = [
     themes: ["Waiting list", "Urgent care", "Workforce", "Capital"],
     hero: waitingList,
     core: [rtt18Week, ambulanceC2, dischargeDelays, agencySpend, capitalOverrun, dhscSpendPerLifeYear],
-    supporting: [aePerformance, clinicalPer1000, hospitalBeds, healthSpendGdp, dhscHealthSpendPc, infantMortality, dhscSuicide, dhscMeasles, dhscOop, turnover, vacancyRate, lifeExpectancy],
+    supporting: [dhscGpAccess, aePerformance, clinicalPer1000, hospitalBeds, healthSpendGdp, dhscHealthSpendPc, infantMortality, dhscSuicide, dhscMeasles, dhscOop, turnover, vacancyRate, lifeExpectancy],
   },
   {
     code: "dfe",
@@ -1659,7 +1712,7 @@ export const departments: Department[] = [
       "Rail cancellation scores have not returned to pre-pandemic levels. DVLA has recovered most of its 2021 backlog. Capital portfolio overruns have risen sharply; SRN pavement condition is deteriorating.",
     themes: ["Reliability", "Service", "Delivery", "Assets"],
     hero: dftCancellations,
-    core: [dftLocalRoads, dftDvlaBacklog, dftCapitalOverrun, dftSrnDegradation],
+    core: [dftRailFares, dftLocalRoads, dftDvlaBacklog, dftCapitalOverrun, dftSrnDegradation],
     supporting: [dftRoadDeathRate, dftCo2],
   },
   {
@@ -1690,6 +1743,7 @@ export const departments: Department[] = [
     themes: ["Homelessness", "Supply", "Affordability"],
     hero: mhclgTempAccom,
     core: [mhclgPrivateRents, mhclgCouncilTax, mhclgRoughSleeping, mhclgNetDwellings, mhclgAffordability],
+    supporting: [mhclgWaitlist],
   },
   {
     code: "defra",
