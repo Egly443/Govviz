@@ -2879,8 +2879,10 @@ const SOURCES = [
 
   // ── Citizen-experience indicators (Phase 1 — docs/backlog-citizen-indicators.md) ──
   // Food prices: ONS CPI food & non-alcoholic beverages index (2015=100), CDID
-  // D7BU, monthly — a clean one-liner. ~100 (2015) → ~135 (2024).
-  { id: "hmt-food-prices", min: 70, max: 220, get: () => ons(INFLATION, "D7BU", "mm23", "months") },
+  // D7BU, monthly — a clean one-liner. ~48 (1988) → ~100 (2015) → ~135 (2024);
+  // min kept low so the full 1988→ history shows (the guard only needs to reject
+  // an absurd wrong-CDID value, not trim legitimate early-index points).
+  { id: "hmt-food-prices", min: 30, max: 250, get: () => ons(INFLATION, "D7BU", "mm23", "months") },
 
   // Persistent absence from school: DfE "Pupil absence in schools in England"
   // via EES (absence-by-pupil-characteristics data set). Take the national,
