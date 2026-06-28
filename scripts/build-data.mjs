@@ -375,7 +375,18 @@ async function xlsxBook(url) {
       const buf = Buffer.from(await res.arrayBuffer());
       const XLSX = await sheetjs();
       setSrc(url);
-      return XLSX.read(buf, { type: "buffer" });
+      try {
+        return XLSX.read(buf, { type: "buffer" });
+      } catch (e) {
+        // SheetJS's ODS reader throws "Unsupported value type" on some gov.uk
+        // "accessible" workbooks (e.g. MHCLG council-tax Band D). Fall back to a
+        // minimal in-house ODS parser that reads content.xml directly.
+        if (/\.ods(\?|$)/i.test(url)) {
+          console.log(`  xlsxBook: SheetJS failed on ODS (${e.message}); using raw ODS parser`);
+          return await odsBookRaw(buf);
+        }
+        throw e;
+      }
     }
     lastErr = new Error(`spreadsheet ${url} → HTTP ${res.status}`);
     if ((res.status === 429 || res.status >= 500) && attempt < 3) { await sleep(2000 * (attempt + 1)); continue; }
@@ -398,8 +409,52 @@ async function unzipUrl(url) {
   const files = _fflate.unzipSync(new Uint8Array(await res.arrayBuffer()));
   return Object.entries(files).map(([name, data]) => ({ name, buf: Buffer.from(data) }));
 }
+// Minimal ODS reader for files SheetJS rejects ("Unsupported value type"). An
+// .ods is a zip; content.xml holds the tables. We extract each <table:table>
+// into an array-of-arrays, honouring number-columns/rows-repeated and using
+// office:value for numerics (falling back to the cell's text). Returns a
+// book-shaped object with __raw so sheetRows reads it without SheetJS.
+async function odsBookRaw(buf) {
+  if (!_fflate) { const m = await import("fflate"); _fflate = m.default ?? m; }
+  const files = _fflate.unzipSync(new Uint8Array(buf));
+  const xml = Buffer.from(files["content.xml"] ?? new Uint8Array()).toString("utf8");
+  const unesc = (s) => s.replace(/<text:s\b[^>]*\/>/g, " ").replace(/<text:tab\b[^>]*\/>/g, "\t").replace(/<[^>]+>/g, "")
+    .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, "&").trim();
+  const SheetNames = [], Sheets = {};
+  const tableRe = /<table:table\b([^>]*)>([\s\S]*?)<\/table:table>/g;
+  let tm;
+  while ((tm = tableRe.exec(xml))) {
+    const name = (tm[1].match(/table:name="([^"]*)"/) || [, ""])[1];
+    const body = tm[2];
+    const rows = [];
+    const rowRe = /<table:table-row\b([^>]*?)(?:\/>|>([\s\S]*?)<\/table:table-row>)/g;
+    let rm;
+    while ((rm = rowRe.exec(body))) {
+      const rowRep = Math.min(parseInt((rm[1].match(/number-rows-repeated="(\d+)"/) || [, "1"])[1], 10) || 1, 1000);
+      const content = rm[2] ?? "";
+      const cells = [];
+      const cellRe = /<table:(covered-table-cell|table-cell)\b([^>]*?)(?:\/>|>([\s\S]*?)<\/table:\1>)/g;
+      let cm;
+      while ((cm = cellRe.exec(content))) {
+        const attrs = cm[2] ?? "", inner = cm[3] ?? "";
+        const rep = Math.min(parseInt((attrs.match(/number-columns-repeated="(\d+)"/) || [, "1"])[1], 10) || 1, 4096);
+        const ov = attrs.match(/office:value="([^"]*)"/);
+        let val;
+        if (ov) { const n = Number(ov[1]); val = Number.isFinite(n) ? n : ov[1]; }
+        else { const t = unesc(inner); val = t === "" ? null : t; }
+        for (let k = 0; k < rep; k++) cells.push(val);
+      }
+      while (cells.length && cells[cells.length - 1] == null) cells.pop();
+      for (let k = 0; k < rowRep; k++) rows.push(cells.slice());
+    }
+    SheetNames.push(name);
+    Sheets[name] = rows;
+  }
+  return { __raw: true, SheetNames, Sheets };
+}
 // Read one sheet as an array-of-arrays (header:1), blank rows removed.
 async function sheetRows(book, name) {
+  if (book && book.__raw) return (book.Sheets[name] ?? []).filter((r) => r.some((c) => c != null && String(c).trim() !== ""));
   const XLSX = await sheetjs();
   return XLSX.utils.sheet_to_json(book.Sheets[name], { header: 1, blankrows: false });
 }
@@ -3275,13 +3330,87 @@ const SOURCES = [
     min: 30,
     max: 100,
     get: async () => {
-      const page = "https://www.england.nhs.uk/statistics/statistical-work-areas/gp-patient-survey/";
-      const res = await fetch(page, fetchOpts({ accept: "text/html,*/*" }));
-      if (!res.ok) throw new Error(`gp-access page HTTP ${res.status}`);
-      const html = await res.text();
-      const links = [...html.matchAll(/href="([^"]*\.(?:xlsx?|csv|ods)(?:\?[^"]*)?)"/gi)].map((m) => m[1]);
-      console.log(`  gp-access spreadsheet links (${links.length}): ${links.slice(0, 25).join(" | ")}`);
-      throw new Error("gp-access: trends spreadsheet not yet identified — probe only (see links)");
+      // The data lives on gp-patient.co.uk (Ipsos), not england.nhs.uk. Probe the
+      // surveys-and-reports / analysis-tool pages for downloadable national data
+      // files (the 2024 methodology break means a pre/post split next round).
+      const pages = [
+        "https://gp-patient.co.uk/surveysandreports",
+        "https://gp-patient.co.uk/analysistool",
+        "https://www.gp-patient.co.uk/surveysandreports",
+      ];
+      const found = [];
+      for (const page of pages) {
+        try {
+          const res = await fetch(page, fetchOpts({ accept: "text/html,*/*" }));
+          if (!res.ok) { console.log(`  gp-access ${page} → HTTP ${res.status}`); continue; }
+          const html = await res.text();
+          const links = [...html.matchAll(/href="([^"]*\.(?:xlsx?|csv|ods)(?:\?[^"]*)?)"/gi)].map((m) => m[1]);
+          console.log(`  gp-access ${page} data links (${links.length}): ${links.slice(0, 20).join(" | ")}`);
+          found.push(...links);
+        } catch (e) { console.log(`  gp-access ${page} err ${e.message}`); }
+      }
+      throw new Error(`gp-access: national trends file not yet identified — probe only (${found.length} links)`);
+    },
+  },
+
+  // ── Citizen-experience indicators (batch 5) ──
+  // Regional gap (the North-South / "levelling-up" divide): ONS balanced regional
+  // GVA per head, London as a multiple of the UK average. ~1.7-1.8x. Reads the
+  // per-head workbook, finds the London and United Kingdom rows, ratios per year.
+  {
+    id: "hmt-regional-gap",
+    min: 1.2,
+    max: 3,
+    get: async () => {
+      const { url, book } = await onsLandingXlsx(
+        "https://www.ons.gov.uk/economy/grossvalueaddedgva/datasets/nominalregionalgrossvalueaddedbalancedperheadandincomecomponents",
+        (u) => /head/i.test(u) || true,
+      );
+      console.log(`  regional-gap xlsx=${url.split("/").pop()} sheets=[${book.SheetNames.join("|")}]`);
+      const num = (c) => { const v = typeof c === "number" ? c : parseFloat(String(c ?? "").replace(/[,£]/g, "")); return Number.isFinite(v) ? v : null; };
+      for (const sn of book.SheetNames) {
+        if (/cover|content|notes?|metadata|definition|contact/i.test(sn)) continue;
+        const rows = (await sheetRows(book, sn)).map((r) => Array.from(r ?? []));
+        // header row with ≥5 year columns
+        let hi = -1, yearCols = [];
+        for (let i = 0; i < Math.min(rows.length, 30); i++) {
+          const yc = rows[i].map((c, idx) => [idx, parsePeriodEnd(c)]).filter(([, d]) => d);
+          if (yc.length >= 5) { hi = i; yearCols = yc; break; }
+        }
+        if (hi < 0) continue;
+        const findRow = (re) => rows.slice(hi + 1).find((r) => r.slice(0, 4).some((c) => re.test(String(c ?? "").trim())));
+        const lon = findRow(/^london$/i);
+        const uk = findRow(/^united kingdom$|^uk$/i);
+        if (!lon || !uk) { console.log(`  regional-gap "${sn}" hdr=${hi} lon=${!!lon} uk=${!!uk}`); continue; }
+        const points = [];
+        for (const [idx, d] of yearCols) {
+          const a = num(lon[idx]), b = num(uk[idx]);
+          if (a != null && b != null && b > 0) { const r = a / b; if (r >= 1.2 && r <= 3) points.push({ date: d, value: +r.toFixed(3) }); }
+        }
+        if (points.length >= 5) { console.log(`  regional-gap ${points.length} pts via "${sn}"`); return points.sort((a, b) => (a.date < b.date ? -1 : 1)); }
+      }
+      throw new Error("regional-gap: London/UK per-head rows not found");
+    },
+  },
+
+  // Passport processing (will my passport arrive in time): HMPO transparency data.
+  // Quarterly publications; the headline is % of straightforward applications
+  // processed within the service standard. Layout/SLA shift over time, so PROBE
+  // the transparency collection first to surface the data files + structure.
+  {
+    id: "ho-passport-times",
+    min: 50,
+    max: 100,
+    get: async () => {
+      const slugs = ["passport-processing-times", "hm-passport-office-transparency-data", "migration-transparency-data"];
+      for (const slug of slugs) {
+        try {
+          const j = await govukContent(`government/collections/${slug}`);
+          const docs = (j?.links?.documents || []).slice(0, 12).map((d) => d.base_path);
+          console.log(`  passport-times collection ${slug} docs(${docs.length}): ${docs.join(" | ")}`);
+        } catch (e) { console.log(`  passport-times ${slug} err ${e.message}`); }
+      }
+      throw new Error("passport-times: data file not yet identified — probe only (see collection docs)");
     },
   },
 

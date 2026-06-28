@@ -1613,6 +1613,43 @@ const dhscGpAccess: TrendSeries = {
   annotations: [{ date: "2024-01-01", label: "Survey redesign" }],
 };
 
+// HMT — regional gap (the "levelling-up" divide). ONS balanced regional GVA per
+// head: London as a multiple of the UK average.
+const hmtRegionalGap: TrendSeries = {
+  id: "hmt-regional-gap",
+  title: "Regional divide",
+  subtitle: "London GVA per head as a multiple of the UK average",
+  unit: "count",
+  format: (v) => `${v.toFixed(2)}×`,
+  shortFormat: (v) => `${v.toFixed(2)}×`,
+  yFormat: (v) => `${v.toFixed(1)}×`,
+  deltaFormat: (v) => `${v > 0 ? "+" : ""}${v.toFixed(2)}×`,
+  goodDirection: "down",
+  source: "ONS, Regional gross value added (balanced) per head",
+  sourceUrl:
+    "https://www.ons.gov.uk/economy/grossvalueaddedgva/datasets/nominalregionalgrossvalueaddedbalancedperheadandincomecomponents",
+  cadence: "annual",
+  points: realPoints("hmt-regional-gap"),
+  annotations: [],
+};
+
+// Home Office — passport processing (will my passport arrive in time). HMPO
+// transparency data; wiring pending a dedicated round (quarterly, SLA changes).
+const hoPassportTimes: TrendSeries = {
+  id: "ho-passport-times",
+  title: "Passport processing",
+  subtitle: "% of straightforward passport applications within the service standard",
+  unit: "percent",
+  format: fmtPct,
+  shortFormat: fmtPct,
+  goodDirection: "up",
+  source: "HM Passport Office transparency data",
+  sourceUrl: "https://www.gov.uk/government/organisations/hm-passport-office",
+  cadence: "quarterly",
+  points: realPoints("ho-passport-times"),
+  annotations: [{ date: "2022-01-01", label: "Backlog surge" }],
+};
+
 // ============================================================
 // Registry
 // ============================================================
@@ -1658,7 +1695,7 @@ export const departments: Department[] = [
     themes: ["Throughput", "Workforce", "Value for money", "Service standard"],
     hero: hoAsylumBacklog,
     core: [hoNetMigration, hoChargeRate, hoShoplifting, hoCaseworkerTurnover, hoHotelSpend, hoVisaSla],
-    supporting: [hoHomicideRate, hoMigrantStock],
+    supporting: [hoPassportTimes, hoHomicideRate, hoMigrantStock],
   },
   {
     code: "moj",
@@ -1728,7 +1765,7 @@ export const departments: Department[] = [
     themes: ["Living standards", "Debt", "Tax", "Cost of living"],
     hero: hmtGdpPerCapita,
     core: [hmtCostOfLiving, hmtFoodPrices, hmtDebt, hmtDebtCash, hmtTaxBurden, hmtDebtInterest],
-    supporting: [hmtUnemployment, hmtGdpGrowth, hmtEmployment, hmtParticipation, hmtInvestment, hmtTrade, hmtSavings, hmtCurrentAccount, hmtGniPerCapita, hmtRealIncome, hmtProductivity, hmtTaxSplit, hmtDeficit],
+    supporting: [hmtRegionalGap, hmtUnemployment, hmtGdpGrowth, hmtEmployment, hmtParticipation, hmtInvestment, hmtTrade, hmtSavings, hmtCurrentAccount, hmtGniPerCapita, hmtRealIncome, hmtProductivity, hmtTaxSplit, hmtDeficit],
   },
   {
     code: "mhclg",
