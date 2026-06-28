@@ -2400,6 +2400,7 @@ const SOURCES = [
       const num = (c) => { const v = typeof c === "number" ? c : parseFloat(String(c ?? "").replace(/,/g, "")); return Number.isFinite(v) ? v : null; };
       const points = [];
       let dumped = false;
+      let dumped2025 = false;
       for (const r of zips) {
         const ym = dec(r).match(YEAR);
         if (!ym) continue;
@@ -2452,11 +2453,19 @@ const SOURCES = [
                 const v = parseFloat(s.replace(/,/g, ""));
                 return Number.isFinite(v) ? v * durScale : null;
               };
+              let shRows = 0;
               for (const row of rows.slice(hi + 1)) {
                 const v = toHours(row[dc]);
                 if (v == null || v < 0 || v > 9000) continue;
-                entVals.push(v);
+                entVals.push(v); shRows++;
                 if (idCol >= 0) { const id = String(row[idCol] ?? "").trim(); if (id) entIds.push(id); }
+              }
+              if (/2025/.test(ent.name)) {
+                console.log(`  sewage 2025 SHEET "${sn}" rows=${shRows} idCol=${idCol} dc=${dc} hdr=${JSON.stringify((rows[hi] || []).slice(0, 18).map((c) => String(c ?? "").replace(/\s+/g, " ").slice(0, 30)))}`);
+                if (shRows > 0 && !dumped2025) {
+                  dumped2025 = true;
+                  for (let k = hi + 1; k < Math.min(hi + 6, rows.length); k++) console.log(`    2025 row[${k}]=${JSON.stringify((rows[k] || []).slice(0, 18).map((c) => String(c ?? "").slice(0, 22)))}`);
+                }
               }
             }
             // Whole-entry duplicate check: if most of this entry's overflow ids
