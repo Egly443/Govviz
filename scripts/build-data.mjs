@@ -3258,6 +3258,8 @@ const SOURCES = [
           rows[i].forEach((c, idx) => { if (/england/i.test(String(c ?? ""))) engCols.add(idx); });
         }
         if (!engCols.size) { console.log(`  council-tax "${sn}" no England header; hdr=${JSON.stringify(rows.slice(0, 8).map((r) => r.slice(0, 20)))}`); continue; }
+        // One-time: dump the header block so the all-precepts column can be pinned.
+        console.log(`  council-tax HDR "${sn}" engCols=[${[...engCols].join(",")}] rows0-11=${JSON.stringify(rows.slice(0, 12).map((r) => r.slice(0, 24)))}`);
         // Build a series per England-headed column; keep the one with the highest
         // latest value (= all-precepts headline) that also rises over time.
         let best = null;
