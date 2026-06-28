@@ -1383,16 +1383,29 @@ function hmrcMonthFromTitle(title) {
 function hmrcParseAsa(cell) {
   if (cell == null) return null;
   if (typeof cell === "number") {
-    // HMRC's data tables type ASA as "mm:ss" but Excel stored it as h:mm, so a
-    // value like 0.99236 (a day-fraction) is really "23:49" meaning 23 min 49
-    // sec. value*24 → mm.frac: floor = minutes, frac*60 = seconds.
-    if (cell > 0 && cell < 1) {
+    if (cell <= 0) return null;
+    // HMRC's ASA cells come in two Excel encodings across editions:
+    //  (1) a PROPER time serial (value = minutes/1440): a plausible 1-40 min
+    //      ASA is a small fraction <~0.03 (e.g. 0.0157 = 22.6 min). ×1440.
+    //  (2) a "mm:ss" value mistyped as h:mm: e.g. "23:49" (23 min 49 sec) is
+    //      stored as 23h49m = 0.99236 of a day. value*24 → mm.frac: floor =
+    //      minutes, frac*60 = seconds. This lands in roughly [0.04, 1.7].
+    // Split the two by magnitude at ~0.035 (40 min as a serial = 0.028; 1 min
+    // as the artifact = 0.042 — cleanly separable). Reject anything that
+    // decodes outside the plausible [1,40] min window so a stray cell can't
+    // ship a wrong interior point (the manifest guard only checks the latest).
+    if (cell < 0.035) {
+      const min = cell * 1440;
+      return min >= 1 && min <= 40 ? +min.toFixed(2) : null;
+    }
+    if (cell < 2) {
       const t = cell * 24;
       const mm = Math.floor(t);
       const ss = Math.round((t - mm) * 60);
-      return +(mm + ss / 60).toFixed(2);
+      const v = mm + ss / 60;
+      return v >= 1 && v <= 40 ? +v.toFixed(2) : null;
     }
-    if (cell >= 1 && cell <= 40) return +cell.toFixed(2); // already decimal minutes
+    if (cell <= 40) return +cell.toFixed(2); // already decimal minutes
     return null;
   }
   const s = String(cell).trim();
@@ -1407,7 +1420,7 @@ function hmrcParseAsa(cell) {
     return +(mm + ss / 60).toFixed(2);
   }
   const v = parseFloat(s.replace(/[,%]/g, ""));
-  if (Number.isFinite(v) && v > 0 && v <= 40) return +v.toFixed(2);
+  if (Number.isFinite(v) && v >= 1 && v <= 40) return +v.toFixed(2);
   return null;
 }
 // Scan an array-of-arrays sheet for a row whose label mentions "speed of
