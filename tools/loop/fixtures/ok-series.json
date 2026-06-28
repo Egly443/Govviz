@@ -44,6 +44,41 @@
       "minPoints": 4,
       "frozenAt": "2026-06-28",
       "note": "Observed 6 annual pts (2018/19-2024/25) from the DfE EES absence-by-characteristics data set. Floor hand-set to 4: the EES column names shift by edition and the matched PA% column could move, so leave room while still catching a full break."
+    },
+    "mhclg-private-rents": {
+      "minPoints": 60,
+      "frozenAt": "2026-06-28",
+      "note": "Observed 122 monthly pts (2015-2025) from the ONS Price Index of Private Rents historical-series workbook (UK index, Table 1). Floor 60 (5 years) leaves headroom for an edition that republishes a shorter window."
+    },
+    "ho-net-migration": {
+      "minPoints": 24,
+      "frozenAt": "2026-06-28",
+      "note": "Observed 55 quarterly rolling-YE pts (2012-2025) from the ONS LTIM provisional publication spreadsheet (Net migration block, col2 total). Floor 24 (6 years): the spreadsheet is republished each release and the metric-block layout can shift, so stay well below observed."
+    },
+    "ho-shoplifting": {
+      "minPoints": 12,
+      "frozenAt": "2026-06-28",
+      "note": "Observed 25 annual pts (2002-2025) from ONS Crime in England & Wales appendix Table A5a (police-recorded shoplifting). Floor 12: the big appendix workbook rate-limits (429) intermittently, so leave room for a transient short run."
+    },
+    "mhclg-rough-sleeping": {
+      "minPoints": 10,
+      "frozenAt": "2026-06-28",
+      "note": "Observed 16 annual pts (2010-2025) from the MHCLG autumn rough-sleeping snapshot ODS (Table_1_Total). Floor 10 tolerates a future edition trimming early years."
+    },
+    "dft-local-roads": {
+      "minPoints": 10,
+      "frozenAt": "2026-06-28",
+      "note": "Observed 18 annual pts (2008-2025) from DfT RDC0121 (% of local 'A' roads needing maintenance), England = mean of the nine English-region rows. Floor 10: the table has no national row so the series depends on the E12 region rows surviving by edition."
+    },
+    "dft-rail-fares": {
+      "minPoints": 300,
+      "frozenAt": "2026-06-28",
+      "note": "Observed 449 monthly pts (1989-2026) from the ONS CPI rail-fare CDID (D7EF). Clean deterministic one-liner; floor 300 leaves wide headroom while still catching a CDID/parser break."
+    },
+    "mhclg-social-waitlist": {
+      "minPoints": 20,
+      "frozenAt": "2026-06-28",
+      "note": "Observed 39 annual pts (1987-2025) from MHCLG Live Table 600 (households on LA waiting lists), England = sum of the nine English-region rows (no national total row). Floor 20: depends on the E12 region rows surviving by edition."
     }
   }
 }
