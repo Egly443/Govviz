@@ -79,6 +79,16 @@
       "minPoints": 20,
       "frozenAt": "2026-06-28",
       "note": "Observed 39 annual pts (1987-2025) from MHCLG Live Table 600 (households on LA waiting lists), England = sum of the nine English-region rows (no national total row). Floor 20: depends on the E12 region rows surviving by edition."
+    },
+    "mhclg-council-tax": {
+      "minPoints": 20,
+      "frozenAt": "2026-06-28",
+      "note": "Observed 34 annual pts (1993/94-2026/27, £568->£2,392 incl. all precepts) from the MHCLG Band D live-table ODS, read via the in-house odsBookRaw parser (SheetJS rejects this file). Interactive-workbook layout (England block: FY in the England-anchored column, £ in the next), so floor 20 leaves room if the layout shifts by edition. Latest cross-checked against the published £2,392 headline."
+    },
+    "hmt-regional-gap": {
+      "minPoints": 15,
+      "frozenAt": "2026-06-28",
+      "note": "Observed 26 annual pts (1998-2023) from the ONS balanced regional GVA-per-head workbook (Table 2): London GVA per head / UK average, latest 1.79x. Single deterministic ONS workbook; floor 15 leaves headroom for an edition that republishes a shorter window."
     }
   }
 }
