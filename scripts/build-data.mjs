@@ -2400,7 +2400,6 @@ const SOURCES = [
       const num = (c) => { const v = typeof c === "number" ? c : parseFloat(String(c ?? "").replace(/,/g, "")); return Number.isFinite(v) ? v : null; };
       const points = [];
       let dumped = false;
-      let dumped2025 = false;
       for (const r of zips) {
         const ym = dec(r).match(YEAR);
         if (!ym) continue;
@@ -2425,6 +2424,10 @@ const SOURCES = [
             const entIds = [];  // ids seen in this entry (for the overlap test)
             for (const sn of book.SheetNames) {
               if (/read ?me|guide|cover|content|index|note|summary|glossary|metadata|definition/i.test(sn)) continue;
+              // From 2025 the workbook adds an "All WaSC" aggregate sheet that
+              // duplicates the per-company sheets — skip it so the national total
+              // isn't doubled (per-company sheets are summed as in 2020-2024).
+              if (/^all\b|all wasc|all water and sewerage|all companies|^national\b|^total$/i.test(sn.trim())) continue;
               let rows;
               try { rows = await sheetRows(book, sn); } catch { continue; }
               let hi = -1, dc = -1;
@@ -2453,26 +2456,16 @@ const SOURCES = [
                 const v = parseFloat(s.replace(/,/g, ""));
                 return Number.isFinite(v) ? v * durScale : null;
               };
-              let shRows = 0;
               for (const row of rows.slice(hi + 1)) {
                 const v = toHours(row[dc]);
                 if (v == null || v < 0 || v > 9000) continue;
-                entVals.push(v); shRows++;
+                entVals.push(v);
                 if (idCol >= 0) { const id = String(row[idCol] ?? "").trim(); if (id) entIds.push(id); }
-              }
-              if (/2025/.test(ent.name)) {
-                console.log(`  sewage 2025 SHEET "${sn}" rows=${shRows} idCol=${idCol} dc=${dc} hdr=${JSON.stringify((rows[hi] || []).slice(0, 18).map((c) => String(c ?? "").replace(/\s+/g, " ").slice(0, 30)))}`);
-                if (shRows > 0 && !dumped2025) {
-                  dumped2025 = true;
-                  for (let k = hi + 1; k < Math.min(hi + 6, rows.length); k++) console.log(`    2025 row[${k}]=${JSON.stringify((rows[k] || []).slice(0, 18).map((c) => String(c ?? "").slice(0, 22)))}`);
-                }
               }
             }
             // Whole-entry duplicate check: if most of this entry's overflow ids
             // were already counted in a previous entry, it's a duplicate copy — skip.
             const known = entIds.length ? entIds.filter((id) => seenIds.has(id)).length / entIds.length : 0;
-            const entSum = Math.round(entVals.reduce((a, b) => a + b, 0));
-            console.log(`  sewage ${year} ENTRY "${ent.name.split("/").pop()}" rows=${entVals.length} ids=${entIds.length} sum=${entSum} overlap=${(known * 100) | 0}%`);
             if (entIds.length >= 50 && known > 0.5) {
               console.log(`  sewage ${year}: skip duplicate entry "${ent.name.split("/").pop()}" (id-overlap ${(known * 100) | 0}%, ${entVals.length} rows)`);
               continue;
