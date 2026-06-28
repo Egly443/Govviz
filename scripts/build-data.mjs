@@ -2430,8 +2430,20 @@ const SOURCES = [
           }
           if (n > 50 && sum >= 500000 && sum <= 6000000) { console.log(`  sewage ${year}: ${Math.round(sum)} hrs from ${n} overflows (col="${durName}")`); points.push({ date: `${year}-01-01`, value: Math.round(sum) }); setSrc(r.url); }
           else {
-            console.log(`  sewage ${year}: sum=${Math.round(sum)} n=${n} entries=${entries.length} (rejected)`);
-            if (!dumped && entries[0]) { dumped = true; const book = await xlsxBookFromBuffer(entries[0].buf); const sn = book.SheetNames.find((s) => !/read|guide|cover|content|index|note|summary|glossary|metadata|definition/i.test(s)) || book.SheetNames[0]; const rows = await sheetRows(book, sn); console.log(`  sewage dump ${entries[0].name} sheets=[${book.SheetNames.join("|")}] "${sn}" r0=${JSON.stringify(rows[0] || []).slice(0, 240)} r1=${JSON.stringify(rows[1] || []).slice(0, 160)}`); }
+            console.log(`  sewage ${year}: sum=${Math.round(sum)} n=${n} entries=${entries.length} matchedCol="${durName}" (rejected)`);
+            if (!dumped && entries[0]) {
+              dumped = true;
+              const book = await xlsxBookFromBuffer(entries[0].buf);
+              const sn = book.SheetNames.find((s) => !/read|guide|cover|content|index|note|summary|glossary|metadata|definition/i.test(s)) || book.SheetNames[0];
+              const rows = await sheetRows(book, sn);
+              let hr = 0;
+              for (let i = 0; i < Math.min(rows.length, 25); i++) { if ((rows[i] || []).some((c) => /duration/i.test(String(c ?? "")))) { hr = i; break; } }
+              const hdr = (rows[hr] || []).map((c, i) => `${i}:${String(c ?? "").replace(/\s+/g, " ").slice(0, 55)}`);
+              console.log(`  sewage DUMP ${entries[0].name.split("/").pop()} sheet="${sn}" hdrRow=${hr} cols=${JSON.stringify(hdr)}`);
+              const sample = rows[hr + 1] || [];
+              const durCols = (rows[hr] || []).map((c, i) => [i, String(c ?? "")]).filter(([, c]) => /duration|hour|hrs/i.test(c));
+              console.log(`  sewage DUMP duration-cols=${JSON.stringify(durCols.map(([i, c]) => `${i}:"${c.replace(/\s+/g, " ").slice(0, 50)}"=${sample[i]}`))}`);
+            }
           }
         } catch (e) { console.log(`  sewage ${year} err ${e.message}`); }
       }
@@ -2486,7 +2498,13 @@ const SOURCES = [
           .replace(/\s+/g, " ");
         const val = grabHours(text);
         if (val != null) { console.log(`  sewage ${y}: ${val} hrs (gov.uk news scrape)`); points.push({ date: `${y}-01-01`, value: val }); haveYear.add(String(y)); setSrc(srcUrl); }
-        else console.log(`  sewage ${y}: no in-range hours figure in news article`);
+        else {
+          console.log(`  sewage ${y}: no in-range hours figure (src=${srcUrl} textLen=${text.length})`);
+          const ctx = [];
+          for (const re of [/.{0,32}(?:hours|hrs)\b/gi, /.{0,18}million.{0,12}/gi]) { re.lastIndex = 0; let m, c = 0; while ((m = re.exec(text)) && c < 5) { ctx.push(m[0].replace(/\s+/g, " ").trim()); c++; } }
+          console.log(`  sewage ${y} DUMP hour/million-contexts=${JSON.stringify(ctx).slice(0, 500)}`);
+          console.log(`  sewage ${y} DUMP head="${text.slice(0, 320)}"`);
+        }
       }
 
       if (points.length >= 3) return points.sort((a, b) => (a.date < b.date ? -1 : 1));
