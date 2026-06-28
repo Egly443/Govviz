@@ -219,12 +219,20 @@ and `dsit-gigabit-broadband` (both hard HTTP-403 walls):
   row — so: restrict to `table_224` by filename and the plain "2.2.4" sheet; pick a per-kWh unit-price
   column (preferring overall/all-payment) and **exclude the `… fixed cost (£/year)` standing-charge**
   column; **scale £/kWh ×100 → pence** to meet the [5,50] guard; take the UK row. ~12→25 p/kWh 2010→2025.
-- **`defra-sewage-hours` — `ok`, 4 annual pts (2020–2023)** via the EA EDM zip-of-workbooks sum (the host
-  served the 2020–2023 zips this run). Added a **gov.uk press-release news-scrape fallback** (reachable
-  host) for years the rate-limited EA zip host or a changed workbook layout drops — wired and entity-
-  decoding `&nbsp;`, but it did **not** yet extract 2024/2025 (the article phrases the total differently
-  than the regex expects, and the 2024/2025 zip workbooks changed the duration-column layout → undercount).
-  TODO: dump the 2024 article body / 2024 zip header in a diagnostic round to capture the two newest years.
+- **`defra-sewage-hours` — `ok`, 6 annual pts (2020–2025)**, every year cross-checked against the
+  EA's published headline (2021=2,667,452; 2022=1,754,921; 2024=3,614,428 exact; 2025≈1.87M, the EA's
+  "−48% vs 2024"). All from the EA EDM zip-of-workbooks sum. **Two layout traps the diagnostic loop
+  caught** (each a believably-wrong value the [≤6M] guard would have missed):
+  (1) **2024+ changed the duration column from `(hours)` decimal to `(hh:mm:ss)`**, stored as an Excel
+  time serial (a day-fraction, 0.1875 = 4.5h) — detect by header and **×24** (2020-2023 stay scale 1).
+  (2) **The 2025 workbook added an "All WaSC" aggregate sheet on top of the per-company sheets**, so
+  summing every sheet *doubled* the nation (28,478 rows → 3.75M vs the real ~1.87M) — **skip aggregate
+  sheets by name** and keep the per-company sheets (as 2020-2024), preserving the legitimate
+  within-permit row repeats the official total counts. **Lesson:** a per-row Unique-ID dedup is WRONG
+  here — it strips those legit repeats (it knocked 2021/2022 ~8% below their official totals); the real
+  duplication was a whole redundant sheet, not repeated ids. A gov.uk press-release news-scrape fallback
+  is also wired (reachable host, `&nbsp;`-decoding) but the 2024 article states only a % change, so the
+  zip remains the source of record.
 - TODO (optional): freeze `hmrc-call-wait` / `cab-foi-intime` into `tools/loop/fixtures/ok-series.json`
   once observed stable across a few runs. Note `--freeze` auto-sets the floor to *observed* points, which is
   too tight for `hmrc-call-wait` (24-edition walk; a single transient edition-download drop would falsely
