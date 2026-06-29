@@ -50,6 +50,37 @@ theme in `src/styles.css`), **Recharts**, **d3-hierarchy**, **lucide-react**.
   Pages → Build and deployment → Source → GitHub Actions. Assets use stable
   (non-hashed) filenames so an edge-cached index.html can't reference purged files.
 
+## CI timing (measured)
+
+Real step durations, so time-based waits on CI can be set accurately rather than
+guessed. Measured from `data-check.yml` runs #185–186 (2026-06-29, commits
+`fd7be73`/`5ed8654`):
+
+| Step | Typical |
+|---|---|
+| Set up job + checkout + setup-node | ~6–8 s |
+| `npm ci` | ~3 s |
+| `npm install --no-save xlsx fflate` | ~1 s |
+| **Fetch live data (no deploy)** | **~10 min** (dominant, network-bound) |
+| Data fetch reward summary | <1 s |
+| Fixture regression check | ~1 s |
+| Post / cleanup | ~1 s |
+| **Whole `data-check` job** | **~10.5 min** (≈630 s; run #185 fetch step = 10 m 11 s) |
+
+- **The "Fetch live data" step is ~10 min and dwarfs everything else (~12 s of
+  setup).** It is network-bound and varies with source responsiveness; the 18
+  per-month NHS RTT workbook downloads are the single heaviest contributor
+  (~+4.5 min). Budget **~10–11 min from push to a usable verdict** — do not
+  expect anything before then.
+- **`deploy.yml`** (production, on `main`) runs the same ~10 min fetch **plus**
+  `vite build` + blog prerender + Pages deploy (~+1–2 min) → budget **~12–13 min**.
+- **Setting waits:** after a push, the first meaningful CI re-check is **~10 min
+  out** (the fetch can't have finished sooner). Poll at ~270 s intervals only
+  *after* that first check, to catch the tail (reward + fixture steps are
+  instant). Locally, `vite build` ≈ 5 s and `tsc -b` typecheck ≈ 2 s, so local
+  verification is the fast path; reserve CI waits for things only CI can do
+  (the live fetch).
+
 ## Environment gotchas (Claude Code on the web)
 
 - **No outbound internet from the sandbox.** External fetches/curl (incl. the
