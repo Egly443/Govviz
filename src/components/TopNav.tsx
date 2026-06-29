@@ -18,6 +18,9 @@ export function TopNav() {
           <Link to="/blog" className="hover:text-foreground">
             Essay
           </Link>
+          <Link to="/about" className="hover:text-foreground">
+            How it&rsquo;s built
+          </Link>
           <a
             href="https://github.com/Egly443/Govviz"
             target="_blank"

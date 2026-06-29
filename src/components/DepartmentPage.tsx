@@ -4,7 +4,7 @@ import { TrendPanel } from "./TrendPanel";
 import { TurnoverBreakdown } from "./TurnoverBreakdown";
 import { DepartmentTabs } from "./DepartmentTabs";
 import { realAsOf } from "./data";
-import { departmentIndicators, ragColor } from "./overview";
+import { departmentIndicators, ragColor, ragLabel } from "./overview";
 import type { Department } from "./departments";
 
 interface Props {
@@ -133,21 +133,27 @@ function SynthesisCard({ dept }: { dept: Department }) {
       </h3>
       {inds.length > 0 && (
         <>
-          <div className="mt-3 flex gap-1" role="img" aria-label="Per-indicator RAG snapshot">
-            {inds.map((i) => (
-              <span
-                key={i.series.id}
-                className="h-2.5 flex-1 rounded-sm"
-                style={{ background: ragColor(i.score, i.targeted) }}
-                title={`${i.series.title}${i.targeted ? "" : " — no external benchmark (scored vs own history)"}`}
-              />
-            ))}
-          </div>
+          <ul className="mt-3 flex list-none gap-1 p-0">
+            {inds.map((i) => {
+              const rag = ragLabel(i.score, i.targeted);
+              return (
+                <li
+                  key={i.series.id}
+                  className="flex h-5 flex-1 items-center justify-center rounded-sm text-[10px] font-semibold leading-none text-black/70"
+                  style={{ background: ragColor(i.score, i.targeted) }}
+                  title={`${i.series.title}: ${rag.label}${i.targeted ? "" : " (scored vs own history)"}`}
+                  aria-label={`${i.series.title}: ${rag.label}`}
+                >
+                  <span aria-hidden="true">{rag.letter}</span>
+                </li>
+              );
+            })}
+          </ul>
           <p className="mt-2 text-[11px] text-muted-foreground">
-            Per-indicator RAG against each measure&rsquo;s published target where
-            one exists; muted bars have no external benchmark and are scored
-            against the series&rsquo; own history. Deliberately not reduced to a
-            single grade.
+            Per-indicator RAG (G&nbsp;green · A&nbsp;amber · R&nbsp;red) against
+            each measure&rsquo;s published target where one exists; bars marked
+            &ldquo;–&rdquo; have no external benchmark and are scored against the
+            series&rsquo; own history. Deliberately not reduced to a single grade.
           </p>
         </>
       )}

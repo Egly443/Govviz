@@ -1,6 +1,8 @@
 import { SERIES_DATA } from "../generated/seriesData";
 
-export type Point = { date: string; value: number };
+// `lo`/`hi` carry a published uncertainty interval (e.g. a survey's 95%
+// confidence interval) around `value`, when the source provides one.
+export type Point = { date: string; value: number; lo?: number; hi?: number };
 export type Annotation = { date: string; label: string };
 
 export type SeriesUnit =
@@ -54,6 +56,25 @@ export type TrendSeries = {
    * as its inputs, and never carries its own SERIES_DATA entry.
    */
   derivedFrom?: string[];
+  /** Plain-language note on how a derived/aggregated value is computed (cost÷outcome ratio, region aggregation, etc.). Rendered as a "How it's calculated" note. */
+  methodology?: string;
+  /** Caveat shown on the chart: survey sampling error, provisional/revised figures, or a break in the series (e.g. a methodology change). */
+  caveat?: string;
+  /** Geographic / population scope of the series, e.g. "England", "UK", "Great Britain", "UK vs Germany & France". Surfaced so the common England-vs-UK misread is explicit. */
+  coverage?: string;
+  /** Precise statement of what is counted (numerator ÷ denominator in words), where the subtitle alone is ambiguous. */
+  definition?: string;
+  /** Measurement basis, e.g. "real terms, 2023-24 prices", "seasonally adjusted", "nominal", "cash terms". */
+  basis?: string;
+  /**
+   * Which side of government the indicator measures (the "measurement gap"):
+   * - "experience" = consumer/citizen-side outcome (could I get a GP, afford
+   *   the bill, is my street safe) — what you actually receive.
+   * - "process" = producer/delivery-side output (throughput, unit cost, RAGs,
+   *   headcount) — what government does.
+   * Makes the producer-vs-consumer split machine-visible. Untagged = unclassified.
+   */
+  lens?: "experience" | "process";
   annotations: Annotation[];
 };
 
@@ -96,6 +117,18 @@ export function realAsOf(id: string): string | undefined {
 /** Exact URL of the file/table CI actually fetched for this series, if known. */
 export function realSourceUrl(id: string): string | undefined {
   return SERIES_DATA[id]?.srcUrl;
+}
+/** The plausibility guard range (min/max) the baked value passed, if known. */
+export function realGuard(id: string): { min: number; max: number } | undefined {
+  return SERIES_DATA[id]?.guard;
+}
+/** Short content fingerprint of the exact baked dataset (pins the data version). */
+export function realHash(id: string): string | undefined {
+  return SERIES_DATA[id]?.srcHash;
+}
+/** Hash of the raw upstream source bytes CI fetched for this series, if known. */
+export function realSourceBytesHash(id: string): string | undefined {
+  return SERIES_DATA[id]?.srcBytesHash;
 }
 
 // International peer set for World Bank comparator charts. Keep in sync with
@@ -144,6 +177,7 @@ export function ratioSeries(o: {
   scale?: number;
   round?: number;
   vfm?: boolean;
+  methodology?: string;
   annotations?: Annotation[];
 }): TrendSeries {
   const scale = o.scale ?? 1;
@@ -173,6 +207,7 @@ export function ratioSeries(o: {
     cadence: o.num.cadence,
     points,
     derivedFrom: [o.num.id, o.den.id],
+    methodology: o.methodology ?? `Computed as ${o.num.title} ÷ ${o.den.title}, aligned by year.`,
     annotations: o.annotations ?? [],
   };
 }
@@ -191,8 +226,10 @@ const fmtBedsShort = (v: number) => `${(v / 1000).toFixed(1)}k`;
 // ============================================================
 export const waitingList: TrendSeries = {
   id: "waiting-list",
+  lens: "experience",
   title: "Elective care waiting list",
   subtitle: "Incomplete RTT pathways",
+  coverage: "England",
   unit: "people",
   format: fmtMillions,
   shortFormat: fmtMillionsShort,
@@ -216,8 +253,10 @@ export const waitingList: TrendSeries = {
 // 18-week elective treatment target compliance — statutory 92% standard
 export const rtt18Week: TrendSeries = {
   id: "rtt-18-week",
+  lens: "experience",
   title: "18-week treatment target compliance",
   subtitle: "% of incomplete pathways under 18 weeks",
+  coverage: "England",
   unit: "percent",
   format: fmtPct,
   shortFormat: fmtPct,
@@ -240,6 +279,7 @@ export const dischargeDelays: TrendSeries = {
   id: "discharge-delays",
   title: "Hospital discharge bottleneck",
   subtitle: "Beds/day occupied by patients medically fit for discharge",
+  coverage: "England",
   unit: "beds",
   format: fmtBeds,
   shortFormat: fmtBedsShort,
@@ -259,8 +299,11 @@ export const dischargeDelays: TrendSeries = {
 // NHS temporary agency spend, rolling 12-month £bn
 export const agencySpend: TrendSeries = {
   id: "agency-spend",
+  lens: "process",
   title: "NHS temporary agency staff spend",
   subtitle: "Rolling 12-month, £ billion",
+  coverage: "England",
+  basis: "nominal (cash terms)",
   unit: "gbp",
   format: fmtGbp,
   shortFormat: fmtGbpShort,
@@ -282,6 +325,7 @@ export const agencySpend: TrendSeries = {
 // weighted cost variance across DHSC major projects
 export const capitalOverrun: TrendSeries = {
   id: "capital-overrun",
+  lens: "process",
   title: "Capital programme cost overrun",
   subtitle: "Weighted variance across DHSC major projects",
   unit: "percent",
@@ -306,8 +350,10 @@ export const capitalOverrun: TrendSeries = {
 
 export const aePerformance: TrendSeries = {
   id: "ae-performance",
+  lens: "experience",
   title: "A&E 4-hour standard",
   subtitle: "% of attendances admitted/discharged within 4 hours",
+  coverage: "England",
   unit: "percent",
   format: fmtPct,
   shortFormat: fmtPct,
@@ -329,8 +375,10 @@ export const aePerformance: TrendSeries = {
 // "waited hours for an ambulance" grievance. 18-minute national standard.
 export const ambulanceC2: TrendSeries = {
   id: "dhsc-ambulance-c2",
+  lens: "experience",
   title: "Ambulance response (Category 2)",
   subtitle: "Mean response to emergency calls (heart attack, stroke), minutes",
+  coverage: "England",
   unit: "count",
   format: (v) => `${v.toFixed(0)} min`,
   shortFormat: (v) => `${v.toFixed(0)}m`,
@@ -457,6 +505,7 @@ export const infantMortality: TrendSeries = {
 
 export const lifeExpectancy: TrendSeries = {
   id: "life-expectancy",
+  lens: "experience",
   title: "Life expectancy at birth",
   subtitle: "Years, England, both sexes",
   unit: "years",

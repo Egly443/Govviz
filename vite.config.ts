@@ -23,6 +23,17 @@ export default defineConfig(({ command }) => ({
         entryFileNames: "assets/[name].js",
         chunkFileNames: "assets/[name].js",
         assetFileNames: "assets/[name][extname]",
+        // Split all third-party code into a single stable-named `vendor` chunk
+        // so it caches independently of app code (which changes far more often).
+        // A single vendor chunk is deliberate: finer splits (separating recharts
+        // from React) create circular chunk dependencies — Rollup then can't
+        // guarantee module-evaluation order across chunks, which crashes at load
+        // with a TDZ "Cannot access X before initialization" (recharts reads
+        // prop-types at module-eval time). One vendor chunk keeps the whole
+        // third-party graph in one correctly-ordered file.
+        manualChunks(id) {
+          if (id.includes("node_modules")) return "vendor";
+        },
       },
     },
   },

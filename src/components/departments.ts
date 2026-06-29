@@ -98,6 +98,7 @@ const dfeAttainmentGap: TrendSeries = {
   id: "dfe-attainment-gap",
   title: "Disadvantaged attainment gap",
   subtitle: "KS4 disadvantage gap index (higher = wider gap)",
+  coverage: "England",
   unit: "count",
   format: (v) => v.toFixed(2),
   shortFormat: (v) => v.toFixed(1),
@@ -154,6 +155,7 @@ const dfeTeacherRecruitment: TrendSeries = {
   id: "dfe-teacher-recruitment",
   title: "Teacher training recruitment",
   subtitle: "Postgraduate ITT enrolments vs target (%)",
+  coverage: "England",
   unit: "percent",
   format: fmtPct,
   shortFormat: fmtPct,
@@ -312,6 +314,8 @@ const mojCostPerPrisoner: TrendSeries = {
   vfm: true,
   title: "Average cost per prisoner",
   subtitle: "Direct + overheads, real terms £/yr",
+  coverage: "England & Wales",
+  basis: "real terms",
   unit: "currency",
   format: (v) => `£${Math.round(v).toLocaleString("en-GB")}/yr`,
   shortFormat: (v) => `£${(v / 1000).toFixed(0)}k`,
@@ -385,6 +389,7 @@ const modVoluntaryOutflow: TrendSeries = {
 
 const modProcurement: TrendSeries = {
   id: "mod-procurement",
+  lens: "process",
   vfm: true,
   title: "MoD major projects delivery confidence",
   subtitle: "% of MoD GMPP projects rated Amber/Red or Red",
@@ -587,6 +592,8 @@ const hmtGdpPerCapita: TrendSeries = {
   id: "hmt-gdp-per-capita",
   title: "Real GDP per head",
   subtitle: "Chained-volume £ per person",
+  coverage: "UK",
+  basis: "real terms (chained volume)",
   unit: "currency",
   format: fmtGbpHead,
   shortFormat: fmtGbpHeadShort,
@@ -626,6 +633,8 @@ const hmtRealIncome: TrendSeries = {
   id: "hmt-real-income",
   title: "Real household income per head",
   subtitle: "Real households' disposable income, £ per person",
+  coverage: "UK",
+  basis: "real terms",
   unit: "currency",
   format: fmtGbpHead,
   shortFormat: fmtGbpHeadShort,
@@ -935,6 +944,7 @@ function wbS(o: {
     target: o.target,
     source: o.source,
     sourceUrl: `https://data.worldbank.org/indicator/${o.code}?locations=GB`,
+    coverage: o.compare ? "UK vs Germany & France" : "UK",
     cadence: "annual",
     points: o.compare
       ? realLine(o.id, "gbr")
@@ -1098,6 +1108,8 @@ const defraRecycling: TrendSeries = {
   sourceUrl: "https://www.gov.uk/government/statistics/uk-waste-data",
   cadence: "annual",
   points: realPoints("defra-recycling"),
+  methodology:
+    "Computed as (dry recycling + organic waste) ÷ total household waste collected, England, per year.",
   annotations: [],
 };
 
@@ -1239,6 +1251,8 @@ const dcmsSport: TrendSeries = {
   sourceUrl: "https://www.sportengland.org/research-and-data/data/active-lives",
   cadence: "annual",
   points: realPoints("dcms-sport-participation"),
+  caveat:
+    "Survey estimate (Active Lives) — subject to sampling error; not a full population count.",
   annotations: [],
 };
 
@@ -1282,6 +1296,7 @@ const fcdoOdaTotal: TrendSeries = {
 // ============================================================
 const cabGmpp: TrendSeries = {
   id: "cab-gmpp-confidence",
+  lens: "process",
   title: "Major projects delivery confidence",
   subtitle: "% of Government Major Projects Portfolio rated green / amber-green",
   unit: "percent",
@@ -1296,6 +1311,7 @@ const cabGmpp: TrendSeries = {
 };
 const cabCivilService: TrendSeries = {
   id: "cab-civil-service-headcount",
+  lens: "process",
   title: "Civil service headcount",
   // Direction is contested (efficiency vs capacity); oriented "down" only to
   // colour the tile, not as a value judgement — see the department synthesis.
@@ -1376,6 +1392,7 @@ const cabFoi: TrendSeries = {
 // ============================================================
 const hmrcCallWait: TrendSeries = {
   id: "hmrc-call-wait",
+  lens: "experience",
   title: "Phone wait times",
   subtitle: "Average speed of answer to an HMRC adviser, minutes",
   unit: "count",
@@ -1390,6 +1407,7 @@ const hmrcCallWait: TrendSeries = {
 };
 const hmrcTaxGap: TrendSeries = {
   id: "hmrc-tax-gap",
+  lens: "process",
   title: "Tax gap",
   subtitle: "Tax not collected as % of total theoretical liabilities",
   unit: "percent",
@@ -1412,6 +1430,7 @@ const hmrcTaxGap: TrendSeries = {
 // index, 2015 = 100 (CDID D7BU) — a clean ons() one-liner.
 const hmtFoodPrices: TrendSeries = {
   id: "hmt-food-prices",
+  lens: "experience",
   title: "Food prices",
   subtitle: "CPI food & non-alcoholic drink price index (2015 = 100)",
   unit: "count",
@@ -1450,6 +1469,7 @@ const dfePersistentAbsence: TrendSeries = {
 // Rents historical series (chain-linked PIPR/IPHRP, monthly from 2005).
 const mhclgPrivateRents: TrendSeries = {
   id: "mhclg-private-rents",
+  lens: "experience",
   title: "Private rents",
   subtitle: "Price Index of Private Rents, UK (rebased index)",
   unit: "count",
@@ -1484,12 +1504,15 @@ const hoNetMigration: TrendSeries = {
     "https://www.ons.gov.uk/peoplepopulationandcommunity/populationandmigration/internationalmigration",
   cadence: "annual",
   points: realPoints("ho-net-migration"),
+  caveat:
+    "Long-term migration estimates (LTIM) are provisional and routinely revised; methodology and data sources have changed over the series.",
   annotations: [{ date: "2021-01-01", label: "Post-Brexit points system" }],
 };
 
 // Home Office — shoplifting (the crime people see). ONS police-recorded crime.
 const hoShoplifting: TrendSeries = {
   id: "ho-shoplifting",
+  lens: "experience",
   title: "Shoplifting offences",
   subtitle: "Police-recorded shoplifting, England & Wales, per year",
   unit: "count",
@@ -1503,6 +1526,8 @@ const hoShoplifting: TrendSeries = {
     "https://www.ons.gov.uk/peoplepopulationandcommunity/crimeandjustice/datasets/crimeinenglandandwalesappendixtables",
   cadence: "annual",
   points: realPoints("ho-shoplifting"),
+  caveat:
+    "Police-recorded crime — sensitive to recording-practice changes and reporting rates, and differs from the Crime Survey for England & Wales' victimisation-based estimate.",
   annotations: [{ date: "2022-01-01", label: "Post-pandemic surge" }],
 };
 
@@ -1510,6 +1535,7 @@ const hoShoplifting: TrendSeries = {
 // average Band D, England, financial year since 1993-94.
 const mhclgCouncilTax: TrendSeries = {
   id: "mhclg-council-tax",
+  lens: "experience",
   title: "Council tax",
   subtitle: "Average Band D council tax, England (£/yr)",
   unit: "currency",
@@ -1528,6 +1554,7 @@ const mhclgCouncilTax: TrendSeries = {
 // MHCLG — rough sleeping (people on the street). MHCLG annual autumn snapshot.
 const mhclgRoughSleeping: TrendSeries = {
   id: "mhclg-rough-sleeping",
+  lens: "experience",
   title: "Rough sleeping",
   subtitle: "People estimated sleeping rough on a single night, England",
   unit: "count",
@@ -1557,12 +1584,15 @@ const dftLocalRoads: TrendSeries = {
   sourceUrl: "https://www.gov.uk/government/statistical-data-sets/road-condition-statistics-data-tables-rdc",
   cadence: "annual",
   points: realPoints("dft-local-roads"),
+  methodology:
+    "Mean across the English regions (the source reports a value per region, not a single England figure).",
   annotations: [],
 };
 
 // DfT — rail fares (the fare that rises every January). ONS CPI rail index.
 const dftRailFares: TrendSeries = {
   id: "dft-rail-fares",
+  lens: "experience",
   title: "Rail fares",
   subtitle: "CPI rail fares index — passenger transport by railway (2015 = 100)",
   unit: "count",
@@ -1593,6 +1623,8 @@ const mhclgWaitlist: TrendSeries = {
   sourceUrl: "https://www.gov.uk/government/statistical-data-sets/live-tables-on-rents-lettings-and-tenancies",
   cadence: "annual",
   points: realPoints("mhclg-social-waitlist"),
+  methodology:
+    "Summed across the nine English regions (no national total is published in the source table).",
   annotations: [],
 };
 
@@ -1610,6 +1642,8 @@ const dhscGpAccess: TrendSeries = {
   sourceUrl: "https://www.england.nhs.uk/statistics/statistical-work-areas/gp-patient-survey/",
   cadence: "annual",
   points: realPoints("dhsc-gp-access"),
+  caveat:
+    "GP Patient Survey estimate; the 2024 questionnaire redesign creates a break in the series — figures before and after are not directly comparable.",
   annotations: [{ date: "2024-01-01", label: "Survey redesign" }],
 };
 
@@ -1630,6 +1664,8 @@ const hmtRegionalGap: TrendSeries = {
     "https://www.ons.gov.uk/economy/grossvalueaddedgva/datasets/nominalregionalgrossvalueaddedbalancedperheadandincomecomponents",
   cadence: "annual",
   points: realPoints("hmt-regional-gap"),
+  methodology:
+    "Ratio of London GVA per head to the UK average (London ÷ UK), per year. Higher = wider regional gap.",
   annotations: [],
 };
 

@@ -82,6 +82,23 @@ export function ragScore(series: TrendSeries): number {
  * heavily desaturated so it reads as *indicative, not a verdict* — an
  * own-range score is not comparable to a target-anchored one.
  */
+/**
+ * Redundant (non-colour) encoding of a RAG score, so the rating survives
+ * colour-blindness and greyscale. Returns a short glyph and a screen-reader
+ * label. `benchmarked = false` means no external target (scored vs own history),
+ * shown as a neutral dash.
+ */
+export function ragLabel(
+  score: number,
+  benchmarked = true,
+): { letter: string; label: string } {
+  if (!benchmarked) return { letter: "–", label: "no external benchmark" };
+  const s = Math.max(0, Math.min(1, score));
+  if (s >= 0.66) return { letter: "G", label: "green" };
+  if (s >= 0.33) return { letter: "A", label: "amber" };
+  return { letter: "R", label: "red" };
+}
+
 export function ragColor(score: number, benchmarked = true): string {
   const s = Math.max(0, Math.min(1, score));
   const hue =

@@ -50,6 +50,41 @@ theme in `src/styles.css`), **Recharts**, **d3-hierarchy**, **lucide-react**.
   Pages → Build and deployment → Source → GitHub Actions. Assets use stable
   (non-hashed) filenames so an edge-cached index.html can't reference purged files.
 
+## CI timing (measured)
+
+Real step durations, so time-based waits on CI can be set accurately rather than
+guessed. Measured from `data-check.yml` runs #185–186 (2026-06-29, commits
+`fd7be73`/`5ed8654`):
+
+| Step | Typical |
+|---|---|
+| Set up job + checkout + setup-node | ~6–8 s |
+| `npm ci` | ~3 s |
+| `npm install --no-save xlsx fflate` | ~1 s |
+| **Fetch live data (no deploy)** | **~10–20 min** (dominant, network-bound, high variance) |
+| Data fetch reward summary | <1 s |
+| Fixture regression check | ~1 s |
+| Post / cleanup | ~1 s |
+| **Whole `data-check` job** | **~10–20 min** (setup ~12 s; fetch is everything else) |
+
+- **The "Fetch live data" step is the whole cost and is HIGHLY VARIABLE** —
+  measured **10 m 11 s** (run #185) and **19 m 36 s** (run #186) on the same day,
+  same code. It is network-bound (waits on ~135 upstream sources; the 18
+  per-month NHS RTT workbook downloads are the single heaviest contributor,
+  ~+4.5 min) so duration depends on source responsiveness, not the diff. Budget
+  **~20 min worst-case from push to a usable verdict**; do not treat a single
+  prior run's time as an ETA.
+- **`deploy.yml`** (production, on `main`) runs the same fetch **plus** `vite
+  build` + blog prerender + Pages deploy (~+1–2 min) → budget **~12–22 min**.
+- **Setting waits:** after a push, the first meaningful CI re-check is **~10 min
+  out** (the fetch can't finish sooner), but it may well still be running at 20
+  min. Poll at ~270 s intervals *after* that first check (reward + fixture steps
+  are instant once the fetch ends). Locally, `vite build` ≈ 5 s and `tsc -b`
+  typecheck ≈ 2 s, so local verification is the fast path; reserve CI waits for
+  things only CI can do (the live fetch). The fetch step exposes step-level
+  status via the jobs API, so poll the job's steps to see when step 6 flips to
+  `completed` rather than guessing from elapsed time.
+
 ## Environment gotchas (Claude Code on the web)
 
 - **No outbound internet from the sandbox.** External fetches/curl (incl. the
@@ -246,9 +281,21 @@ SKIP, both hard-blocked by HTTP 403 — not parser bugs).
     GVA tables put DCMS **sectors as COLUMN headers** with years down col0 (sheets 1a-1c are SIC-definition
     lookups, not values), and sheet 2a is **current prices £bn** (not £m, no `scale`). Orientation-C parser
     (sector-as-column) + a current-prices-title tiebreak (over chained-volume 2b).
-  - `dcms-sport-participation` — Sport England Active Lives landing-page scrape, 4 pts (2021–2025).
-    **Lesson:** "Active" is a COLUMN group; the % is the "Rate (%)" sub-column stored as a **proportion**
-    (0.6207 → ×100); read the "All adults (aged 16+)" row.
+  - `dcms-sport-participation` — Sport England Active Lives, **10 pts (2016–2025)** from the in-workbook
+    trend table. **Lesson:** "Active" is a COLUMN group; the % is the "Rate (%)" sub-column stored as a
+    **proportion** (0.6207 → ×100); read the "All adults (aged 16+)" row. **BUG FOUND & FIXED (2026-06-29):**
+    the original code read one file per year from the landing page, but **Sport England's dated per-year
+    download links all resolve to the CURRENT workbook** (verified: byte-identical population counts —
+    e.g. `27549400` — across every "year"), so it produced **4 fake-identical points**. The real multi-year
+    series lives in the **`Table 1b Levels Trends`** sheet (all 10 survey periods Nov 2015-16…2024-25 as
+    repeating ~8-column blocks; period labels "November YYYY - November YYYY" in one row, Active/Fairly/
+    Inactive group headers below, "All adults (aged 16+)" Active rate in the col after each period's "Active"
+    header). **`sheet_to_json` reads this sheet as EMPTY** (odd/oversized `!ref`), so reconstruct the grid
+    from raw cells (`Object.keys(sheet)` filtered to `/^[A-Z]+\d+$/`, `XLSX.utils.decode_cell`). That trend
+    table publishes **no per-period CI**, so the series ships without an uncertainty band. **General lesson:
+    historical "per-year" download links on gov/agency sites may silently serve the current file — verify
+    distinct content (e.g. population counts) before trusting one-file-per-year, and prefer an in-workbook
+    trend/time-series table.**
 - **Only hard block left among the new departments:** `dsit-gigabit-broadband` (Ofcom Connected Nations)
   — every Ofcom data-downloads page **HTTP 403s** automated clients (same class as `turnover`/digital.nhs.uk).
   Fetcher kept as a documented SKIP; needs a non-gated mirror (the data.gov.uk CKAN copy is LA/postcode-only).

@@ -17,6 +17,9 @@ import {
   latest,
   minMax,
   realAsOf,
+  realGuard,
+  realHash,
+  realSourceBytesHash,
   realSourceUrl,
   seriesIsReal,
   SHOW_ILLUSTRATIVE,
@@ -54,6 +57,9 @@ export function TrendPanel({
 }: Props) {
   const ranges: Range[] = series.cadence === "annual" ? [10, 20, "max"] : [5, 10, 20, "max"];
   const [range, setRange] = useState<Range>(defaultRange);
+  // Accessible alternative: a data table behind every chart (always in the DOM
+  // for assistive tech; visually shown only when toggled).
+  const [showTable, setShowTable] = useState(false);
 
   // Normalise to a list of lines (single-line charts become one line). Lines
   // with no points (e.g. international comparators not yet baked by CI) are
@@ -73,11 +79,13 @@ export function TrendPanel({
   // Merge each line's sliced points into a single row-per-date dataset.
   const data = useMemo(() => {
     const years = range === "max" ? "max" : range;
-    const byDate = new Map<string, Record<string, number | string>>();
+    const byDate = new Map<string, Record<string, number | string | [number, number]>>();
     lines.forEach((l, i) => {
       for (const p of slicePoints(l.points, years)) {
         const row = byDate.get(p.date) ?? { date: p.date };
         row[`l${i}`] = p.value;
+        // Range tuple for an uncertainty band, when the point carries one.
+        if (p.lo != null && p.hi != null) row[`b${i}`] = [p.lo, p.hi];
         byDate.set(p.date, row);
       }
     });
@@ -99,6 +107,13 @@ export function TrendPanel({
   const vintage = real ? stalenessOf(series) : null;
   // Exact file CI fetched (preferred over the static landing-page sourceUrl).
   const exactSrc = real ? realSourceUrl(series.id) : undefined;
+  // The plausibility range the latest value passed at fetch time — a visible QA
+  // signal. Only meaningful for a directly-fetched (non-derived) real series.
+  const guard = real && !series.derivedFrom ? realGuard(series.id) : undefined;
+  // Content fingerprint of the exact baked dataset (data-version pin).
+  const fingerprint = real && !series.derivedFrom ? realHash(series.id) : undefined;
+  // Hash of the raw upstream source bytes (lineage pin to the fetched file).
+  const srcBytesHash = real && !series.derivedFrom ? realSourceBytesHash(series.id) : undefined;
 
   // Production honesty gate: never render a fabricated trend line. An unsourced
   // series shows an explicit placeholder instead of its illustrative fallback.
@@ -147,6 +162,21 @@ export function TrendPanel({
     series.target ? Math.max(yMax + pad, series.target.value + pad / 2) : yMax + pad,
   ];
 
+  // Size the Y axis to its widest tick label. A fixed width + negative left
+  // margin right-anchors tick text at a fixed x, so wide labels (e.g.
+  // "£130.3bn", "32.3%") overflow past the SVG origin and get clipped by the
+  // card's overflow-hidden. Estimate the widest formatted label across the
+  // domain (and any target) and reserve enough width, with left margin 0 so the
+  // axis is never pulled off-canvas. ~6.6px/char at 11px is a safe over-estimate.
+  const yLabelSamples = [
+    yDomain[0],
+    yDomain[1],
+    (yDomain[0] + yDomain[1]) / 2,
+    ...(series.target ? [series.target.value] : []),
+  ];
+  const widestYChars = Math.max(1, ...yLabelSamples.map((v) => yFmt(v).length));
+  const yAxisWidth = Math.min(80, Math.max(34, Math.ceil(widestYChars * 6.6) + 12));
+
   const visibleAnnotations =
     showAnnotations && data.length
       ? series.annotations.filter(
@@ -155,6 +185,25 @@ export function TrendPanel({
             new Date(a.date) <= new Date(data[data.length - 1].date as string),
         )
       : [];
+
+  // Whether any line carries a published uncertainty band.
+  const hasBand = lines.some((_, i) => data.some((d) => Array.isArray(d[`b${i}`])));
+
+  // Concise text alternative for the chart (read by screen readers via role=img).
+  const rangeFrom = data.length ? formatMonth(data[0].date as string) : "";
+  const rangeTo = data.length ? formatMonth(data[data.length - 1].date as string) : "";
+  const chartSummary = multi
+    ? `Line chart, ${series.title}. ${lines
+        .map((l) => {
+          const lv = l.points[l.points.length - 1];
+          return `${l.label} ${lv ? series.format(lv.value) : "no data"}`;
+        })
+        .join("; ")}. ${data.length} points, ${rangeFrom} to ${rangeTo}.`
+    : `Line chart, ${series.title}. Latest ${series.format(current.value)} as of ${formatMonth(
+        current.date,
+      )}.${
+        yoy ? ` ${yoy.diff >= 0 ? "Up" : "Down"} ${series.format(Math.abs(yoy.diff))} over one year.` : ""
+      } ${data.length} points, ${rangeFrom} to ${rangeTo}.`;
 
   return (
     <div className="group relative overflow-hidden rounded-xl border border-border bg-card p-5 sm:p-6">
@@ -171,6 +220,18 @@ export function TrendPanel({
                 title="Value-for-money indicator: cost ÷ outcome, unit cost, or spending efficiency/leakage"
               >
                 Value for money
+              </span>
+            )}
+            {series.lens && (
+              <span
+                className="rounded-full border border-border bg-surface px-1.5 py-px text-[10px]"
+                title={
+                  series.lens === "experience"
+                    ? "Experience indicator: a consumer/citizen-side outcome — what you actually receive"
+                    : "Delivery indicator: a producer-side output — what government does (throughput, cost, RAGs)"
+                }
+              >
+                {series.lens === "experience" ? "Experience" : "Delivery"}
               </span>
             )}
             {real ? (
@@ -290,10 +351,27 @@ export function TrendPanel({
         </div>
       )}
 
-      {/* Chart */}
-      <div className="mt-5 w-full" style={{ height }}>
+      {/* Chart / table toggle */}
+      <div className="mt-4 flex justify-end">
+        <button
+          type="button"
+          onClick={() => setShowTable((v) => !v)}
+          aria-pressed={showTable}
+          className="rounded-full border border-border bg-surface px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+        >
+          {showTable ? "View chart" : "View as table"}
+        </button>
+      </div>
+
+      {/* Chart (hidden when the table view is shown) */}
+      <div
+        className={`mt-1 w-full ${showTable ? "hidden" : "block"}`}
+        style={{ height }}
+        role="img"
+        aria-label={chartSummary}
+      >
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={data} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+          <ComposedChart accessibilityLayer data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id={`grad-${series.id}`} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.32} />
@@ -315,7 +393,7 @@ export function TrendPanel({
               axisLine={false}
               domain={yDomain}
               tickFormatter={yFmt}
-              width={48}
+              width={yAxisWidth}
             />
             <Tooltip
               contentStyle={{
@@ -371,6 +449,22 @@ export function TrendPanel({
                 isAnimationActive
               />
             )}
+            {/* Uncertainty bands (drawn behind the lines): range area from the
+                point's published lower to upper bound. */}
+            {lines.map((l, i) =>
+              data.some((d) => Array.isArray(d[`b${i}`])) ? (
+                <Area
+                  key={`band-${l.id}`}
+                  type="monotone"
+                  dataKey={`b${i}`}
+                  stroke="none"
+                  fill={l.color}
+                  fillOpacity={0.15}
+                  isAnimationActive={false}
+                  connectNulls
+                />
+              ) : null,
+            )}
             {lines.map((l, i) => (
               <Line
                 key={l.id}
@@ -389,6 +483,69 @@ export function TrendPanel({
         </ResponsiveContainer>
       </div>
 
+      {/* Accessible data table: always present in the DOM for assistive tech;
+          visually revealed only when toggled. */}
+      <div className={showTable ? "mt-1 block" : "sr-only"}>
+        <DataTable series={series} lines={lines} data={data} visible={showTable} />
+      </div>
+
+      {(series.coverage || series.basis || series.definition) && (
+        <p className="mt-3 text-[11px] leading-snug text-muted-foreground">
+          {(series.coverage || series.basis) && (
+            <span>
+              {series.coverage && (
+                <>
+                  <span className="font-medium text-foreground/70">Coverage: </span>
+                  {series.coverage}
+                </>
+              )}
+              {series.coverage && series.basis && <span className="opacity-50"> · </span>}
+              {series.basis && (
+                <>
+                  <span className="font-medium text-foreground/70">Basis: </span>
+                  {series.basis}
+                </>
+              )}
+            </span>
+          )}
+          {series.definition && (
+            <span className="mt-1 block">
+              <span className="font-medium text-foreground/70">Measures: </span>
+              {series.definition}
+            </span>
+          )}
+        </p>
+      )}
+      {series.methodology && (
+        <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+          <span className="font-medium text-foreground/70">How it&rsquo;s calculated: </span>
+          {series.methodology}
+        </p>
+      )}
+      {series.caveat && (
+        <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+          <span className="font-medium" style={{ color: "#f6c451" }}>Caveat: </span>
+          {series.caveat}
+        </p>
+      )}
+      {guard && (
+        <p
+          className="mt-2 text-[11px] leading-snug text-muted-foreground"
+          title="Each fetched value is checked against a hand-set plausible range; an out-of-range value is rejected rather than displayed, so a mis-resolved source can't surface wrong data."
+        >
+          <span className="font-medium text-foreground/70">Quality check: </span>
+          latest value validated within {series.shortFormat(guard.min)}–
+          {series.shortFormat(guard.max)}
+        </p>
+      )}
+      {hasBand && (
+        <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+          <span className="font-medium text-foreground/70">Uncertainty: </span>
+          the shaded band shows the source&rsquo;s published confidence interval —
+          the line is an estimate, not an exact count.
+        </p>
+      )}
+
       {/* Footer */}
       <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 border-t border-border/60 pt-3 text-[11px] text-muted-foreground">
         <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
@@ -406,6 +563,17 @@ export function TrendPanel({
             Source: {series.source}{exactSrc ? " ⤓" : ""} ↗
           </a>
           {real && asOf && <span className="opacity-70">· fetched {asOf}</span>}
+          {fingerprint && (
+            <span
+              className="opacity-70"
+              title={
+                `Content fingerprint of the exact dataset shown — pins this chart to a specific data version, so two builds can be checked for identical data.` +
+                (srcBytesHash ? `\nSource-file fingerprint (raw upstream bytes): ${srcBytesHash}` : "")
+              }
+            >
+              · data {fingerprint}
+            </span>
+          )}
         </span>
         {multi ? (
           <span className="tabular-nums">{formatMonth(current.date)}</span>
@@ -483,6 +651,71 @@ function UnsourcedPanel({
           Source being chased: {series.source} ↗
         </a>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Accessible data-table representation of a chart's underlying points. Rendered
+ * for every chart (visually hidden until the user toggles "View as table"), so
+ * the data is reachable by screen readers and keyboard users, not colour/shape
+ * alone.
+ */
+function DataTable({
+  series,
+  lines,
+  data,
+  visible,
+}: {
+  series: TrendSeries;
+  lines: Required<SeriesLine>[];
+  data: Record<string, number | string | [number, number]>[];
+  visible: boolean;
+}) {
+  const multi = lines.length > 1;
+  return (
+    <div className={visible ? "max-h-80 overflow-auto rounded-lg border border-border" : undefined}>
+      <table className="w-full border-collapse text-left text-[12px] tabular-nums">
+        <caption className="px-3 py-2 text-left text-[11px] text-muted-foreground">
+          {series.title}
+          {series.coverage ? ` — ${series.coverage}` : ""} · {data.length} data points
+        </caption>
+        <thead>
+          <tr className="border-b border-border text-[11px] text-muted-foreground">
+            <th scope="col" className="px-3 py-1.5 font-medium">
+              Date
+            </th>
+            {multi ? (
+              lines.map((l) => (
+                <th key={l.id} scope="col" className="px-3 py-1.5 text-right font-medium">
+                  {l.label}
+                </th>
+              ))
+            ) : (
+              <th scope="col" className="px-3 py-1.5 text-right font-medium">
+                {series.title}
+              </th>
+            )}
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((row) => (
+            <tr key={row.date as string} className="border-b border-border/40 last:border-0">
+              <th scope="row" className="px-3 py-1 font-normal text-muted-foreground">
+                {formatMonth(row.date as string)}
+              </th>
+              {lines.map((_, i) => {
+                const v = row[`l${i}`];
+                return (
+                  <td key={i} className="px-3 py-1 text-right text-foreground">
+                    {typeof v === "number" ? series.format(v) : "—"}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -573,6 +806,16 @@ function DeltaChip({
       default:
         fmt = `${sign}${delta.toFixed(2)}M`;
     }
+  }
+  // A change that rounds to zero at the displayed precision (no non-zero digit
+  // survives formatting) is shown as "≈ flat" rather than a misleading "+0.0%",
+  // which would imply a precise, real movement where there is none.
+  if (!/[1-9]/.test(fmt)) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-border bg-surface px-2 py-0.5 text-[11px] text-muted-foreground">
+        <Minus className="h-3 w-3" /> {label} ≈ flat
+      </span>
+    );
   }
   return (
     <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium ${cls}`}>
