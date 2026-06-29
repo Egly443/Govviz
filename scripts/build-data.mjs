@@ -1303,6 +1303,15 @@ async function sportActiveLives() {
     if (points.some((p) => p.date.startsWith(year))) continue;
     try {
       const book = await xlsxBook(url);
+      if (url === urls[0]) {
+        console.log(`  sport-participation DIAG sheets=[${book.SheetNames.join("|")}]`);
+        const tsn = book.SheetNames.find((n) => /trend/i.test(n));
+        if (tsn) {
+          const tr = (await sheetRows(book, tsn)).map((r) => Array.from(r ?? []));
+          console.log(`  sport-participation DIAG trend sheet "${tsn}" first 22 rows:`);
+          for (const r of tr.slice(0, 22)) console.log(`     ${JSON.stringify(r.slice(0, 16)).slice(0, 320)}`);
+        }
+      }
       const sn = pickLevelsSheet(book.SheetNames);
       if (!sn) {
         console.log(`  sport-participation[${year}] no Levels/Demographics sheet; sheets=[${book.SheetNames.join("|")}]`);
