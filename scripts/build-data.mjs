@@ -1358,25 +1358,32 @@ async function sportActiveLives() {
       // explicit lower/upper bound columns or as a single +/- margin. Detect the
       // sub-header within the Active group; log it so a CI run reveals the real
       // layout if these guesses miss.
-      let lo = null, hi = null, loCol = -1, hiCol = -1, marginCol = -1;
-      for (let c = activeCol; c <= activeCol + 5 && c < subHeader.length; c++) {
+      // Confirmed layout (CI run, 2026-06-29): the Active group sub-header is
+      // [Population total | Rate (%) | 95% confidence interval | (blank) | …],
+      // i.e. the CI header is MERGED across two columns and the data row holds
+      // [lower, upper] in those two cells. Also support explicit Lower/Upper
+      // columns in case an edition splits them.
+      let lo = null, hi = null, loCol = -1, hiCol = -1, ciCol = -1;
+      for (let c = activeCol; c <= activeCol + 6 && c < subHeader.length; c++) {
         const h = String(subHeader[c] ?? "").toLowerCase();
         if (/lower|lcl|\blcb\b|\blci\b/.test(h)) loCol = c;
         else if (/upper|ucl|\bucb\b|\buci\b/.test(h)) hiCol = c;
-        else if (/(±|\+\/-|\bci\b|confidence|margin)/.test(h)) marginCol = c;
+        else if (/confidence\s*interval|\b95\s*%/.test(h)) ciCol = c;
       }
       if (loCol >= 0 && hiCol >= 0) {
         lo = scl(num(overallRow[loCol]));
         hi = scl(num(overallRow[hiCol]));
-      } else if (marginCol >= 0 && pct != null) {
-        const m = scl(num(overallRow[marginCol]));
-        if (m != null) { lo = pct - m; hi = pct + m; }
+      } else if (ciCol >= 0) {
+        const a = scl(num(overallRow[ciCol]));
+        const b = scl(num(overallRow[ciCol + 1]));
+        console.log(`  sport-participation[${year}] CI cells: [${ciCol}]=${a} [${ciCol + 1}]=${b}`);
+        if (a != null && b != null && a < b) { lo = a; hi = b; }
       }
       // Sanity: bounds must straddle the point and be plausible; else drop them.
       if (!(lo != null && hi != null && lo < pct && pct < hi && lo >= 20 && hi <= 95)) {
         lo = hi = null;
       }
-      console.log(`  sport-participation[${year}] CI: loCol=${loCol} hiCol=${hiCol} marginCol=${marginCol} lo=${lo} hi=${hi} subHeader=[${subHeader.slice(activeCol, activeCol + 6).map((c) => String(c ?? "")).join("|")}]`);
+      console.log(`  sport-participation[${year}] CI: loCol=${loCol} hiCol=${hiCol} ciCol=${ciCol} lo=${lo} hi=${hi} subHeader=[${subHeader.slice(activeCol, activeCol + 7).map((c) => String(c ?? "")).join("|")}]`);
 
       if (pct != null && pct >= 40 && pct <= 80) {
         console.log(`  sport-participation[${year}] sheet="${sn}" headerRow=${headerRowIdx} activeCol=${activeCol} pctCol=${pctCol} label="${overallRow[0]}" pct=${pct}`);
