@@ -3477,51 +3477,27 @@ const SOURCES = [
       if (!t3) throw new Error("srn: no 'data table 3' link found");
       console.log(`  srn table3="${t3.text}" ${t3.url}`);
       const book = await xlsxBook(t3.url);
+      const num = (c) => { const v = typeof c === "number" ? c : parseFloat(String(c ?? "").replace(/[,%]/g, "")); return Number.isFinite(v) ? v : null; };
       for (const sn of book.SheetNames) {
         if (!/table_?\s*3/i.test(sn)) continue;
         const rows = (await sheetRows(book, sn)).map((r) => Array.from(r ?? []));
+        // Locate the pavement-condition row by label anywhere in the sheet.
+        const ri = rows.findIndex((r) => /pavement|road surface|surface condition|carriageway|not requir|further investigation/i.test(r.map((c) => String(c ?? "")).join(" ")));
+        // (A) years ACROSS a header row.
         let hi = -1, yearCols = [];
-        for (let i = 0; i < Math.min(rows.length, 20); i++) {
+        for (let i = 0; i < Math.min(rows.length, 25); i++) {
           const yc = rows[i].map((c, idx) => [idx, parsePeriodEnd(c)]).filter(([, d]) => d);
           if (yc.length >= 3) { hi = i; yearCols = yc; break; }
         }
-        if (hi < 0) continue;
-        const row = rows.slice(hi + 1).find((r) => /pavement|road surface|surface condition|good condition|not.*further investigation/i.test(r.slice(0, 4).map((c) => String(c ?? "")).join(" ")));
-        if (!row) { console.log(`  srn "${sn}" hdr=${hi} no pavement row; labels=${JSON.stringify(rows.slice(hi + 1, hi + 8).map((r) => r[0]))}`); continue; }
-        const pts = [];
-        for (const [idx, d] of yearCols) {
-          let v = parseFloat(String(row[idx] ?? "").replace(/[,%]/g, ""));
-          if (!Number.isFinite(v)) continue;
-          if (v > 0 && v <= 1.5) v *= 100;
-          if (v >= 80 && v <= 100) pts.push({ date: d, value: +v.toFixed(2) });
+        if (ri >= 0 && hi >= 0) {
+          const pts = [];
+          for (const [idx, d] of yearCols) { let v = num(rows[ri][idx]); if (v == null) continue; if (v > 0 && v <= 1.5) v *= 100; if (v >= 80 && v <= 100) pts.push({ date: d, value: +v.toFixed(2) }); }
+          if (pts.length >= 3) { pts.sort((a, b) => (a.date < b.date ? -1 : 1)); console.log(`  srn ${pts.length} pts via "${sn}" latest=${pts[pts.length - 1].date}:${pts[pts.length - 1].value}`); return pts; }
         }
-        if (pts.length >= 3) { pts.sort((a, b) => (a.date < b.date ? -1 : 1)); console.log(`  srn ${pts.length} pts via "${sn}" latest=${pts[pts.length - 1].date}:${pts[pts.length - 1].value}`); return pts; }
-        console.log(`  srn "${sn}" pavement row found but <3 pts; row=${JSON.stringify(row.slice(0, 16))}`);
+        // Dump the sheet layout (first 14 rows x 12 cols) to pin the metric/year axes.
+        console.log(`  srn DUMP "${sn}" pavementRow=${ri} yearHdr=${hi} rows=${JSON.stringify(rows.slice(0, 14).map((r) => r.slice(0, 12)))}`);
       }
       throw new Error("srn: pavement-condition row not found in data table 3");
-    },
-  },
-
-  // DSG / high-needs (the SEND funding gap): inspect the EES "School funding
-  // statistics" data sets to see which high-needs metric is machine-readable.
-  {
-    id: "dfe-dsg-deficit",
-    min: 0,
-    max: 12000,
-    get: async () => {
-      const guids = [
-        "cc77d779-f987-4d24-8de4-e1e342149cc7",
-        "a8fcd4a9-d770-412e-a53d-166c23fb1bf4",
-        "c80c4c11-1cc1-4081-9b23-96d0fde63ef3",
-      ];
-      for (const id of guids) {
-        try {
-          const { headers, rows } = await eesCsv(id);
-          const hn = headers.filter((h) => /high[\s_]?needs|dsg|deficit|reserve/i.test(h));
-          console.log(`  dsg ${id} rows=${rows.length} cols=${headers.length} highneeds-cols=[${hn.join(",")}] head=${headers.slice(0, 18).join(" | ")}`);
-        } catch (e) { console.log(`  dsg ${id} err ${e.message}`); }
-      }
-      throw new Error("dsg: inspecting EES columns — probe only (no clean cumulative-deficit series expected)");
     },
   },
 
