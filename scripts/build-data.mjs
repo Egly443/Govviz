@@ -1304,12 +1304,18 @@ async function sportActiveLives() {
     try {
       const book = await xlsxBook(url);
       if (url === urls[0]) {
+        const XLSX = await sheetjs();
         console.log(`  sport-participation DIAG sheets=[${book.SheetNames.join("|")}]`);
         const tsn = book.SheetNames.find((n) => /trend/i.test(n));
         if (tsn) {
-          const tr = (await sheetRows(book, tsn)).map((r) => Array.from(r ?? []));
-          console.log(`  sport-participation DIAG trend sheet "${tsn}" first 22 rows:`);
-          for (const r of tr.slice(0, 22)) console.log(`     ${JSON.stringify(r.slice(0, 16)).slice(0, 320)}`);
+          const sheet = book.Sheets[tsn];
+          const keys = Object.keys(sheet).filter((k) => /^[A-Z]+\d+$/.test(k));
+          let maxR = 0, maxC = 0;
+          for (const k of keys) { const cell = XLSX.utils.decode_cell(k); if (cell.r > maxR) maxR = cell.r; if (cell.c > maxC) maxC = cell.c; }
+          const grid = Array.from({ length: maxR + 1 }, () => Array(maxC + 1).fill(null));
+          for (const k of keys) { const cell = XLSX.utils.decode_cell(k); grid[cell.r][cell.c] = sheet[k].v; }
+          console.log(`  sport-participation DIAG trend "${tsn}" raw ${grid.length}x${maxC + 1} ref=${sheet["!ref"] ?? "(none)"} cells=${keys.length}`);
+          for (const r of grid.slice(0, 24)) console.log(`     ${JSON.stringify(r.slice(0, 16)).slice(0, 340)}`);
         }
       }
       const sn = pickLevelsSheet(book.SheetNames);
