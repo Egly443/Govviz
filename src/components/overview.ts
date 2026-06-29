@@ -156,13 +156,18 @@ export interface SpcVerdict {
   ucl: number; // upper control limit (mean + 2.66·MRbar)
   lcl: number; // lower control limit (mean − 2.66·MRbar)
   mrBar: number; // mean moving range
-  n: number; // points used
+  n: number; // points used for the limits (current segment length)
   variation: SpcVariation;
   assurance: SpcAssurance;
   /** Which side of the mean the current special cause sits on (null = common cause). */
   signalSide: "high" | "low" | null;
   /** Plain-language reason for the variation verdict, if any. */
   rule: string | null;
+  /** Date the current baseline starts (the re-baselining break), or null if the
+   *  limits use the full series. */
+  baselineFrom: string | null;
+  /** Label of the break the baseline starts after (e.g. "Covid-19"), or null. */
+  baselineLabel: string | null;
 }
 
 // Minimum points for a usable XmR baseline; below this, limits aren't meaningful.
@@ -174,21 +179,43 @@ const SPC_LIMIT_K = 2.66;
 
 /**
  * XmR control-chart verdict for a series, oriented by `goodDirection`. Limits
- * are computed over the full series — they are a property of the series, frozen
- * regardless of the chart's zoom — and the latest point's state is classified
- * with the three standard run rules (point beyond a limit; a run of `SPC_RUN`
- * one side of the mean; a run of `SPC_RUN` monotonic steps). Returns null when
- * there are too few points for meaningful limits.
+ * describe the *current* process: they are re-baselined at structural breaks
+ * (annotations flagged `break`, e.g. Covid) so a step change is not pooled into
+ * the limits, where it would widen them and mask a later signal. The baseline is
+ * the most recent break that still leaves a usable run of points (≥ SPC_MIN_POINTS
+ * after it); if no break qualifies the full series is used. Run rules (shift /
+ * trend) are confined to the current segment so a run can't span a break.
  *
- * Known limitation: limits are not auto-recalculated across a known structural
- * break (e.g. Covid), so a large step change widens the limits and can mask a
- * later signal. Segmenting on annotation break-points is a sound next step; the
- * standard XmR here is already a strict improvement on single-point RAG.
+ * The latest point's state is classified with the three standard run rules
+ * (point beyond a limit; a run of `SPC_RUN` one side of the mean; a run of
+ * `SPC_RUN` monotonic steps). Returns null when there are too few points overall.
  */
 export function spcVerdict(series: TrendSeries): SpcVerdict | null {
-  const vals = series.points.map((p) => p.value).filter((v) => Number.isFinite(v));
+  const finite = series.points.filter((p) => Number.isFinite(p.value));
+  if (finite.length < SPC_MIN_POINTS) return null;
+
+  // Re-baseline: pick the most recent break that leaves ≥ SPC_MIN_POINTS after
+  // it (so the current process has a usable baseline); else use the full series.
+  const breaks = (series.annotations ?? [])
+    .filter((a) => a.break && a.date)
+    .map((a) => ({ date: a.date, label: a.label }))
+    .sort((a, b) => (a.date < b.date ? -1 : 1));
+  let startIdx = 0;
+  let baselineFrom: string | null = null;
+  let baselineLabel: string | null = null;
+  for (let bi = breaks.length - 1; bi >= 0; bi--) {
+    const idx = finite.findIndex((p) => p.date >= breaks[bi].date);
+    if (idx >= 0 && finite.length - idx >= SPC_MIN_POINTS) {
+      startIdx = idx;
+      baselineFrom = finite[idx].date;
+      baselineLabel = breaks[bi].label;
+      break;
+    }
+  }
+
+  const seg = finite.slice(startIdx);
+  const vals = seg.map((p) => p.value);
   const n = vals.length;
-  if (n < SPC_MIN_POINTS) return null;
 
   const mean = vals.reduce((a, b) => a + b, 0) / n;
   let mrSum = 0;
@@ -271,7 +298,7 @@ export function spcVerdict(series: TrendSeries): SpcVerdict | null {
     }
   }
 
-  return { mean, ucl, lcl, mrBar, n, variation, assurance, signalSide, rule };
+  return { mean, ucl, lcl, mrBar, n, variation, assurance, signalSide, rule, baselineFrom, baselineLabel };
 }
 
 /** Glyph + label for an SPC variation verdict (redundant, colour-independent). */

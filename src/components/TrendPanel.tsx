@@ -723,6 +723,16 @@ export function TrendPanel({
           rising/falling, is a <em>special-cause</em> signal. This follows NHS
           England&rsquo;s &ldquo;Making Data Count&rdquo; method rather than
           reading the latest point against the target alone.
+          {spc.baselineFrom && (
+            <>
+              {" "}
+              Limits are re-baselined on the current process — the data since{" "}
+              {spc.baselineLabel ? `${spc.baselineLabel} (` : ""}
+              {formatMonth(spc.baselineFrom)}
+              {spc.baselineLabel ? ")" : ""} — so the earlier step change does not
+              widen them.
+            </>
+          )}
         </p>
       )}
 
