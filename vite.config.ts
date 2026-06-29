@@ -23,6 +23,20 @@ export default defineConfig(({ command }) => ({
         entryFileNames: "assets/[name].js",
         chunkFileNames: "assets/[name].js",
         assetFileNames: "assets/[name][extname]",
+        // Split the heavy charting libs (recharts + d3-* + victory-vendor) and
+        // React out of the entry chunk into their own stable-named vendor
+        // chunks, so they can cache independently of app code.
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return;
+          if (
+            /node_modules\/(recharts|d3-[^/]+|victory-vendor|react-smooth|react-transition-group|react-is|fast-equals|eventemitter3|decimal\.js-light)\//.test(
+              id,
+            )
+          )
+            return "charts";
+          if (/node_modules\/(react|react-dom|scheduler)\//.test(id)) return "react";
+          return "vendor";
+        },
       },
     },
   },
