@@ -58,6 +58,12 @@ export type TrendSeries = {
   methodology?: string;
   /** Caveat shown on the chart: survey sampling error, provisional/revised figures, or a break in the series (e.g. a methodology change). */
   caveat?: string;
+  /** Geographic / population scope of the series, e.g. "England", "UK", "Great Britain", "UK vs Germany & France". Surfaced so the common England-vs-UK misread is explicit. */
+  coverage?: string;
+  /** Precise statement of what is counted (numerator ÷ denominator in words), where the subtitle alone is ambiguous. */
+  definition?: string;
+  /** Measurement basis, e.g. "real terms, 2023-24 prices", "seasonally adjusted", "nominal", "cash terms". */
+  basis?: string;
   annotations: Annotation[];
 };
 
@@ -199,6 +205,7 @@ export const waitingList: TrendSeries = {
   id: "waiting-list",
   title: "Elective care waiting list",
   subtitle: "Incomplete RTT pathways",
+  coverage: "England",
   unit: "people",
   format: fmtMillions,
   shortFormat: fmtMillionsShort,
@@ -224,6 +231,7 @@ export const rtt18Week: TrendSeries = {
   id: "rtt-18-week",
   title: "18-week treatment target compliance",
   subtitle: "% of incomplete pathways under 18 weeks",
+  coverage: "England",
   unit: "percent",
   format: fmtPct,
   shortFormat: fmtPct,
@@ -246,6 +254,7 @@ export const dischargeDelays: TrendSeries = {
   id: "discharge-delays",
   title: "Hospital discharge bottleneck",
   subtitle: "Beds/day occupied by patients medically fit for discharge",
+  coverage: "England",
   unit: "beds",
   format: fmtBeds,
   shortFormat: fmtBedsShort,
@@ -267,6 +276,8 @@ export const agencySpend: TrendSeries = {
   id: "agency-spend",
   title: "NHS temporary agency staff spend",
   subtitle: "Rolling 12-month, £ billion",
+  coverage: "England",
+  basis: "nominal (cash terms)",
   unit: "gbp",
   format: fmtGbp,
   shortFormat: fmtGbpShort,
@@ -314,6 +325,7 @@ export const aePerformance: TrendSeries = {
   id: "ae-performance",
   title: "A&E 4-hour standard",
   subtitle: "% of attendances admitted/discharged within 4 hours",
+  coverage: "England",
   unit: "percent",
   format: fmtPct,
   shortFormat: fmtPct,
@@ -337,6 +349,7 @@ export const ambulanceC2: TrendSeries = {
   id: "dhsc-ambulance-c2",
   title: "Ambulance response (Category 2)",
   subtitle: "Mean response to emergency calls (heart attack, stroke), minutes",
+  coverage: "England",
   unit: "count",
   format: (v) => `${v.toFixed(0)} min`,
   shortFormat: (v) => `${v.toFixed(0)}m`,

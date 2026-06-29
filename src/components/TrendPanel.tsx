@@ -54,6 +54,9 @@ export function TrendPanel({
 }: Props) {
   const ranges: Range[] = series.cadence === "annual" ? [10, 20, "max"] : [5, 10, 20, "max"];
   const [range, setRange] = useState<Range>(defaultRange);
+  // Accessible alternative: a data table behind every chart (always in the DOM
+  // for assistive tech; visually shown only when toggled).
+  const [showTable, setShowTable] = useState(false);
 
   // Normalise to a list of lines (single-line charts become one line). Lines
   // with no points (e.g. international comparators not yet baked by CI) are
@@ -170,6 +173,22 @@ export function TrendPanel({
             new Date(a.date) <= new Date(data[data.length - 1].date as string),
         )
       : [];
+
+  // Concise text alternative for the chart (read by screen readers via role=img).
+  const rangeFrom = data.length ? formatMonth(data[0].date as string) : "";
+  const rangeTo = data.length ? formatMonth(data[data.length - 1].date as string) : "";
+  const chartSummary = multi
+    ? `Line chart, ${series.title}. ${lines
+        .map((l) => {
+          const lv = l.points[l.points.length - 1];
+          return `${l.label} ${lv ? series.format(lv.value) : "no data"}`;
+        })
+        .join("; ")}. ${data.length} points, ${rangeFrom} to ${rangeTo}.`
+    : `Line chart, ${series.title}. Latest ${series.format(current.value)} as of ${formatMonth(
+        current.date,
+      )}.${
+        yoy ? ` ${yoy.diff >= 0 ? "Up" : "Down"} ${series.format(Math.abs(yoy.diff))} over one year.` : ""
+      } ${data.length} points, ${rangeFrom} to ${rangeTo}.`;
 
   return (
     <div className="group relative overflow-hidden rounded-xl border border-border bg-card p-5 sm:p-6">
@@ -305,10 +324,27 @@ export function TrendPanel({
         </div>
       )}
 
-      {/* Chart */}
-      <div className="mt-5 w-full" style={{ height }}>
+      {/* Chart / table toggle */}
+      <div className="mt-4 flex justify-end">
+        <button
+          type="button"
+          onClick={() => setShowTable((v) => !v)}
+          aria-pressed={showTable}
+          className="rounded-full border border-border bg-surface px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+        >
+          {showTable ? "View chart" : "View as table"}
+        </button>
+      </div>
+
+      {/* Chart (hidden when the table view is shown) */}
+      <div
+        className={`mt-1 w-full ${showTable ? "hidden" : "block"}`}
+        style={{ height }}
+        role="img"
+        aria-label={chartSummary}
+      >
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+          <ComposedChart accessibilityLayer data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id={`grad-${series.id}`} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.32} />
@@ -404,8 +440,41 @@ export function TrendPanel({
         </ResponsiveContainer>
       </div>
 
-      {series.methodology && (
+      {/* Accessible data table: always present in the DOM for assistive tech;
+          visually revealed only when toggled. */}
+      <div className={showTable ? "mt-1 block" : "sr-only"}>
+        <DataTable series={series} lines={lines} data={data} visible={showTable} />
+      </div>
+
+      {(series.coverage || series.basis || series.definition) && (
         <p className="mt-3 text-[11px] leading-snug text-muted-foreground">
+          {(series.coverage || series.basis) && (
+            <span>
+              {series.coverage && (
+                <>
+                  <span className="font-medium text-foreground/70">Coverage: </span>
+                  {series.coverage}
+                </>
+              )}
+              {series.coverage && series.basis && <span className="opacity-50"> · </span>}
+              {series.basis && (
+                <>
+                  <span className="font-medium text-foreground/70">Basis: </span>
+                  {series.basis}
+                </>
+              )}
+            </span>
+          )}
+          {series.definition && (
+            <span className="mt-1 block">
+              <span className="font-medium text-foreground/70">Measures: </span>
+              {series.definition}
+            </span>
+          )}
+        </p>
+      )}
+      {series.methodology && (
+        <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
           <span className="font-medium text-foreground/70">How it&rsquo;s calculated: </span>
           {series.methodology}
         </p>
@@ -515,6 +584,71 @@ function UnsourcedPanel({
   );
 }
 
+/**
+ * Accessible data-table representation of a chart's underlying points. Rendered
+ * for every chart (visually hidden until the user toggles "View as table"), so
+ * the data is reachable by screen readers and keyboard users, not colour/shape
+ * alone.
+ */
+function DataTable({
+  series,
+  lines,
+  data,
+  visible,
+}: {
+  series: TrendSeries;
+  lines: Required<SeriesLine>[];
+  data: Record<string, number | string>[];
+  visible: boolean;
+}) {
+  const multi = lines.length > 1;
+  return (
+    <div className={visible ? "max-h-80 overflow-auto rounded-lg border border-border" : undefined}>
+      <table className="w-full border-collapse text-left text-[12px] tabular-nums">
+        <caption className="px-3 py-2 text-left text-[11px] text-muted-foreground">
+          {series.title}
+          {series.coverage ? ` — ${series.coverage}` : ""} · {data.length} data points
+        </caption>
+        <thead>
+          <tr className="border-b border-border text-[11px] text-muted-foreground">
+            <th scope="col" className="px-3 py-1.5 font-medium">
+              Date
+            </th>
+            {multi ? (
+              lines.map((l) => (
+                <th key={l.id} scope="col" className="px-3 py-1.5 text-right font-medium">
+                  {l.label}
+                </th>
+              ))
+            ) : (
+              <th scope="col" className="px-3 py-1.5 text-right font-medium">
+                {series.title}
+              </th>
+            )}
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((row) => (
+            <tr key={row.date as string} className="border-b border-border/40 last:border-0">
+              <th scope="row" className="px-3 py-1 font-normal text-muted-foreground">
+                {formatMonth(row.date as string)}
+              </th>
+              {lines.map((_, i) => {
+                const v = row[`l${i}`];
+                return (
+                  <td key={i} className="px-3 py-1 text-right text-foreground">
+                    {typeof v === "number" ? series.format(v) : "—"}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function RangeToggle({
   value,
   onChange,
@@ -601,6 +735,16 @@ function DeltaChip({
       default:
         fmt = `${sign}${delta.toFixed(2)}M`;
     }
+  }
+  // A change that rounds to zero at the displayed precision (no non-zero digit
+  // survives formatting) is shown as "≈ flat" rather than a misleading "+0.0%",
+  // which would imply a precise, real movement where there is none.
+  if (!/[1-9]/.test(fmt)) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-border bg-surface px-2 py-0.5 text-[11px] text-muted-foreground">
+        <Minus className="h-3 w-3" /> {label} ≈ flat
+      </span>
+    );
   }
   return (
     <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium ${cls}`}>
