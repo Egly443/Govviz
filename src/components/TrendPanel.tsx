@@ -17,6 +17,7 @@ import {
   latest,
   minMax,
   realAsOf,
+  realGuard,
   realSourceUrl,
   seriesIsReal,
   SHOW_ILLUSTRATIVE,
@@ -102,6 +103,9 @@ export function TrendPanel({
   const vintage = real ? stalenessOf(series) : null;
   // Exact file CI fetched (preferred over the static landing-page sourceUrl).
   const exactSrc = real ? realSourceUrl(series.id) : undefined;
+  // The plausibility range the latest value passed at fetch time — a visible QA
+  // signal. Only meaningful for a directly-fetched (non-derived) real series.
+  const guard = real && !series.derivedFrom ? realGuard(series.id) : undefined;
 
   // Production honesty gate: never render a fabricated trend line. An unsourced
   // series shows an explicit placeholder instead of its illustrative fallback.
@@ -205,6 +209,18 @@ export function TrendPanel({
                 title="Value-for-money indicator: cost ÷ outcome, unit cost, or spending efficiency/leakage"
               >
                 Value for money
+              </span>
+            )}
+            {series.lens && (
+              <span
+                className="rounded-full border border-border bg-surface px-1.5 py-px text-[10px]"
+                title={
+                  series.lens === "experience"
+                    ? "Experience indicator: a consumer/citizen-side outcome — what you actually receive"
+                    : "Delivery indicator: a producer-side output — what government does (throughput, cost, RAGs)"
+                }
+              >
+                {series.lens === "experience" ? "Experience" : "Delivery"}
               </span>
             )}
             {real ? (
@@ -483,6 +499,16 @@ export function TrendPanel({
         <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
           <span className="font-medium" style={{ color: "#f6c451" }}>Caveat: </span>
           {series.caveat}
+        </p>
+      )}
+      {guard && (
+        <p
+          className="mt-2 text-[11px] leading-snug text-muted-foreground"
+          title="Each fetched value is checked against a hand-set plausible range; an out-of-range value is rejected rather than displayed, so a mis-resolved source can't surface wrong data."
+        >
+          <span className="font-medium text-foreground/70">Quality check: </span>
+          latest value validated within {series.shortFormat(guard.min)}–
+          {series.shortFormat(guard.max)}
         </p>
       )}
 

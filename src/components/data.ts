@@ -64,6 +64,15 @@ export type TrendSeries = {
   definition?: string;
   /** Measurement basis, e.g. "real terms, 2023-24 prices", "seasonally adjusted", "nominal", "cash terms". */
   basis?: string;
+  /**
+   * Which side of government the indicator measures (the "measurement gap"):
+   * - "experience" = consumer/citizen-side outcome (could I get a GP, afford
+   *   the bill, is my street safe) — what you actually receive.
+   * - "process" = producer/delivery-side output (throughput, unit cost, RAGs,
+   *   headcount) — what government does.
+   * Makes the producer-vs-consumer split machine-visible. Untagged = unclassified.
+   */
+  lens?: "experience" | "process";
   annotations: Annotation[];
 };
 
@@ -106,6 +115,10 @@ export function realAsOf(id: string): string | undefined {
 /** Exact URL of the file/table CI actually fetched for this series, if known. */
 export function realSourceUrl(id: string): string | undefined {
   return SERIES_DATA[id]?.srcUrl;
+}
+/** The plausibility guard range (min/max) the baked value passed, if known. */
+export function realGuard(id: string): { min: number; max: number } | undefined {
+  return SERIES_DATA[id]?.guard;
 }
 
 // International peer set for World Bank comparator charts. Keep in sync with
@@ -203,6 +216,7 @@ const fmtBedsShort = (v: number) => `${(v / 1000).toFixed(1)}k`;
 // ============================================================
 export const waitingList: TrendSeries = {
   id: "waiting-list",
+  lens: "experience",
   title: "Elective care waiting list",
   subtitle: "Incomplete RTT pathways",
   coverage: "England",
@@ -229,6 +243,7 @@ export const waitingList: TrendSeries = {
 // 18-week elective treatment target compliance — statutory 92% standard
 export const rtt18Week: TrendSeries = {
   id: "rtt-18-week",
+  lens: "experience",
   title: "18-week treatment target compliance",
   subtitle: "% of incomplete pathways under 18 weeks",
   coverage: "England",
@@ -274,6 +289,7 @@ export const dischargeDelays: TrendSeries = {
 // NHS temporary agency spend, rolling 12-month £bn
 export const agencySpend: TrendSeries = {
   id: "agency-spend",
+  lens: "process",
   title: "NHS temporary agency staff spend",
   subtitle: "Rolling 12-month, £ billion",
   coverage: "England",
@@ -299,6 +315,7 @@ export const agencySpend: TrendSeries = {
 // weighted cost variance across DHSC major projects
 export const capitalOverrun: TrendSeries = {
   id: "capital-overrun",
+  lens: "process",
   title: "Capital programme cost overrun",
   subtitle: "Weighted variance across DHSC major projects",
   unit: "percent",
@@ -323,6 +340,7 @@ export const capitalOverrun: TrendSeries = {
 
 export const aePerformance: TrendSeries = {
   id: "ae-performance",
+  lens: "experience",
   title: "A&E 4-hour standard",
   subtitle: "% of attendances admitted/discharged within 4 hours",
   coverage: "England",
@@ -347,6 +365,7 @@ export const aePerformance: TrendSeries = {
 // "waited hours for an ambulance" grievance. 18-minute national standard.
 export const ambulanceC2: TrendSeries = {
   id: "dhsc-ambulance-c2",
+  lens: "experience",
   title: "Ambulance response (Category 2)",
   subtitle: "Mean response to emergency calls (heart attack, stroke), minutes",
   coverage: "England",
@@ -476,6 +495,7 @@ export const infantMortality: TrendSeries = {
 
 export const lifeExpectancy: TrendSeries = {
   id: "life-expectancy",
+  lens: "experience",
   title: "Life expectancy at birth",
   subtitle: "Years, England, both sexes",
   unit: "years",

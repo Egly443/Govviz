@@ -389,6 +389,7 @@ const modVoluntaryOutflow: TrendSeries = {
 
 const modProcurement: TrendSeries = {
   id: "mod-procurement",
+  lens: "process",
   vfm: true,
   title: "MoD major projects delivery confidence",
   subtitle: "% of MoD GMPP projects rated Amber/Red or Red",
@@ -1295,6 +1296,7 @@ const fcdoOdaTotal: TrendSeries = {
 // ============================================================
 const cabGmpp: TrendSeries = {
   id: "cab-gmpp-confidence",
+  lens: "process",
   title: "Major projects delivery confidence",
   subtitle: "% of Government Major Projects Portfolio rated green / amber-green",
   unit: "percent",
@@ -1309,6 +1311,7 @@ const cabGmpp: TrendSeries = {
 };
 const cabCivilService: TrendSeries = {
   id: "cab-civil-service-headcount",
+  lens: "process",
   title: "Civil service headcount",
   // Direction is contested (efficiency vs capacity); oriented "down" only to
   // colour the tile, not as a value judgement — see the department synthesis.
@@ -1389,6 +1392,7 @@ const cabFoi: TrendSeries = {
 // ============================================================
 const hmrcCallWait: TrendSeries = {
   id: "hmrc-call-wait",
+  lens: "experience",
   title: "Phone wait times",
   subtitle: "Average speed of answer to an HMRC adviser, minutes",
   unit: "count",
@@ -1403,6 +1407,7 @@ const hmrcCallWait: TrendSeries = {
 };
 const hmrcTaxGap: TrendSeries = {
   id: "hmrc-tax-gap",
+  lens: "process",
   title: "Tax gap",
   subtitle: "Tax not collected as % of total theoretical liabilities",
   unit: "percent",
@@ -1425,6 +1430,7 @@ const hmrcTaxGap: TrendSeries = {
 // index, 2015 = 100 (CDID D7BU) — a clean ons() one-liner.
 const hmtFoodPrices: TrendSeries = {
   id: "hmt-food-prices",
+  lens: "experience",
   title: "Food prices",
   subtitle: "CPI food & non-alcoholic drink price index (2015 = 100)",
   unit: "count",
@@ -1463,6 +1469,7 @@ const dfePersistentAbsence: TrendSeries = {
 // Rents historical series (chain-linked PIPR/IPHRP, monthly from 2005).
 const mhclgPrivateRents: TrendSeries = {
   id: "mhclg-private-rents",
+  lens: "experience",
   title: "Private rents",
   subtitle: "Price Index of Private Rents, UK (rebased index)",
   unit: "count",
@@ -1505,6 +1512,7 @@ const hoNetMigration: TrendSeries = {
 // Home Office — shoplifting (the crime people see). ONS police-recorded crime.
 const hoShoplifting: TrendSeries = {
   id: "ho-shoplifting",
+  lens: "experience",
   title: "Shoplifting offences",
   subtitle: "Police-recorded shoplifting, England & Wales, per year",
   unit: "count",
@@ -1527,6 +1535,7 @@ const hoShoplifting: TrendSeries = {
 // average Band D, England, financial year since 1993-94.
 const mhclgCouncilTax: TrendSeries = {
   id: "mhclg-council-tax",
+  lens: "experience",
   title: "Council tax",
   subtitle: "Average Band D council tax, England (£/yr)",
   unit: "currency",
@@ -1545,6 +1554,7 @@ const mhclgCouncilTax: TrendSeries = {
 // MHCLG — rough sleeping (people on the street). MHCLG annual autumn snapshot.
 const mhclgRoughSleeping: TrendSeries = {
   id: "mhclg-rough-sleeping",
+  lens: "experience",
   title: "Rough sleeping",
   subtitle: "People estimated sleeping rough on a single night, England",
   unit: "count",
@@ -1582,6 +1592,7 @@ const dftLocalRoads: TrendSeries = {
 // DfT — rail fares (the fare that rises every January). ONS CPI rail index.
 const dftRailFares: TrendSeries = {
   id: "dft-rail-fares",
+  lens: "experience",
   title: "Rail fares",
   subtitle: "CPI rail fares index — passenger transport by railway (2015 = 100)",
   unit: "count",
