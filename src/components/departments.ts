@@ -1241,6 +1241,8 @@ const dcmsSport: TrendSeries = {
   sourceUrl: "https://www.sportengland.org/research-and-data/data/active-lives",
   cadence: "annual",
   points: realPoints("dcms-sport-participation"),
+  caveat:
+    "Survey estimate (Active Lives) — subject to sampling error; not a full population count.",
   annotations: [],
 };
 
@@ -1486,6 +1488,8 @@ const hoNetMigration: TrendSeries = {
     "https://www.ons.gov.uk/peoplepopulationandcommunity/populationandmigration/internationalmigration",
   cadence: "annual",
   points: realPoints("ho-net-migration"),
+  caveat:
+    "Long-term migration estimates (LTIM) are provisional and routinely revised; methodology and data sources have changed over the series.",
   annotations: [{ date: "2021-01-01", label: "Post-Brexit points system" }],
 };
 
@@ -1505,6 +1509,8 @@ const hoShoplifting: TrendSeries = {
     "https://www.ons.gov.uk/peoplepopulationandcommunity/crimeandjustice/datasets/crimeinenglandandwalesappendixtables",
   cadence: "annual",
   points: realPoints("ho-shoplifting"),
+  caveat:
+    "Police-recorded crime — sensitive to recording-practice changes and reporting rates, and differs from the Crime Survey for England & Wales' victimisation-based estimate.",
   annotations: [{ date: "2022-01-01", label: "Post-pandemic surge" }],
 };
 
@@ -1616,6 +1622,8 @@ const dhscGpAccess: TrendSeries = {
   sourceUrl: "https://www.england.nhs.uk/statistics/statistical-work-areas/gp-patient-survey/",
   cadence: "annual",
   points: realPoints("dhsc-gp-access"),
+  caveat:
+    "GP Patient Survey estimate; the 2024 questionnaire redesign creates a break in the series — figures before and after are not directly comparable.",
   annotations: [{ date: "2024-01-01", label: "Survey redesign" }],
 };
 

@@ -410,6 +410,12 @@ export function TrendPanel({
           {series.methodology}
         </p>
       )}
+      {series.caveat && (
+        <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+          <span className="font-medium" style={{ color: "#f6c451" }}>Caveat: </span>
+          {series.caveat}
+        </p>
+      )}
 
       {/* Footer */}
       <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 border-t border-border/60 pt-3 text-[11px] text-muted-foreground">

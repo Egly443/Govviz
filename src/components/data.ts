@@ -56,6 +56,8 @@ export type TrendSeries = {
   derivedFrom?: string[];
   /** Plain-language note on how a derived/aggregated value is computed (cost÷outcome ratio, region aggregation, etc.). Rendered as a "How it's calculated" note. */
   methodology?: string;
+  /** Caveat shown on the chart: survey sampling error, provisional/revised figures, or a break in the series (e.g. a methodology change). */
+  caveat?: string;
   annotations: Annotation[];
 };
 
