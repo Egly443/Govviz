@@ -121,10 +121,9 @@ find ONS CDIDs/WB codes/EES dataset IDs/gov.uk collection slugs, then wire the f
 
 ### Coverage — current state (131 ok / 4 skip as of 2026-06-29)
 Read the latest CI **"Fetch live data"** log (`mcp__github__get_job_logs`) for the authoritative
-`ok`/`SKIP` tally — the manifest is cumulative so one run shows everything. The **four `SKIP`s are
-`turnover`** (digital.nhs.uk Cloudflare 403), **`dsit-gigabit-broadband`** (Ofcom 403) — both hard
-HTTP-403 walls — plus the two diagnostic probes **`dhsc-gp-access`** (data on gp-patient.co.uk, no static
-file surfaced) and **`ho-passport-times`** (HMPO transparency, no collection slug resolved). ~130 series
+`ok`/`SKIP` tally — the manifest is cumulative so one run shows everything. The **four `SKIP`s are all
+genuinely hard-blocked** (live-probed 2026-06-29, see the dedicated section below): `turnover`,
+`dsit-gigabit-broadband`, `dhsc-gp-access`, `ho-passport-times`. ~130 series
 IDs bake real data across **17 departments**
 (HMT/DHSC via ONS+World Bank; DfE via EES; DWP via World Bank; MHCLG/Defra via gov.uk-ODS + ONS + World
 Bank; the six 2026-06 departments DESNZ/DSIT/DBT/DCMS/FCDO/Cabinet Office; HMRC as the 17th; plus the
@@ -185,6 +184,31 @@ Tested whether the six "blocked (PDF/parliamentary/LA-return/classified)" labels
 - **`mod-readiness` (classified), `ho-caseworker-turnover`, `ho-hotel-spend`, `dft-dvla-backlog`** —
   confirmed genuinely blocked: point figures exist only in NAO reports / parliamentary answers / annual
   accounts / HTML snapshots, not as a machine-readable time series. They stay placeholders.
+
+### Investigated the 4 SKIPs (2026-06-29) — all confirmed genuinely hard-blocked
+Live-probed every SKIP for a non-gated/alternative source (the same test that recovered srn-degradation,
+council-tax, sewage, bathing-water). This time **all four hold up — no recovery.** Probes left in place
+(diagnostic-only) point future attempts at the right hosts:
+- **`turnover`** — double-403 wall: digital.nhs.uk Cloudflare-403s, and the **House of Commons Library**
+  briefing CBP-9731 (`commonslibrary.parliament.uk` + `researchbriefings.files.parliament.uk`) **also 403s**
+  automated clients. The data.gov.uk CKAN `nhs-workforce-turnover` datasets are XLS hosted back on
+  digital.nhs.uk. No reachable source for the leaver-rate series.
+- **`dsit-gigabit-broadband`** — Ofcom data-downloads 403. The **BDUK research-portal** collection
+  (`building-digital-uk-research-portal`, 36 docs) is all *evaluations* (gigahubs, school-benefit survey),
+  not a coverage series; `gigabit-broadband-statistics` collection 404s; `thinkbroadband.com` 403s and
+  `labs.thinkbroadband.com` is a per-area lookup tool (no national series, and a different methodology from
+  Ofcom). No clean reachable national gigabit-% series.
+- **`dhsc-gp-access`** — the gov.uk `gp-patient-survey-results-{year}` statistics releases exist but their
+  attachments **only link out** to gp-patient.co.uk (empty/HTML URLs, no hosted data file); gp-patient.co.uk
+  is JS-rendered (0 static links), and the 2024 survey redesign breaks the series. Headline figures exist
+  (75.4% good overall experience, 2025) but not as a reachable machine-readable trends file.
+- **`ho-passport-times`** — the only HMPO machine-readable publication (found via the gov.uk Search API
+  `filter_organisations=hm-passport-office`) is the Home Office `government/statistical-data-sets/migration-
+  transparency-data` set — 11 ODS/xlsx, but all UKVI/immigration (Border Force, Asylum, Sponsorship, Visas,
+  Enforcement…); **none covers passport processing/turnaround**. HMPO stopped publishing the within-standard
+  % after the 2022 backlog. No reachable passport-times series. **Lesson: that data-set is a `statistical-
+  data-set`, not a `collection`** (the earlier probe queried the wrong path) — it's the same set `ho-visa-sla`
+  reads (VSI_02).
 
 ### Whole-of-government expansion (2026-06): six more departments
 The registry grew from ten to **sixteen** departments (the major missing ministerial departments).
