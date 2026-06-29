@@ -32,8 +32,16 @@
       "domain": "Defra / Environment Agency",
       "govviz_series_id": "defra-sewage-hours",
       "source": "data.gov.uk — EDM Storm Overflows Annual Returns (package 19f6064d-7356-466f-844e-d20ea10ae9fd)",
-      "current": { "T": 3, "M": 1, "status": "intermittent" },
-      "guard": { "min": 500000, "max": 6000000, "unit": "hours" },
+      "current": {
+        "T": 3,
+        "M": 1,
+        "status": "intermittent"
+      },
+      "guard": {
+        "min": 500000,
+        "max": 6000000,
+        "unit": "hours"
+      },
       "failure_modes": [
         "published as annual .zip archives, one workbook per water company",
         "no published national total — must sum 'Total Duration (hours)' across thousands of per-asset rows in every workbook",
@@ -46,7 +54,13 @@
         "served HTTP 200 to a low-volume, well-behaved automated client",
         "in-band unit, geographic coverage and provenance"
       ],
-      "probe": "Resolve the series id; GET its data; assert one observation per year with a numeric national total within the guard range and an explicit unit; assert a scripted client receives HTTP 200, not 403."
+      "probe": "Resolve the series id; GET its data; assert one observation per year with a numeric national total within the guard range and an explicit unit; assert a scripted client receives HTTP 200, not 403.",
+      "govviz_published": {
+        "record": "https://egly443.github.io/Govviz/data/series/defra-sewage-hours.json",
+        "data": "https://egly443.github.io/Govviz/data/series/defra-sewage-hours/data.csv",
+        "csvw": "https://egly443.github.io/Govviz/data/series/defra-sewage-hours/data.csv-metadata.json",
+        "note": "A worked M5-shaped reference rendering of this case, published by Govviz (the downstream compiler) as a reference implementation of the AI-ready series profile: stable id -> tidy CSV, in-band unit/coverage/periodicity/provenance and a published validRange. It demonstrates the target shape the case asks for; it does NOT raise the upstream producer's score, because the primary publisher has not yet published it this way. When the producer does, their fetcher collapses to resolve id -> GET."
+      }
     },
     {
       "id": "bathing-water-quality",
@@ -54,8 +68,16 @@
       "domain": "Defra / Environment Agency",
       "govviz_series_id": "defra-bathing-water",
       "source": "gov.uk — government/statistical-data-sets/env17-bathing-water-quality-additional-datasets",
-      "current": { "T": 3, "M": 2, "status": "parseable-with-bespoke-logic" },
-      "guard": { "min": 40, "max": 100, "unit": "percent" },
+      "current": {
+        "T": 3,
+        "M": 2,
+        "status": "parseable-with-bespoke-logic"
+      },
+      "guard": {
+        "min": 40,
+        "max": 100,
+        "unit": "percent"
+      },
       "failure_modes": [
         "the government/statistics/bathing-water-quality-statistics collection is PDF/HTML-only, but the ENV17 statistical-data-set publishes one ODS workbook per year (2015-2025) on assets.publishing.service.gov.uk, not the 403-prone environment.data.gov.uk host",
         "Class_Summary sheets are a region-by-classification matrix (rows = EA areas, columns = Excellent/Good/Sufficient/Poor), with the national total in a row labelled 'England', not 'Total'"
@@ -65,7 +87,13 @@
         "or the derived % Good-or-Excellent published as a value with method noted",
         "stable identifier + in-band unit, coverage, provenance"
       ],
-      "probe": "Resolve the series id; GET a tabular dataset; assert per-year counts or a derived percentage within the guard range, with an explicit unit. Format must not be PDF/HTML-only."
+      "probe": "Resolve the series id; GET a tabular dataset; assert per-year counts or a derived percentage within the guard range, with an explicit unit. Format must not be PDF/HTML-only.",
+      "govviz_published": {
+        "record": "https://egly443.github.io/Govviz/data/series/defra-bathing-water.json",
+        "data": "https://egly443.github.io/Govviz/data/series/defra-bathing-water/data.csv",
+        "csvw": "https://egly443.github.io/Govviz/data/series/defra-bathing-water/data.csv-metadata.json",
+        "note": "A worked M5-shaped reference rendering of this case, published by Govviz (the downstream compiler) as a reference implementation of the AI-ready series profile: stable id -> tidy CSV, in-band unit/coverage/periodicity/provenance and a published validRange. It demonstrates the target shape the case asks for; it does NOT raise the upstream producer's score, because the primary publisher has not yet published it this way. When the producer does, their fetcher collapses to resolve id -> GET."
+      }
     },
     {
       "id": "nhs-rtt-incomplete-within-18-weeks",
@@ -73,8 +101,16 @@
       "domain": "DHSC / NHS England",
       "govviz_series_id": "rtt-18-week",
       "source": "england.nhs.uk — RTT waiting times (consolidated national series discontinued)",
-      "current": { "T": 3, "M": 1, "status": "reconstruction-required" },
-      "guard": { "min": 40, "max": 100, "unit": "percent" },
+      "current": {
+        "T": 3,
+        "M": 1,
+        "status": "reconstruction-required"
+      },
+      "guard": {
+        "min": 40,
+        "max": 100,
+        "unit": "percent"
+      },
       "failure_modes": [
         "the consolidated national time series was discontinued",
         "only ~9 MB monthly per-provider workbooks remain; the national figure must be reconstructed by summing hundreds of providers across waiting-time bands",
@@ -84,7 +120,13 @@
         "restore a published national time series as a value",
         "stable identifier + monthly cadence declared + revision status flagged"
       ],
-      "probe": "Resolve the series id; GET the national monthly series; assert a contiguous monthly history with values within the guard range — without the consumer aggregating provider files."
+      "probe": "Resolve the series id; GET the national monthly series; assert a contiguous monthly history with values within the guard range — without the consumer aggregating provider files.",
+      "govviz_published": {
+        "record": "https://egly443.github.io/Govviz/data/series/rtt-18-week.json",
+        "data": "https://egly443.github.io/Govviz/data/series/rtt-18-week/data.csv",
+        "csvw": "https://egly443.github.io/Govviz/data/series/rtt-18-week/data.csv-metadata.json",
+        "note": "A worked M5-shaped reference rendering of this case, published by Govviz (the downstream compiler) as a reference implementation of the AI-ready series profile: stable id -> tidy CSV, in-band unit/coverage/periodicity/provenance and a published validRange. It demonstrates the target shape the case asks for; it does NOT raise the upstream producer's score, because the primary publisher has not yet published it this way. When the producer does, their fetcher collapses to resolve id -> GET."
+      }
     },
     {
       "id": "nhs-rtt-incomplete-total",
@@ -92,8 +134,16 @@
       "domain": "DHSC / NHS England",
       "govviz_series_id": "waiting-list",
       "source": "england.nhs.uk — RTT waiting times (per-provider Incomplete workbooks)",
-      "current": { "T": 3, "M": 1, "status": "reconstruction-required" },
-      "guard": { "min": 1, "max": 12, "unit": "millions" },
+      "current": {
+        "T": 3,
+        "M": 1,
+        "status": "reconstruction-required"
+      },
+      "guard": {
+        "min": 1,
+        "max": 12,
+        "unit": "millions"
+      },
       "failure_modes": [
         "same per-provider workbook problem as the 18-week metric",
         "national total must be summed from per-organisation files"
@@ -102,7 +152,13 @@
         "published national monthly total as a value",
         "stable identifier + cadence + revision status"
       ],
-      "probe": "Resolve the series id; GET the national monthly total; assert values within the guard range without provider-level aggregation by the consumer."
+      "probe": "Resolve the series id; GET the national monthly total; assert values within the guard range without provider-level aggregation by the consumer.",
+      "govviz_published": {
+        "record": "https://egly443.github.io/Govviz/data/series/waiting-list.json",
+        "data": "https://egly443.github.io/Govviz/data/series/waiting-list/data.csv",
+        "csvw": "https://egly443.github.io/Govviz/data/series/waiting-list/data.csv-metadata.json",
+        "note": "A worked M5-shaped reference rendering of this case, published by Govviz (the downstream compiler) as a reference implementation of the AI-ready series profile: stable id -> tidy CSV, in-band unit/coverage/periodicity/provenance and a published validRange. It demonstrates the target shape the case asks for; it does NOT raise the upstream producer's score, because the primary publisher has not yet published it this way. When the producer does, their fetcher collapses to resolve id -> GET."
+      }
     },
     {
       "id": "nhs-workforce-turnover",
@@ -110,7 +166,11 @@
       "domain": "DHSC / NHS",
       "govviz_series_id": "turnover",
       "source": "digital.nhs.uk / data.gov.uk (resources point back to digital.nhs.uk)",
-      "current": { "T": 3, "M": 1, "status": "blocked" },
+      "current": {
+        "T": 3,
+        "M": 1,
+        "status": "blocked"
+      },
       "failure_modes": [
         "digital.nhs.uk returns HTTP 403 to automated clients even with a browser-like user agent",
         "otherwise-public statistics are unreachable by a citizen's agent"
@@ -120,7 +180,13 @@
         "published rate limits + identifying-header convention instead of blanket bot-blocking",
         "stable identifier + tidy data + provenance"
       ],
-      "probe": "Request the dataset with a scripted client and an identifying header; assert HTTP 200, not 403; assert a tidy machine-readable body."
+      "probe": "Request the dataset with a scripted client and an identifying header; assert HTTP 200, not 403; assert a tidy machine-readable body.",
+      "govviz_published": {
+        "record": "https://egly443.github.io/Govviz/data/series/turnover.json",
+        "data": "https://egly443.github.io/Govviz/data/series/turnover/data.csv",
+        "csvw": "https://egly443.github.io/Govviz/data/series/turnover/data.csv-metadata.json",
+        "note": "A worked M5-shaped reference rendering of this case, published by Govviz (the downstream compiler) as a reference implementation of the AI-ready series profile: stable id -> tidy CSV, in-band unit/coverage/periodicity/provenance and a published validRange. It demonstrates the target shape the case asks for; it does NOT raise the upstream producer's score, because the primary publisher has not yet published it this way. When the producer does, their fetcher collapses to resolve id -> GET."
+      }
     },
     {
       "id": "homelessness-temporary-accommodation",
@@ -128,8 +194,16 @@
       "domain": "MHCLG",
       "govviz_series_id": "mhclg-temp-accommodation",
       "source": "gov.uk — statistical-data-sets/live-tables-on-homelessness (TA1 sheet, England time series)",
-      "current": { "T": 3, "M": 2, "status": "parseable-with-bespoke-logic" },
-      "guard": { "min": 30000, "max": 250000, "unit": "households" },
+      "current": {
+        "T": 3,
+        "M": 2,
+        "status": "parseable-with-bespoke-logic"
+      },
+      "guard": {
+        "min": 30000,
+        "max": 250000,
+        "unit": "households"
+      },
       "failure_modes": [
         "year appears in column 0 only on Q1 and is blank for Q2-Q4 (must be carried forward)",
         "quarter is in a separate column; value in a third",
@@ -139,7 +213,13 @@
         "long-format one-observation-per-row dataset (date, value)",
         "stable identifier + quarterly cadence + unit declared"
       ],
-      "probe": "Resolve the series id; GET a long-format dataset; assert >= 8 quarterly observations within the guard range with explicit dates — no carry-forward inference required."
+      "probe": "Resolve the series id; GET a long-format dataset; assert >= 8 quarterly observations within the guard range with explicit dates — no carry-forward inference required.",
+      "govviz_published": {
+        "record": "https://egly443.github.io/Govviz/data/series/mhclg-temp-accommodation.json",
+        "data": "https://egly443.github.io/Govviz/data/series/mhclg-temp-accommodation/data.csv",
+        "csvw": "https://egly443.github.io/Govviz/data/series/mhclg-temp-accommodation/data.csv-metadata.json",
+        "note": "A worked M5-shaped reference rendering of this case, published by Govviz (the downstream compiler) as a reference implementation of the AI-ready series profile: stable id -> tidy CSV, in-band unit/coverage/periodicity/provenance and a published validRange. It demonstrates the target shape the case asks for; it does NOT raise the upstream producer's score, because the primary publisher has not yet published it this way. When the producer does, their fetcher collapses to resolve id -> GET."
+      }
     },
     {
       "id": "house-price-to-earnings-median",
@@ -147,8 +227,16 @@
       "domain": "MHCLG / ONS",
       "govviz_series_id": "mhclg-affordability",
       "source": "ONS dataset — ratioofhousepricetoworkplacebasedearningslowerquartileandmedian (table 1c = median)",
-      "current": { "T": 3, "M": 2, "status": "ambiguous" },
-      "guard": { "min": 3, "max": 15, "unit": "ratio" },
+      "current": {
+        "T": 3,
+        "M": 2,
+        "status": "ambiguous"
+      },
+      "guard": {
+        "min": 3,
+        "max": 15,
+        "unit": "ratio"
+      },
       "failure_modes": [
         "multi-sheet workbook contains both median and lower-quartile ratios on differently-named tabs",
         "BOTH values pass a plausible sanity check — a wrong-tab fetch yields a credible but WRONG chart",
@@ -158,7 +246,13 @@
         "each measure exposed as its own identified series with a machine-readable description (median vs lower quartile)",
         "in-band unit + definition so a consumer cannot silently pick the wrong measure"
       ],
-      "probe": "Resolve the median-ratio series id; assert its machine-readable description disambiguates it from the lower-quartile measure; assert values within the guard range. (This case tests semantic safety, not just parseability.)"
+      "probe": "Resolve the median-ratio series id; assert its machine-readable description disambiguates it from the lower-quartile measure; assert values within the guard range. (This case tests semantic safety, not just parseability.)",
+      "govviz_published": {
+        "record": "https://egly443.github.io/Govviz/data/series/mhclg-affordability.json",
+        "data": "https://egly443.github.io/Govviz/data/series/mhclg-affordability/data.csv",
+        "csvw": "https://egly443.github.io/Govviz/data/series/mhclg-affordability/data.csv-metadata.json",
+        "note": "A worked M5-shaped reference rendering of this case, published by Govviz (the downstream compiler) as a reference implementation of the AI-ready series profile: stable id -> tidy CSV, in-band unit/coverage/periodicity/provenance and a published validRange. It demonstrates the target shape the case asks for; it does NOT raise the upstream producer's score, because the primary publisher has not yet published it this way. When the producer does, their fetcher collapses to resolve id -> GET."
+      }
     },
     {
       "id": "net-additional-dwellings",
@@ -166,8 +260,16 @@
       "domain": "MHCLG",
       "govviz_series_id": "mhclg-net-dwellings",
       "source": "gov.uk — statistical-data-sets/live-tables-on-net-supply-of-housing (Live Table 120, sheet LT120_rounded)",
-      "current": { "T": 3, "M": 2, "status": "parseable-with-bespoke-logic" },
-      "guard": { "min": 80000, "max": 400000, "unit": "dwellings" },
+      "current": {
+        "T": 3,
+        "M": 2,
+        "status": "parseable-with-bespoke-logic"
+      },
+      "guard": {
+        "min": 80000,
+        "max": 400000,
+        "unit": "dwellings"
+      },
       "failure_modes": [
         "transposed layout: financial years run across columns, the metric is a row",
         "the wanted row is 'Total net additional dwellings'; an unanchored match grabs the 'Source: ...net additional dwellings...' caption first"
@@ -176,7 +278,13 @@
         "long-format one-observation-per-row dataset",
         "stable identifier + annual cadence + unit"
       ],
-      "probe": "Resolve the series id; GET a long-format dataset; assert >= 5 annual observations within the guard range without transposition or row-label disambiguation by the consumer."
+      "probe": "Resolve the series id; GET a long-format dataset; assert >= 5 annual observations within the guard range without transposition or row-label disambiguation by the consumer.",
+      "govviz_published": {
+        "record": "https://egly443.github.io/Govviz/data/series/mhclg-net-dwellings.json",
+        "data": "https://egly443.github.io/Govviz/data/series/mhclg-net-dwellings/data.csv",
+        "csvw": "https://egly443.github.io/Govviz/data/series/mhclg-net-dwellings/data.csv-metadata.json",
+        "note": "A worked M5-shaped reference rendering of this case, published by Govviz (the downstream compiler) as a reference implementation of the AI-ready series profile: stable id -> tidy CSV, in-band unit/coverage/periodicity/provenance and a published validRange. It demonstrates the target shape the case asks for; it does NOT raise the upstream producer's score, because the primary publisher has not yet published it this way. When the producer does, their fetcher collapses to resolve id -> GET."
+      }
     },
     {
       "id": "nhs-ae-four-hour-performance",
@@ -184,8 +292,16 @@
       "domain": "DHSC / NHS England",
       "govviz_series_id": "ae-performance",
       "source": "england.nhs.uk — Monthly A&E Time Series (random-suffix filename, e.g. ...-May-2026-wlgnE2.xls)",
-      "current": { "T": 3, "M": 1, "status": "works-but-unstable-identity" },
-      "guard": { "min": 40, "max": 100, "unit": "percent" },
+      "current": {
+        "T": 3,
+        "M": 1,
+        "status": "works-but-unstable-identity"
+      },
+      "guard": {
+        "min": 40,
+        "max": 100,
+        "unit": "percent"
+      },
       "failure_modes": [
         "asset URL has a random suffix regenerated each release; the landing page must be scraped every month to find the current link",
         "no stable 'latest' alias for the series"
@@ -194,7 +310,13 @@
         "stable series identifier with a 'latest' alias that resolves to the current versioned asset (keep cache-busting on the file)",
         "DCAT catalogue record"
       ],
-      "probe": "Resolve the series 'latest' alias twice across releases; assert the same identifier resolves to the current data without scraping a human page."
+      "probe": "Resolve the series 'latest' alias twice across releases; assert the same identifier resolves to the current data without scraping a human page.",
+      "govviz_published": {
+        "record": "https://egly443.github.io/Govviz/data/series/ae-performance.json",
+        "data": "https://egly443.github.io/Govviz/data/series/ae-performance/data.csv",
+        "csvw": "https://egly443.github.io/Govviz/data/series/ae-performance/data.csv-metadata.json",
+        "note": "A worked M5-shaped reference rendering of this case, published by Govviz (the downstream compiler) as a reference implementation of the AI-ready series profile: stable id -> tidy CSV, in-band unit/coverage/periodicity/provenance and a published validRange. It demonstrates the target shape the case asks for; it does NOT raise the upstream producer's score, because the primary publisher has not yet published it this way. When the producer does, their fetcher collapses to resolve id -> GET."
+      }
     },
     {
       "id": "hmrc-average-speed-of-answer",
@@ -202,8 +324,16 @@
       "domain": "HMRC",
       "govviz_series_id": "hmrc-call-wait",
       "source": "gov.uk — government/collections/hmrc-monthly-performance-reports (per-month data-table workbook)",
-      "current": { "T": 3, "M": 2, "status": "semantically-unsafe-cell-encoding" },
-      "guard": { "min": 1, "max": 40, "unit": "minutes" },
+      "current": {
+        "T": 3,
+        "M": 2,
+        "status": "semantically-unsafe-cell-encoding"
+      },
+      "guard": {
+        "min": 1,
+        "max": 40,
+        "unit": "minutes"
+      },
       "failure_modes": [
         "each month is a separate publication (no consolidated series); the national figure must be assembled by walking ~24 monthly editions",
         "the 'mm:ss'-labelled cell is stored inconsistently across editions: as a proper Excel time serial (minutes/1440), as an 'mm:ss' string mistyped into an h:mm time (so '23:49' is 0.99 of a day), or as a plain decimal — a naive read yields a credible-but-wrong value (24 seconds or 1,429 minutes instead of ~24 minutes)",
@@ -214,7 +344,13 @@
         "a stable series identifier with a 'latest' alias spanning all months, not one workbook per edition",
         "in-band unit + coverage + provenance"
       ],
-      "probe": "Resolve the series id; GET a tabular series; assert each monthly value parses to the same numeric unit within the guard range without inferring the cell's storage type — the bytes must declare minutes vs seconds."
+      "probe": "Resolve the series id; GET a tabular series; assert each monthly value parses to the same numeric unit within the guard range without inferring the cell's storage type — the bytes must declare minutes vs seconds.",
+      "govviz_published": {
+        "record": "https://egly443.github.io/Govviz/data/series/hmrc-call-wait.json",
+        "data": "https://egly443.github.io/Govviz/data/series/hmrc-call-wait/data.csv",
+        "csvw": "https://egly443.github.io/Govviz/data/series/hmrc-call-wait/data.csv-metadata.json",
+        "note": "A worked M5-shaped reference rendering of this case, published by Govviz (the downstream compiler) as a reference implementation of the AI-ready series profile: stable id -> tidy CSV, in-band unit/coverage/periodicity/provenance and a published validRange. It demonstrates the target shape the case asks for; it does NOT raise the upstream producer's score, because the primary publisher has not yet published it this way. When the producer does, their fetcher collapses to resolve id -> GET."
+      }
     },
     {
       "id": "ons-cdid-timeseries",
@@ -222,13 +358,23 @@
       "domain": "ONS",
       "govviz_series_id": "hmt-cost-of-living",
       "source": "ons.gov.uk timeseries API (CDID, e.g. D7G7)",
-      "current": { "T": 3, "M": 3, "status": "pass" },
+      "current": {
+        "T": 3,
+        "M": 3,
+        "status": "pass"
+      },
       "failure_modes": [],
       "pass_criteria": [
         "stable code, clean JSON endpoint, typed history — already met",
         "to reach M4: in-band unit/coverage/revision metadata and a catalogue record"
       ],
-      "probe": "Resolve the CDID; GET JSON; assert a typed time series. Positive control: the gold standard already inside government — proves the rest is achievable."
+      "probe": "Resolve the CDID; GET JSON; assert a typed time series. Positive control: the gold standard already inside government — proves the rest is achievable.",
+      "govviz_published": {
+        "record": "https://egly443.github.io/Govviz/data/series/hmt-cost-of-living.json",
+        "data": "https://egly443.github.io/Govviz/data/series/hmt-cost-of-living/data.csv",
+        "csvw": "https://egly443.github.io/Govviz/data/series/hmt-cost-of-living/data.csv-metadata.json",
+        "note": "A worked M5-shaped reference rendering of this case, published by Govviz (the downstream compiler) as a reference implementation of the AI-ready series profile: stable id -> tidy CSV, in-band unit/coverage/periodicity/provenance and a published validRange. It demonstrates the target shape the case asks for; it does NOT raise the upstream producer's score, because the primary publisher has not yet published it this way. When the producer does, their fetcher collapses to resolve id -> GET."
+      }
     },
     {
       "id": "world-bank-indicator",
@@ -236,7 +382,11 @@
       "domain": "World Bank (aggregates national outputs, often ONS)",
       "govviz_series_id": "life-expectancy",
       "source": "api.worldbank.org indicator API",
-      "current": { "T": 2, "M": 3, "status": "pass" },
+      "current": {
+        "T": 2,
+        "M": 3,
+        "status": "pass"
+      },
       "failure_modes": [
         "downstream aggregator: timely-but-stale and methodologically smoothed",
         "usability is borrowed — the harmonisation work was done off the primary publisher's books"
@@ -245,7 +395,14 @@
         "clean uniform endpoint across indicators and countries — already met",
         "lesson: a domestic harmonisation layer (National Data Library) should do this for UK primary outputs"
       ],
-      "probe": "Resolve an indicator; GET JSON; assert a uniform typed series. Positive control for cross-country comparability and for what a domestic harmonisation layer should provide."
+      "probe": "Resolve an indicator; GET JSON; assert a uniform typed series. Positive control for cross-country comparability and for what a domestic harmonisation layer should provide.",
+      "govviz_published": {
+        "record": "https://egly443.github.io/Govviz/data/series/life-expectancy.json",
+        "data": "https://egly443.github.io/Govviz/data/series/life-expectancy/data.csv",
+        "csvw": "https://egly443.github.io/Govviz/data/series/life-expectancy/data.csv-metadata.json",
+        "note": "A worked M5-shaped reference rendering of this case, published by Govviz (the downstream compiler) as a reference implementation of the AI-ready series profile: stable id -> tidy CSV, in-band unit/coverage/periodicity/provenance and a published validRange. It demonstrates the target shape the case asks for; it does NOT raise the upstream producer's score, because the primary publisher has not yet published it this way. When the producer does, their fetcher collapses to resolve id -> GET."
+      }
     }
-  ]
+  ],
+  "reference_implementation": "Every case below is also published by Govviz as an AI-ready-profile-conformant record (see each case's govviz_published) — so the suite ships with a worked M5 rendering of every failing case, not just pass criteria. Govviz is a downstream compiler demonstrating the target shape; the scores above reflect the UPSTREAM producer, which these renderings do not change. Catalogue: https://egly443.github.io/Govviz/data/catalog.json"
 }

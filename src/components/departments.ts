@@ -1689,6 +1689,22 @@ const hoPassportTimes: TrendSeries = {
 // ============================================================
 // Registry
 // ============================================================
+
+/**
+ * Provenance for the treemap tile sizing. Unlike every *series* (which is
+ * fetched and byte-hashed in CI), `spendBn` is a hand-entered editorial
+ * estimate — so it is labelled honestly as such, with its source and vintage,
+ * rather than presented with the same authority as the charts. Surfaced in the
+ * overview footnote and the methodology page.
+ */
+export const SPEND_BASIS = {
+  source: "HM Treasury, Public Spending Statistics (PESA)",
+  url: "https://www.gov.uk/government/collections/public-expenditure-statistical-analyses-pesa",
+  asOf: "2025–26",
+  measure: "Total Managed Expenditure",
+  note: "Approximate departmental TME, rounded; HMT is sized by debt interest (its largest direct outlay). A static editorial estimate used only to size tiles — not a fetched, validated series like the charts.",
+} as const;
+
 export const departments: Department[] = [
   {
     code: "dhsc",

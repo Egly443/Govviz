@@ -112,6 +112,8 @@ export function TrendPanel({
   const guard = real && !series.derivedFrom ? realGuard(series.id) : undefined;
   // Content fingerprint of the exact baked dataset (data-version pin).
   const fingerprint = real && !series.derivedFrom ? realHash(series.id) : undefined;
+  // Published AI-ready open-data record for this series (stable id → tidy data).
+  const dataBase = `${import.meta.env.BASE_URL}data/series/${series.id}`;
   // Hash of the raw upstream source bytes (lineage pin to the fetched file).
   const srcBytesHash = real && !series.derivedFrom ? realSourceBytesHash(series.id) : undefined;
 
@@ -574,6 +576,13 @@ export function TrendPanel({
               · data {fingerprint}
             </span>
           )}
+          <span className="flex items-center gap-1.5" title="This series as AI-ready open data (stable id, tidy CSV, CSVW schema)">
+            <span className="opacity-50">·</span>
+            <span className="opacity-70">AI-ready data:</span>
+            <a className="underline decoration-dotted underline-offset-2 hover:text-foreground" href={`${dataBase}.json`} target="_blank" rel="noopener noreferrer">JSON</a>
+            <a className="underline decoration-dotted underline-offset-2 hover:text-foreground" href={`${dataBase}/data.csv`} target="_blank" rel="noopener noreferrer">CSV</a>
+            <a className="underline decoration-dotted underline-offset-2 hover:text-foreground" href={`${dataBase}/data.csv-metadata.json`} target="_blank" rel="noopener noreferrer">CSVW</a>
+          </span>
         </span>
         {multi ? (
           <span className="tabular-nums">{formatMonth(current.date)}</span>

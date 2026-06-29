@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://egly443.github.io/Govviz/data/ai-ready-series.schema.json",
+  "title": "AI-ready series metadata record (v0.1)",
+  "description": "Executable form of the AI-ready series profile (docs/conformance/ai-ready-series-profile.md). A conformant series metadata record validates against this schema; the published reference implementation (Govviz) self-certifies every record against it as a build gate.",
+  "type": "object",
+  "required": [
+    "id", "title", "description", "producer", "statisticType", "measure",
+    "unit", "periodicity", "suppressionScheme", "revisionStatus", "licence",
+    "provenance", "latest"
+  ],
+  "properties": {
+    "id": { "type": "string", "format": "uri", "description": "Permanent, resolvable series identifier" },
+    "title": { "type": "string", "minLength": 1 },
+    "description": { "type": "string", "minLength": 1, "description": "Disambiguating description — must let a consumer tell this measure from a similar one" },
+    "producer": { "type": "string", "minLength": 1, "description": "Named accountable primary producer" },
+    "statisticType": { "type": "string", "minLength": 1 },
+    "measure": { "type": "string", "minLength": 1 },
+    "unit": { "type": "string", "minLength": 1 },
+    "unitMultiplier": { "type": "integer", "description": "Power-of-ten: base value = value × 10^unitMultiplier" },
+    "geography": { "type": ["string", "null"], "description": "ONS statistical-geography code, or null when not cleanly mappable" },
+    "periodicity": { "type": "string", "pattern": "^P", "description": "ISO 8601 duration, e.g. P1Y, P3M, P1M" },
+    "validRange": {
+      "type": "object",
+      "description": "Published plausible-range guard — a consumer rejects values outside it. May be absent on derived ratios or a local build without fetched data.",
+      "required": ["min", "max"],
+      "properties": { "min": { "type": "number" }, "max": { "type": "number" } }
+    },
+    "suppressionScheme": { "type": "string", "format": "uri" },
+    "revisionStatus": { "type": "string", "enum": ["provisional", "revised", "final", "estimated"] },
+    "licence": { "type": "string", "format": "uri" },
+    "provenance": {
+      "type": "object",
+      "required": ["source"],
+      "properties": {
+        "source": { "type": "string", "minLength": 1 },
+        "methodology": { "type": ["string", "null"] },
+        "derivation": { "type": ["string", "null"] },
+        "upstreamUrl": { "type": ["string", "null"] },
+        "fetchedAt": { "type": ["string", "null"] },
+        "contentHash": { "type": ["string", "null"] },
+        "sourceBytesHash": { "type": ["string", "null"] }
+      }
+    },
+    "nextRelease": { "type": ["string", "null"], "description": "Estimated next data period (flagged via nextReleaseEstimated), an ISO date, or the literal 'discontinued'" },
+    "nextReleaseEstimated": { "type": "boolean" },
+    "latest": { "type": "string", "format": "uri", "description": "Stable pointer to the current data file" },
+    "csvw": { "type": "string", "format": "uri" },
+    "agent": { "type": "string", "format": "uri" }
+  }
+}

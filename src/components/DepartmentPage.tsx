@@ -4,7 +4,7 @@ import { TrendPanel } from "./TrendPanel";
 import { TurnoverBreakdown } from "./TurnoverBreakdown";
 import { DepartmentTabs } from "./DepartmentTabs";
 import { realAsOf } from "./data";
-import { departmentIndicators, ragColor, ragLabel } from "./overview";
+import { departmentIndicators, ragColor, ragLabel, ragTextColor } from "./overview";
 import type { Department } from "./departments";
 
 interface Props {
@@ -139,8 +139,11 @@ function SynthesisCard({ dept }: { dept: Department }) {
               return (
                 <li
                   key={i.series.id}
-                  className="flex h-5 flex-1 items-center justify-center rounded-sm text-[10px] font-semibold leading-none text-black/70"
-                  style={{ background: ragColor(i.score, i.targeted) }}
+                  className="flex h-5 flex-1 items-center justify-center rounded-sm text-[10px] font-semibold leading-none"
+                  style={{
+                    background: ragColor(i.score, i.targeted),
+                    color: ragTextColor(i.score, i.targeted),
+                  }}
                   title={`${i.series.title}: ${rag.label}${i.targeted ? "" : " (scored vs own history)"}`}
                   aria-label={`${i.series.title}: ${rag.label}`}
                 >
