@@ -1276,6 +1276,7 @@ async function sportActiveLives() {
   const seen = new Set();
   const urls = hrefs.filter((h) => { if (seen.has(h)) return false; seen.add(h); return true; }).map((h) => (h.startsWith("http") ? h : `https://www.sportengland.org${h}`));
   console.log(`  sport-participation: ${urls.length} "Tables 1-5" links found, trying newest first`);
+  for (const u of urls) console.log(`     url: ${decodeURIComponent(u)}`);
   const num = (c) => { const v = typeof c === "number" ? c : parseFloat(String(c ?? "").replace(/[,%]/g, "")); return Number.isFinite(v) ? v : null; };
   const yearFromUrl = (u) => {
     const m = u.match(/(?:Nov(?:ember)?[%20_ ]*)(\d{2,4})[-–](\d{2})/i);
@@ -1341,6 +1342,7 @@ async function sportActiveLives() {
       // carrying a numeric value in the chosen % column).
       const dataRows = rows.slice(headerRowIdx + 1, headerRowIdx + 24);
       const overallRow = dataRows.find((r) => isOverallLabel(r[0])) ?? dataRows.find((r) => num(r[pctCol]) != null);
+      if (overallRow) console.log(`  sport-participation[${year}] url=${decodeURIComponent(url).split("/").pop()} overallRow=${JSON.stringify(overallRow.slice(0, 8))}`);
 
       if (!overallRow) {
         console.log(`  sport-participation[${year}] sheet "${sn}" header row=${headerRowIdx} activeCol=${activeCol} pctCol=${pctCol} but no overall row; dumping:`);
