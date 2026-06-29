@@ -2,6 +2,7 @@ import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { hierarchy, treemap, treemapSquarify } from "d3-hierarchy";
 import {
   buildOverview,
+  displayMovement,
   ragColor,
   ragTextColor,
   ragUncertainColor,
@@ -149,7 +150,9 @@ export function GovTreemap({
               : uncertain
                 ? UNCERTAIN_TEXT
                 : ragTextColor(cell.score, cell.targeted);
-            const mom = cell.momentum;
+            // SPC-aware movement glyph: a control-chart special-cause signal
+            // supersedes the cruder momentum slope (and says so in the tooltip).
+            const move = sourced ? displayMovement(cell) : null;
             const hasTarget = cell.series.target && cell.series.target.kind !== "reference";
             return (
               <button
@@ -158,7 +161,7 @@ export function GovTreemap({
                 title={
                   sourced
                     ? `${cell.series.title} — ${cell.series.format(cell.current)}${
-                        mom.dir !== "flat" ? ` · ${mom.label}` : ""
+                        move ? ` · ${move.label}` : ""
                       }${uncertain ? " · within margin of error of target" : ""}${
                         cell.role === "hero" ? " · lead indicator" : ""
                       }`
@@ -198,13 +201,13 @@ export function GovTreemap({
                       ) : (
                         <span />
                       )}
-                      {sourced && mom.dir !== "flat" && (
+                      {move && (
                         <span
-                          aria-label={mom.label}
+                          aria-label={move.label}
                           className="leading-none"
-                          style={{ fontSize: fs }}
+                          style={{ fontSize: fs, fontWeight: move.signal ? 700 : 400 }}
                         >
-                          {mom.glyph}
+                          {move.glyph}
                         </span>
                       )}
                     </span>

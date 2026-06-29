@@ -5,6 +5,7 @@ import {
   CartesianGrid,
   ComposedChart,
   Line,
+  ReferenceArea,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -14,8 +15,11 @@ import {
 import {
   deltaVs,
   formatMonth,
+  hasUncertainty,
   latest,
+  latestCI,
   minMax,
+  provisionalFrom,
   realAsOf,
   realGuard,
   realHash,
@@ -25,6 +29,7 @@ import {
   SHOW_ILLUSTRATIVE,
   slicePoints,
   stalenessOf,
+  type Point,
   type SeriesLine,
   type SeriesUnit,
   type TrendSeries,
@@ -144,6 +149,11 @@ export function TrendPanel({
   const spc = !multi ? spcVerdict(series) : null;
   const spcVar = spc ? spcVariationLabel(spc.variation) : null;
   const spcAssure = spc ? spcAssuranceLabel(spc.assurance) : null;
+  // Revision honesty: the trailing run of provisional (not-yet-final) points,
+  // and the latest published confidence interval (false-precision guard).
+  const provisional = provisionalFrom(series);
+  const latestInterval = latestCI(series);
+  const anyCI = hasUncertainty(series);
 
   const yFmt = (v: number) => {
     if (series.yFormat) return series.yFormat(v);
@@ -335,7 +345,24 @@ export function TrendPanel({
               >
                 {series.format(current.value)}
               </span>
+              {latestInterval && (
+                <span
+                  className="text-xs text-muted-foreground"
+                  title="Published 95% confidence interval for the latest figure — the estimate is not an exact count"
+                >
+                  95% CI {series.shortFormat(latestInterval.lo)}–{series.shortFormat(latestInterval.hi)}
+                </span>
+              )}
               <span className="text-xs text-muted-foreground">{formatMonth(current.date)}</span>
+              {current.status === "provisional" && (
+                <span
+                  className="rounded-full border px-1.5 py-px text-[10px]"
+                  style={{ color: "#f6c451", borderColor: "#f6c45155", background: "#f6c45118" }}
+                  title="The latest figure is provisional and is expected to be revised in a later edition"
+                >
+                  provisional
+                </span>
+              )}
             </div>
           )}
         </div>
@@ -522,6 +549,30 @@ export function TrendPanel({
                 }}
               />
             )}
+            {/* Provisional (not-yet-final) region: the trailing points the
+                source still expects to revise, shaded so a reader doesn't treat
+                the very latest movement as settled. */}
+            {provisional && !multi && data.length > 0 && (
+              <ReferenceArea
+                x1={
+                  (provisional.date >= (data[0].date as string)
+                    ? provisional.date
+                    : (data[0].date as string)) as string
+                }
+                x2={data[data.length - 1].date as string}
+                fill="#f6c451"
+                fillOpacity={0.06}
+                stroke="#f6c451"
+                strokeOpacity={0.25}
+                strokeDasharray="2 3"
+                label={{
+                  value: "provisional",
+                  position: "insideTopRight",
+                  fill: "#f6c451",
+                  fontSize: 9,
+                }}
+              />
+            )}
             {visibleAnnotations.map((a) => (
               <ReferenceLine
                 key={a.date}
@@ -636,11 +687,29 @@ export function TrendPanel({
           {series.shortFormat(guard.max)}
         </p>
       )}
-      {hasBand && (
+      {real &&
+        (hasBand || anyCI ? (
+          <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+            <span className="font-medium text-foreground/70">Uncertainty: </span>
+            the shaded band shows the source&rsquo;s published confidence interval
+            — the line is an estimate, not an exact count, so small movements
+            inside the band are not necessarily real change.
+          </p>
+        ) : (
+          <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+            <span className="font-medium text-foreground/70">Uncertainty: </span>
+            the source does not publish a confidence interval for this series, so
+            no error band is shown — read small movements with corresponding
+            caution rather than as exact change.
+          </p>
+        ))}
+      {provisional && (
         <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
-          <span className="font-medium text-foreground/70">Uncertainty: </span>
-          the shaded band shows the source&rsquo;s published confidence interval —
-          the line is an estimate, not an exact count.
+          <span className="font-medium" style={{ color: "#f6c451" }}>Provisional: </span>
+          the {provisional.count === 1 ? "most recent point is" : `most recent ${provisional.count} points are`}{" "}
+          provisional and expected to be revised in a later edition (shaded). A
+          performance or value-for-money read on a provisional figure is not yet
+          settled.
         </p>
       )}
       {spc && (
@@ -791,6 +860,12 @@ function DataTable({
   visible: boolean;
 }) {
   const multi = lines.length > 1;
+  // Single-line series can carry a published CI and/or a revision status; expose
+  // them as their own columns (by date) so the table is a faithful alternative.
+  const byDate = new Map<string, Point>();
+  if (!multi) for (const p of series.points) byDate.set(p.date, p);
+  const ciCols = !multi && series.points.some((p) => p.lo != null && p.hi != null);
+  const statusCol = !multi && series.points.some((p) => p.status);
   return (
     <div className={visible ? "max-h-80 overflow-auto rounded-lg border border-border" : undefined}>
       <table className="w-full border-collapse text-left text-[12px] tabular-nums">
@@ -814,24 +889,57 @@ function DataTable({
                 {series.title}
               </th>
             )}
+            {ciCols && (
+              <>
+                <th scope="col" className="px-3 py-1.5 text-right font-medium">
+                  95% CI lower
+                </th>
+                <th scope="col" className="px-3 py-1.5 text-right font-medium">
+                  95% CI upper
+                </th>
+              </>
+            )}
+            {statusCol && (
+              <th scope="col" className="px-3 py-1.5 text-left font-medium">
+                Status
+              </th>
+            )}
           </tr>
         </thead>
         <tbody>
-          {data.map((row) => (
-            <tr key={row.date as string} className="border-b border-border/40 last:border-0">
-              <th scope="row" className="px-3 py-1 font-normal text-muted-foreground">
-                {formatMonth(row.date as string)}
-              </th>
-              {lines.map((_, i) => {
-                const v = row[`l${i}`];
-                return (
-                  <td key={i} className="px-3 py-1 text-right text-foreground">
-                    {typeof v === "number" ? series.format(v) : "—"}
+          {data.map((row) => {
+            const p = byDate.get(row.date as string);
+            return (
+              <tr key={row.date as string} className="border-b border-border/40 last:border-0">
+                <th scope="row" className="px-3 py-1 font-normal text-muted-foreground">
+                  {formatMonth(row.date as string)}
+                </th>
+                {lines.map((_, i) => {
+                  const v = row[`l${i}`];
+                  return (
+                    <td key={i} className="px-3 py-1 text-right text-foreground">
+                      {typeof v === "number" ? series.format(v) : "—"}
+                    </td>
+                  );
+                })}
+                {ciCols && (
+                  <>
+                    <td className="px-3 py-1 text-right text-muted-foreground">
+                      {p?.lo != null ? series.format(p.lo) : "—"}
+                    </td>
+                    <td className="px-3 py-1 text-right text-muted-foreground">
+                      {p?.hi != null ? series.format(p.hi) : "—"}
+                    </td>
+                  </>
+                )}
+                {statusCol && (
+                  <td className="px-3 py-1 text-left text-muted-foreground">
+                    {p?.status ?? "final"}
                   </td>
-                );
-              })}
-            </tr>
-          ))}
+                )}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

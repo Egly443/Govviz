@@ -2,7 +2,17 @@ import { SERIES_DATA } from "../generated/seriesData";
 
 // `lo`/`hi` carry a published uncertainty interval (e.g. a survey's 95%
 // confidence interval) around `value`, when the source provides one.
-export type Point = { date: string; value: number; lo?: number; hi?: number };
+// `status` carries the official revision status of the observation when the
+// source distinguishes it: a `provisional` figure is expected to be revised in
+// a later edition, so the most recent points of many series are not yet final.
+export type RevisionStatus = "provisional" | "revised" | "final";
+export type Point = {
+  date: string;
+  value: number;
+  lo?: number;
+  hi?: number;
+  status?: RevisionStatus;
+};
 export type Annotation = { date: string; label: string };
 
 export type SeriesUnit =
@@ -585,6 +595,33 @@ export function stalenessOf(series: TrendSeries): {
     monthsOld,
     stale: monthsOld > limit,
   };
+}
+
+/**
+ * The date from which a series' trailing points are provisional (the first
+ * provisional point in the final unbroken provisional run), or null if none are.
+ * Used to shade the "subject to revision" region of the chart and to caption it.
+ */
+export function provisionalFrom(series: TrendSeries): { date: string; count: number } | null {
+  const pts = series.points;
+  let i = pts.length - 1;
+  let count = 0;
+  while (i >= 0 && pts[i].status === "provisional") {
+    count++;
+    i--;
+  }
+  return count ? { date: pts[i + 1].date, count } : null;
+}
+
+/** The latest point's published confidence interval, when it carries one. */
+export function latestCI(series: TrendSeries): { lo: number; hi: number } | null {
+  const p = series.points[series.points.length - 1];
+  return p && p.lo != null && p.hi != null ? { lo: p.lo, hi: p.hi } : null;
+}
+
+/** True when any point in the series carries a published confidence interval. */
+export function hasUncertainty(series: TrendSeries): boolean {
+  return series.points.some((p) => p.lo != null && p.hi != null);
 }
 
 export function minMax(series: TrendSeries) {

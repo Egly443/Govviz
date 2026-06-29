@@ -336,6 +336,37 @@ export function spcAssuranceLabel(a: SpcAssurance): {
 }
 
 /**
+ * The single "movement" glyph to show on a compact surface (treemap tile, RAG
+ * strip). An SPC special-cause signal supersedes the cruder OLS momentum glyph:
+ * a control-chart signal is a stronger, more defensible statement than a slope,
+ * so when SPC flags a special cause we show that (and say so); otherwise we fall
+ * back to the momentum direction; a flat, signal-free series shows nothing.
+ */
+export function displayMovement(x: {
+  spc: SpcVerdict | null;
+  momentum: Momentum;
+}): { glyph: string; label: string; kind: "good" | "bad" | "neutral"; signal: boolean } | null {
+  if (x.spc && x.spc.variation !== "neutral") {
+    const v = spcVariationLabel(x.spc.variation);
+    return {
+      glyph: v.glyph,
+      label: `SPC signal — ${v.label}${x.spc.rule ? ` (${x.spc.rule})` : ""}`,
+      kind: x.spc.variation === "improvement" ? "good" : "bad",
+      signal: true,
+    };
+  }
+  if (x.momentum.dir !== "flat") {
+    return {
+      glyph: x.momentum.glyph,
+      label: x.momentum.label,
+      kind: x.momentum.good ? "good" : "bad",
+      signal: false,
+    };
+  }
+  return null;
+}
+
+/**
  * Option-A uncertainty: true when the latest observation carries a published
  * confidence interval that *straddles the target* — so we cannot statistically
  * tell pass from fail and must not paint a confident green or red. Only applies
