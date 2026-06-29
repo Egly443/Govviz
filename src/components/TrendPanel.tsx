@@ -29,6 +29,11 @@ import {
   type SeriesUnit,
   type TrendSeries,
 } from "./data";
+import {
+  spcAssuranceLabel,
+  spcVariationLabel,
+  spcVerdict,
+} from "./overview";
 
 type Range = 5 | 10 | 20 | "max";
 
@@ -132,6 +137,13 @@ export function TrendPanel({
   const yoySig = deltaSignificance(series, 12);
   const decSig = deltaSignificance(series, 120);
   const { min, max } = minMax(series);
+  // XmR (statistical process control) verdict — signal-vs-noise, the NHS "Making
+  // Data Count" alternative to RAG-against-the-latest-point. Single-line series
+  // only (a multi-line comparison has no single process). Limits are a property
+  // of the whole series, so they're drawn as constant lines across any zoom.
+  const spc = !multi ? spcVerdict(series) : null;
+  const spcVar = spc ? spcVariationLabel(spc.variation) : null;
+  const spcAssure = spc ? spcAssuranceLabel(spc.assurance) : null;
 
   const yFmt = (v: number) => {
     if (series.yFormat) return series.yFormat(v);
@@ -163,10 +175,17 @@ export function TrendPanel({
   const yMax = values.length ? Math.max(...values) : 1;
   const pad = (yMax - yMin) * 0.15 || 1;
   // Anchor positive-only series at/above 0, but allow negatives (e.g. surplus).
-  const lower = yMin >= 0 ? Math.max(0, yMin - pad) : yMin - pad;
+  // Control limits can sit just outside the data range, so include them in the
+  // domain when SPC is shown (kept ≥ 0 for positive-only series).
+  const spcLo = spc ? Math.min(spc.lcl, yMin) : yMin;
+  const spcHi = spc ? Math.max(spc.ucl, yMax) : yMax;
+  const lowerRaw = spcLo - pad;
+  const lower = yMin >= 0 ? Math.max(0, lowerRaw) : lowerRaw;
   const yDomain: [number, number] = [
     lower,
-    series.target ? Math.max(yMax + pad, series.target.value + pad / 2) : yMax + pad,
+    series.target
+      ? Math.max(spcHi + pad, series.target.value + pad / 2)
+      : spcHi + pad,
   ];
 
   // Size the Y axis to its widest tick label. A fixed width + negative left
@@ -357,6 +376,29 @@ export function TrendPanel({
                 : `Target ${series.format(series.target.value)}`}
             </span>
           )}
+          {spcVar && (
+            <span
+              className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium"
+              style={
+                spc!.variation === "concern"
+                  ? { color: "var(--destructive)", borderColor: "color-mix(in oklab, var(--destructive) 25%, transparent)", background: "color-mix(in oklab, var(--destructive) 10%, transparent)" }
+                  : spc!.variation === "improvement"
+                    ? { color: "var(--primary)", borderColor: "color-mix(in oklab, var(--primary) 25%, transparent)", background: "color-mix(in oklab, var(--primary) 10%, transparent)" }
+                    : { color: "var(--muted-foreground)", borderColor: "var(--border)", background: "var(--surface)" }
+              }
+              title={`Statistical process control (XmR): ${spcVar.label}${spc!.rule ? ` (${spc!.rule})` : ""}.`}
+            >
+              <span aria-hidden="true">{spcVar.glyph}</span> {spcVar.short}
+            </span>
+          )}
+          {spcAssure && (
+            <span
+              className="inline-flex items-center gap-1 rounded-full border border-border bg-surface px-2 py-0.5 text-[11px] text-muted-foreground"
+              title={`SPC assurance — ${spcAssure.label}.`}
+            >
+              <span aria-hidden="true">{spcAssure.glyph}</span> {spcAssure.short}
+            </span>
+          )}
         </div>
       )}
 
@@ -430,6 +472,53 @@ export function TrendPanel({
                   position: "insideTopRight",
                   fill: "var(--primary)",
                   fontSize: 10,
+                }}
+              />
+            )}
+            {/* XmR control limits + centre line (single-line series). Drawn
+                behind the data line so the process bounds are visible without
+                obscuring the series. */}
+            {spc && !multi && (
+              <ReferenceLine
+                y={spc.mean}
+                stroke="var(--muted-foreground)"
+                strokeOpacity={0.5}
+                ifOverflow="extendDomain"
+                label={{
+                  value: "mean",
+                  position: "insideBottomRight",
+                  fill: "var(--muted-foreground)",
+                  fontSize: 9,
+                }}
+              />
+            )}
+            {spc && !multi && (
+              <ReferenceLine
+                y={spc.ucl}
+                stroke="var(--muted-foreground)"
+                strokeOpacity={0.32}
+                strokeDasharray="2 3"
+                ifOverflow="extendDomain"
+                label={{
+                  value: "upper limit",
+                  position: "insideTopRight",
+                  fill: "var(--muted-foreground)",
+                  fontSize: 9,
+                }}
+              />
+            )}
+            {spc && !multi && (
+              <ReferenceLine
+                y={spc.lcl}
+                stroke="var(--muted-foreground)"
+                strokeOpacity={0.32}
+                strokeDasharray="2 3"
+                ifOverflow="extendDomain"
+                label={{
+                  value: "lower limit",
+                  position: "insideBottomRight",
+                  fill: "var(--muted-foreground)",
+                  fontSize: 9,
                 }}
               />
             )}
@@ -552,6 +641,19 @@ export function TrendPanel({
           <span className="font-medium text-foreground/70">Uncertainty: </span>
           the shaded band shows the source&rsquo;s published confidence interval —
           the line is an estimate, not an exact count.
+        </p>
+      )}
+      {spc && (
+        <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+          <span className="font-medium text-foreground/70">Process control: </span>
+          the faint centre line is the mean and the dashed lines are XmR control
+          limits (mean&nbsp;&plusmn;&nbsp;2.66&nbsp;&times;&nbsp;mean moving range).
+          A point inside the limits with no run is{" "}
+          <em>common-cause</em> variation — natural noise, not a change to react
+          to; a point beyond a limit, or a run of {7} one side of the mean or
+          rising/falling, is a <em>special-cause</em> signal. This follows NHS
+          England&rsquo;s &ldquo;Making Data Count&rdquo; method rather than
+          reading the latest point against the target alone.
         </p>
       )}
 
