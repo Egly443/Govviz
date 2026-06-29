@@ -3457,65 +3457,71 @@ const SOURCES = [
   },
 
   // Strategic road network condition (motorway/trunk-road surface): National
-  // Highways pavement-condition KPI (% in good condition), monitored by ORR. ORR
-  // serves files as extensionless /media/{id}/download URLs, so match those + the
-  // anchor text and try to open the "data tables" workbook. DISCOVERY round.
+  // Highways pavement-condition KPI (% of the surface in good condition),
+  // monitored by ORR. ORR serves files as extensionless /media/{id}/download URLs.
+  // Find "data table 3" (well maintained & resilient network) on the assessment
+  // landing page, open it, and read the pavement-condition row across the years.
   {
     id: "dft-srn-degradation",
     min: 80,
     max: 100,
     get: async () => {
-      const pages = [
-        "https://www.orr.gov.uk/annual-assessment-national-highways-performance-2023-2024",
-        "https://www.orr.gov.uk/annual-assessment-national-highways-performance-end-second-road-period-april-2020-march-2025-0",
-        "https://www.orr.gov.uk/monitoring-and-regulation/roads-monitoring/annual-assessment-national-highways",
-      ];
-      const cands = [];
-      for (const page of pages) {
-        try {
-          const res = await fetch(page, fetchOpts({ accept: "text/html,*/*" }));
-          if (!res.ok) { console.log(`  srn ${page.split("/").pop()} → HTTP ${res.status}`); continue; }
-          const html = await res.text();
-          const anchors = [...html.matchAll(/<a[^>]+href="(\/media\/\d+\/download[^"]*)"[^>]*>([\s\S]*?)<\/a>/gi)]
-            .map((m) => ({ url: `https://www.orr.gov.uk${m[1]}`, text: m[2].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim() }));
-          const dt = anchors.filter((a) => /data|table|\.ods|\.xls|metric/i.test(a.text));
-          console.log(`  srn ${page.split("/").pop()} /media anchors=${anchors.length} data-like=${dt.length}: ${dt.slice(0, 8).map((a) => `${a.text}=${a.url.split("/").slice(-2)[0]}`).join(" | ")}`);
-          cands.push(...dt);
-        } catch (e) { console.log(`  srn ${page} err ${e.message}`); }
+      const landing = "https://www.orr.gov.uk/monitoring-and-regulation/roads-monitoring/annual-assessment-national-highways";
+      const res = await fetch(landing, fetchOpts({ accept: "text/html,*/*" }));
+      if (!res.ok) throw new Error(`srn landing HTTP ${res.status}`);
+      const html = await res.text();
+      const anchors = [...html.matchAll(/<a[^>]+href="(\/media\/\d+\/download[^"]*)"[^>]*>([\s\S]*?)<\/a>/gi)]
+        .map((m) => ({ url: `https://www.orr.gov.uk${m[1]}`, text: m[2].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim() }));
+      const t3 = anchors.find((a) => /data table 3\b/i.test(a.text) && /maintain|resilient/i.test(a.text)) ||
+        anchors.find((a) => /maintain|resilient|pavement/i.test(a.text));
+      if (!t3) throw new Error("srn: no 'data table 3' link found");
+      console.log(`  srn table3="${t3.text}" ${t3.url}`);
+      const book = await xlsxBook(t3.url);
+      for (const sn of book.SheetNames) {
+        if (!/table_?\s*3/i.test(sn)) continue;
+        const rows = (await sheetRows(book, sn)).map((r) => Array.from(r ?? []));
+        let hi = -1, yearCols = [];
+        for (let i = 0; i < Math.min(rows.length, 20); i++) {
+          const yc = rows[i].map((c, idx) => [idx, parsePeriodEnd(c)]).filter(([, d]) => d);
+          if (yc.length >= 3) { hi = i; yearCols = yc; break; }
+        }
+        if (hi < 0) continue;
+        const row = rows.slice(hi + 1).find((r) => /pavement|road surface|surface condition|good condition|not.*further investigation/i.test(r.slice(0, 4).map((c) => String(c ?? "")).join(" ")));
+        if (!row) { console.log(`  srn "${sn}" hdr=${hi} no pavement row; labels=${JSON.stringify(rows.slice(hi + 1, hi + 8).map((r) => r[0]))}`); continue; }
+        const pts = [];
+        for (const [idx, d] of yearCols) {
+          let v = parseFloat(String(row[idx] ?? "").replace(/[,%]/g, ""));
+          if (!Number.isFinite(v)) continue;
+          if (v > 0 && v <= 1.5) v *= 100;
+          if (v >= 80 && v <= 100) pts.push({ date: d, value: +v.toFixed(2) });
+        }
+        if (pts.length >= 3) { pts.sort((a, b) => (a.date < b.date ? -1 : 1)); console.log(`  srn ${pts.length} pts via "${sn}" latest=${pts[pts.length - 1].date}:${pts[pts.length - 1].value}`); return pts; }
+        console.log(`  srn "${sn}" pavement row found but <3 pts; row=${JSON.stringify(row.slice(0, 16))}`);
       }
-      // Try opening the most data-table-like candidates as workbooks; dump sheets.
-      for (const c of cands.slice(0, 4)) {
-        try { const book = await xlsxBook(c.url); console.log(`  srn OPEN "${c.text}" sheets=[${book.SheetNames.join("|")}]`); }
-        catch (e) { console.log(`  srn open "${c.text}" (${c.url}) err ${e.message}`); }
-      }
-      throw new Error(`srn: pavement-condition table not yet wired — discovery (${cands.length} data-like links)`);
+      throw new Error("srn: pavement-condition row not found in data table 3");
     },
   },
 
-  // DSG / high-needs (the SEND funding gap): probe the EES "School funding
-  // statistics" release for the high-needs data-set GUID (eesCsv needs the id).
+  // DSG / high-needs (the SEND funding gap): inspect the EES "School funding
+  // statistics" data sets to see which high-needs metric is machine-readable.
   {
     id: "dfe-dsg-deficit",
     min: 0,
     max: 12000,
     get: async () => {
-      const urls = [
-        "https://explore-education-statistics.service.gov.uk/find-statistics/school-funding-statistics/2024-25/data-guidance",
-        "https://explore-education-statistics.service.gov.uk/find-statistics/school-funding-statistics",
+      const guids = [
+        "cc77d779-f987-4d24-8de4-e1e342149cc7",
+        "a8fcd4a9-d770-412e-a53d-166c23fb1bf4",
+        "c80c4c11-1cc1-4081-9b23-96d0fde63ef3",
       ];
-      const guids = new Set();
-      for (const url of urls) {
+      for (const id of guids) {
         try {
-          const res = await fetch(url, fetchOpts({ accept: "text/html,application/json,*/*" }));
-          if (!res.ok) { console.log(`  dsg ${url.split("/").slice(-2).join("/")} → HTTP ${res.status}`); continue; }
-          const html = await res.text();
-          [...html.matchAll(/data-set[s]?\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/gi)].forEach((m) => guids.add(m[1]));
-          const titles = [...html.matchAll(/high[\s-]?needs|dedicated schools grant|DSG/gi)].length;
-          console.log(`  dsg ${url.split("/").slice(-2).join("/")} guids=${guids.size} high-needs-mentions=${titles}`);
-        } catch (e) { console.log(`  dsg ${url} err ${e.message}`); }
+          const { headers, rows } = await eesCsv(id);
+          const hn = headers.filter((h) => /high[\s_]?needs|dsg|deficit|reserve/i.test(h));
+          console.log(`  dsg ${id} rows=${rows.length} cols=${headers.length} highneeds-cols=[${hn.join(",")}] head=${headers.slice(0, 18).join(" | ")}`);
+        } catch (e) { console.log(`  dsg ${id} err ${e.message}`); }
       }
-      console.log(`  dsg candidate data-set GUIDs: ${[...guids].slice(0, 10).join(" | ") || "none found in HTML (SPA)"}`);
-      throw new Error(`dsg: high-needs data-set id not yet identified — probe only (${guids.size} guids)`);
+      throw new Error("dsg: inspecting EES columns — probe only (no clean cumulative-deficit series expected)");
     },
   },
 
