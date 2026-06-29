@@ -1363,12 +1363,16 @@ async function sportActiveLives() {
       // i.e. the CI header is MERGED across two columns and the data row holds
       // [lower, upper] in those two cells. Also support explicit Lower/Upper
       // columns in case an edition splits them.
+      // Search ONLY within the Active group (activeCol..activeCol+3) and take the
+      // FIRST CI header — the sheet repeats "95% confidence interval" for every
+      // activity group, so without a break the next group's CI (col ~8, a ~12%
+      // rate) wins and fails the straddle check.
       let lo = null, hi = null, loCol = -1, hiCol = -1, ciCol = -1;
-      for (let c = activeCol; c <= activeCol + 6 && c < subHeader.length; c++) {
+      for (let c = activeCol; c <= activeCol + 3 && c < subHeader.length; c++) {
         const h = String(subHeader[c] ?? "").toLowerCase();
-        if (/lower|lcl|\blcb\b|\blci\b/.test(h)) loCol = c;
-        else if (/upper|ucl|\bucb\b|\buci\b/.test(h)) hiCol = c;
-        else if (/confidence\s*interval|\b95\s*%/.test(h)) ciCol = c;
+        if (loCol < 0 && /lower|lcl|\blcb\b|\blci\b/.test(h)) loCol = c;
+        else if (hiCol < 0 && /upper|ucl|\bucb\b|\buci\b/.test(h)) hiCol = c;
+        else if (ciCol < 0 && /confidence\s*interval|\b95\s*%/.test(h)) { ciCol = c; break; }
       }
       if (loCol >= 0 && hiCol >= 0) {
         lo = scl(num(overallRow[loCol]));
