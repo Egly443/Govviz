@@ -281,9 +281,21 @@ SKIP, both hard-blocked by HTTP 403 — not parser bugs).
     GVA tables put DCMS **sectors as COLUMN headers** with years down col0 (sheets 1a-1c are SIC-definition
     lookups, not values), and sheet 2a is **current prices £bn** (not £m, no `scale`). Orientation-C parser
     (sector-as-column) + a current-prices-title tiebreak (over chained-volume 2b).
-  - `dcms-sport-participation` — Sport England Active Lives landing-page scrape, 4 pts (2021–2025).
-    **Lesson:** "Active" is a COLUMN group; the % is the "Rate (%)" sub-column stored as a **proportion**
-    (0.6207 → ×100); read the "All adults (aged 16+)" row.
+  - `dcms-sport-participation` — Sport England Active Lives, **10 pts (2016–2025)** from the in-workbook
+    trend table. **Lesson:** "Active" is a COLUMN group; the % is the "Rate (%)" sub-column stored as a
+    **proportion** (0.6207 → ×100); read the "All adults (aged 16+)" row. **BUG FOUND & FIXED (2026-06-29):**
+    the original code read one file per year from the landing page, but **Sport England's dated per-year
+    download links all resolve to the CURRENT workbook** (verified: byte-identical population counts —
+    e.g. `27549400` — across every "year"), so it produced **4 fake-identical points**. The real multi-year
+    series lives in the **`Table 1b Levels Trends`** sheet (all 10 survey periods Nov 2015-16…2024-25 as
+    repeating ~8-column blocks; period labels "November YYYY - November YYYY" in one row, Active/Fairly/
+    Inactive group headers below, "All adults (aged 16+)" Active rate in the col after each period's "Active"
+    header). **`sheet_to_json` reads this sheet as EMPTY** (odd/oversized `!ref`), so reconstruct the grid
+    from raw cells (`Object.keys(sheet)` filtered to `/^[A-Z]+\d+$/`, `XLSX.utils.decode_cell`). That trend
+    table publishes **no per-period CI**, so the series ships without an uncertainty band. **General lesson:
+    historical "per-year" download links on gov/agency sites may silently serve the current file — verify
+    distinct content (e.g. population counts) before trusting one-file-per-year, and prefer an in-workbook
+    trend/time-series table.**
 - **Only hard block left among the new departments:** `dsit-gigabit-broadband` (Ofcom Connected Nations)
   — every Ofcom data-downloads page **HTTP 403s** automated clients (same class as `turnover`/digital.nhs.uk).
   Fetcher kept as a documented SKIP; needs a non-gated mirror (the data.gov.uk CKAN copy is LA/postcode-only).
