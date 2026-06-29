@@ -6,7 +6,9 @@ import { DepartmentTabs } from "./DepartmentTabs";
 import { GovTreemap } from "./GovTreemap";
 import { Modal } from "./Modal";
 import { TrendPanel } from "./TrendPanel";
+import { DataHealthStrip } from "./DataHealthStrip";
 import { ragColor, type IndicatorCell } from "./overview";
+import { SPEND_BASIS } from "./departments";
 
 export function OverviewPage() {
   const [selected, setSelected] = useState<IndicatorCell | null>(null);
@@ -45,6 +47,8 @@ export function OverviewPage() {
           <Legend />
         </div>
 
+        <DataHealthStrip />
+
         <section className="mt-8 rounded-xl border border-border bg-card/40 p-2 sm:p-3">
           <GovTreemap onSelect={setSelected} />
         </section>
@@ -54,7 +58,17 @@ export function OverviewPage() {
           one exists (green = at or beyond the standard), otherwise its own
           historical range; always oriented so green is good. A dot marks
           indicators with an official target. Tile size is approximate
-          departmental Total Managed Expenditure (HMT, 2025&ndash;26).
+          departmental {SPEND_BASIS.measure} (
+          <a
+            href={SPEND_BASIS.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline decoration-dotted underline-offset-2 hover:text-foreground"
+            title={SPEND_BASIS.note}
+          >
+            {SPEND_BASIS.source}, {SPEND_BASIS.asOf}
+          </a>
+          ) — a static editorial estimate, not a fetched series.
         </p>
 
         <Footer />

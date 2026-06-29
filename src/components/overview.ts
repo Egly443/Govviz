@@ -1,8 +1,10 @@
 import {
   latest,
   minMax,
+  realAsOf,
   seriesIsReal,
   SHOW_ILLUSTRATIVE,
+  stalenessOf,
   type TrendSeries,
 } from "./data";
 import { departments, type Department } from "./departments";
@@ -99,14 +101,59 @@ export function ragLabel(
   return { letter: "R", label: "red" };
 }
 
-export function ragColor(score: number, benchmarked = true): string {
+function ragHsl(score: number, benchmarked: boolean) {
   const s = Math.max(0, Math.min(1, score));
   const hue =
     s < 0.5 ? 8 + (46 - 8) * (s / 0.5) : 46 + (142 - 46) * ((s - 0.5) / 0.5);
   const sat = benchmarked ? 58 : 18;
-  const light =
-    s < 0.5 ? 40 + 6 * (s / 0.5) : 46 - 5 * ((s - 0.5) / 0.5);
-  return `hsl(${hue.toFixed(0)} ${sat}% ${light.toFixed(0)}%)`;
+  const light = s < 0.5 ? 40 + 6 * (s / 0.5) : 46 - 5 * ((s - 0.5) / 0.5);
+  return { h: hue, s: sat, l: light };
+}
+
+export function ragColor(score: number, benchmarked = true): string {
+  const { h, s, l } = ragHsl(score, benchmarked);
+  return `hsl(${h.toFixed(0)} ${s.toFixed(0)}% ${l.toFixed(0)}%)`;
+}
+
+// sRGB relative luminance of an HSL colour (WCAG 2.x), used to pick a readable
+// text colour over a tile fill.
+function relLuminance(h: number, s: number, l: number): number {
+  const S = s / 100;
+  const L = l / 100;
+  const c = (1 - Math.abs(2 * L - 1)) * S;
+  const hp = h / 60;
+  const x = c * (1 - Math.abs((hp % 2) - 1));
+  let r = 0,
+    g = 0,
+    b = 0;
+  if (hp < 1) [r, g, b] = [c, x, 0];
+  else if (hp < 2) [r, g, b] = [x, c, 0];
+  else if (hp < 3) [r, g, b] = [0, c, x];
+  else if (hp < 4) [r, g, b] = [0, x, c];
+  else if (hp < 5) [r, g, b] = [x, 0, c];
+  else [r, g, b] = [c, 0, x];
+  const m = L - c / 2;
+  const lin = (v: number) => {
+    const u = v + m;
+    return u <= 0.03928 ? u / 12.92 : Math.pow((u + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+}
+
+/**
+ * A readable text colour (near-black or near-white) for label/value text drawn
+ * on top of a RAG tile fill. The amber band is bright enough that white text
+ * fails WCAG AA, while the red band is dark enough that black text fails — so
+ * the choice is made per-tile by maximising contrast against the actual fill,
+ * not assumed. Returns slightly-off black/white to avoid harsh edges.
+ */
+export function ragTextColor(score: number, benchmarked = true): string {
+  const { h, s, l } = ragHsl(score, benchmarked);
+  const bg = relLuminance(h, s, l);
+  // Contrast ratio vs white (lum 1) and near-black (lum ~0.03).
+  const contrastWhite = (1 + 0.05) / (bg + 0.05);
+  const contrastBlack = (bg + 0.05) / (0.02 + 0.05);
+  return contrastBlack >= contrastWhite ? "#0b0d12" : "#ffffff";
 }
 
 export interface ScoredIndicator {
@@ -135,6 +182,78 @@ export function departmentIndicators(dept: Department): ScoredIndicator[] {
     }
   }
   return out;
+}
+
+export interface DataHealth {
+  total: number; // distinct indicators across all departments
+  live: number; // backed by real, fetched data
+  placeholder: number; // no source wired yet
+  stale: number; // live but source has gone quiet past its publication window
+  benchmarked: number; // live AND anchored to an official target/standard
+  livePct: number; // live / total, 0..100
+  benchmarkedPct: number; // benchmarked / live, 0..100
+  medianAgeMonths: number | null; // median age of live series' latest point
+  oldestYear: number | null; // earliest "latest point" year among live series
+  newestFetch: string | null; // most recent CI fetch date across live series
+}
+
+/**
+ * Whole-of-government data-quality summary. The dashboard already exposes
+ * freshness and provenance per chart; this aggregates the same signals into a
+ * single, honest health read — how complete the coverage is, how much is
+ * benchmarked to an external standard, and how fresh it is — so the system-level
+ * state is visible rather than buried in CI logs.
+ */
+export function dataHealth(): DataHealth {
+  const seen = new Set<string>();
+  const series: TrendSeries[] = [];
+  for (const d of departments) {
+    for (const s of [d.hero, ...d.core, ...(d.supporting ?? [])]) {
+      if (seen.has(s.id)) continue;
+      seen.add(s.id);
+      series.push(s);
+    }
+  }
+
+  const liveSeries = series.filter((s) => seriesIsReal(s));
+  const ages: number[] = [];
+  const years: number[] = [];
+  const fetches: string[] = [];
+  for (const s of liveSeries) {
+    const v = stalenessOf(s);
+    if (Number.isFinite(v.monthsOld)) ages.push(v.monthsOld);
+    if (Number.isFinite(v.latestYear)) years.push(v.latestYear);
+    const f = s.derivedFrom
+      ? s.derivedFrom.map(realAsOf).filter((x): x is string => !!x).sort()[0]
+      : realAsOf(s.id);
+    if (f) fetches.push(f);
+  }
+  ages.sort((a, b) => a - b);
+  const median = ages.length
+    ? ages.length % 2
+      ? ages[(ages.length - 1) / 2]
+      : Math.round((ages[ages.length / 2 - 1] + ages[ages.length / 2]) / 2)
+    : null;
+
+  const stale = liveSeries.filter((s) => stalenessOf(s).stale).length;
+  const benchmarked = liveSeries.filter(
+    (s) => s.target && s.target.kind !== "reference",
+  ).length;
+
+  return {
+    total: series.length,
+    live: liveSeries.length,
+    placeholder: series.length - liveSeries.length,
+    stale,
+    benchmarked,
+    livePct: series.length ? Math.round((liveSeries.length / series.length) * 100) : 0,
+    benchmarkedPct: liveSeries.length
+      ? Math.round((benchmarked / liveSeries.length) * 100)
+      : 0,
+    medianAgeMonths: median,
+    oldestYear: years.length ? Math.min(...years) : null,
+    newestFetch: fetches.length ? fetches.sort()[fetches.length - 1] : null,
+  };
 }
 
 export function buildOverview(): DeptBlock[] {

@@ -65,6 +65,18 @@ export function AboutPage() {
             side of a methodology change are not directly comparable.
           </Section>
 
+          <Section title="What the treemap’s size and colour mean">
+            On the overview, tile <em>colour</em> scores each indicator against
+            its published target where one exists, otherwise against its own
+            history (those are desaturated, because an own-range score is not
+            comparable to a target-anchored one). Tile <em>size</em> is an
+            approximate departmental Total Managed Expenditure figure from HM
+            Treasury’s Public Spending Statistics — and, unlike every chart, it
+            is a hand-entered editorial estimate, not a fetched and validated
+            series. It is there to give the mosaic budget-weighted proportions,
+            not to be read as a precise number.
+          </Section>
+
           <Section title="Accessibility">
             Every chart has a text summary for screen readers and a
             “View&nbsp;as&nbsp;table” alternative exposing the underlying data

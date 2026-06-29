@@ -1,6 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { hierarchy, treemap, treemapSquarify } from "d3-hierarchy";
-import { buildOverview, ragColor, type IndicatorCell } from "./overview";
+import { buildOverview, ragColor, ragTextColor, type IndicatorCell } from "./overview";
 import { SHOW_ILLUSTRATIVE } from "./data";
 
 const LABEL_H = 22; // reserved band for each department's label
@@ -126,6 +126,11 @@ export function GovTreemap({
             // In production, an unsourced indicator is greyed and shows no
             // (fabricated) value — its RAG colour would be meaningless.
             const sourced = cell.real || SHOW_ILLUSTRATIVE;
+            // Contrast-safe label colour: white fails WCAG on amber tiles, black
+            // fails on red — pick per-tile against the actual fill luminance.
+            const textColor = sourced
+              ? ragTextColor(cell.score, cell.targeted)
+              : "var(--muted-foreground)";
             return (
               <button
                 key={cell.series.id}
@@ -146,16 +151,19 @@ export function GovTreemap({
                 }}
               >
                 {showText && (
-                  <span className="flex h-full w-full flex-col justify-between gap-1 p-1.5">
+                  <span
+                    className="flex h-full w-full flex-col justify-between gap-1 p-1.5"
+                    style={{ color: textColor }}
+                  >
                     <span
-                      className="line-clamp-3 font-medium leading-tight text-white/95"
+                      className="line-clamp-3 font-medium leading-tight"
                       style={{ fontSize: fs }}
                     >
                       {cell.series.title}
                     </span>
                     {showValue && (
                       <span
-                        className="font-semibold tabular-nums text-white"
+                        className="font-semibold tabular-nums"
                         style={{ fontSize: fs + 1 }}
                       >
                         {sourced ? cell.series.format(cell.current) : "—"}
@@ -165,7 +173,8 @@ export function GovTreemap({
                 )}
                 {cell.series.target && cell.series.target.kind !== "reference" && (
                   <span
-                    className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-white/70"
+                    className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full opacity-70"
+                    style={{ background: textColor }}
                     title="Has an official target"
                   />
                 )}
