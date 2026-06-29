@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as OverviewRouteImport } from './routes/overview'
 import { Route as BlogRouteImport } from './routes/blog'
+import { Route as AboutRouteImport } from './routes/about'
 import { Route as DeptRouteImport } from './routes/$dept'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -24,6 +25,11 @@ const BlogRoute = BlogRouteImport.update({
   path: '/blog',
   getParentRoute: () => rootRouteImport,
 } as any).lazy(() => import('./routes/blog.lazy').then((d) => d.Route))
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DeptRoute = DeptRouteImport.update({
   id: '/$dept',
   path: '/$dept',
@@ -38,12 +44,14 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$dept': typeof DeptRoute
+  '/about': typeof AboutRoute
   '/blog': typeof BlogRoute
   '/overview': typeof OverviewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$dept': typeof DeptRoute
+  '/about': typeof AboutRoute
   '/blog': typeof BlogRoute
   '/overview': typeof OverviewRoute
 }
@@ -51,20 +59,22 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/$dept': typeof DeptRoute
+  '/about': typeof AboutRoute
   '/blog': typeof BlogRoute
   '/overview': typeof OverviewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/$dept' | '/blog' | '/overview'
+  fullPaths: '/' | '/$dept' | '/about' | '/blog' | '/overview'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/$dept' | '/blog' | '/overview'
-  id: '__root__' | '/' | '/$dept' | '/blog' | '/overview'
+  to: '/' | '/$dept' | '/about' | '/blog' | '/overview'
+  id: '__root__' | '/' | '/$dept' | '/about' | '/blog' | '/overview'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DeptRoute: typeof DeptRoute
+  AboutRoute: typeof AboutRoute
   BlogRoute: typeof BlogRoute
   OverviewRoute: typeof OverviewRoute
 }
@@ -83,6 +93,13 @@ declare module '@tanstack/react-router' {
       path: '/blog'
       fullPath: '/blog'
       preLoaderRoute: typeof BlogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/$dept': {
@@ -105,6 +122,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DeptRoute: DeptRoute,
+  AboutRoute: AboutRoute,
   BlogRoute: BlogRoute,
   OverviewRoute: OverviewRoute,
 }
