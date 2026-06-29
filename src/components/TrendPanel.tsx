@@ -404,6 +404,13 @@ export function TrendPanel({
         </ResponsiveContainer>
       </div>
 
+      {series.methodology && (
+        <p className="mt-3 text-[11px] leading-snug text-muted-foreground">
+          <span className="font-medium text-foreground/70">How it&rsquo;s calculated: </span>
+          {series.methodology}
+        </p>
+      )}
+
       {/* Footer */}
       <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 border-t border-border/60 pt-3 text-[11px] text-muted-foreground">
         <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">

@@ -1098,6 +1098,8 @@ const defraRecycling: TrendSeries = {
   sourceUrl: "https://www.gov.uk/government/statistics/uk-waste-data",
   cadence: "annual",
   points: realPoints("defra-recycling"),
+  methodology:
+    "Computed as (dry recycling + organic waste) ÷ total household waste collected, England, per year.",
   annotations: [],
 };
 
@@ -1557,6 +1559,8 @@ const dftLocalRoads: TrendSeries = {
   sourceUrl: "https://www.gov.uk/government/statistical-data-sets/road-condition-statistics-data-tables-rdc",
   cadence: "annual",
   points: realPoints("dft-local-roads"),
+  methodology:
+    "Mean across the English regions (the source reports a value per region, not a single England figure).",
   annotations: [],
 };
 
@@ -1593,6 +1597,8 @@ const mhclgWaitlist: TrendSeries = {
   sourceUrl: "https://www.gov.uk/government/statistical-data-sets/live-tables-on-rents-lettings-and-tenancies",
   cadence: "annual",
   points: realPoints("mhclg-social-waitlist"),
+  methodology:
+    "Summed across the nine English regions (no national total is published in the source table).",
   annotations: [],
 };
 
@@ -1630,6 +1636,8 @@ const hmtRegionalGap: TrendSeries = {
     "https://www.ons.gov.uk/economy/grossvalueaddedgva/datasets/nominalregionalgrossvalueaddedbalancedperheadandincomecomponents",
   cadence: "annual",
   points: realPoints("hmt-regional-gap"),
+  methodology:
+    "Ratio of London GVA per head to the UK average (London ÷ UK), per year. Higher = wider regional gap.",
   annotations: [],
 };
 

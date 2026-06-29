@@ -54,6 +54,8 @@ export type TrendSeries = {
    * as its inputs, and never carries its own SERIES_DATA entry.
    */
   derivedFrom?: string[];
+  /** Plain-language note on how a derived/aggregated value is computed (cost÷outcome ratio, region aggregation, etc.). Rendered as a "How it's calculated" note. */
+  methodology?: string;
   annotations: Annotation[];
 };
 
@@ -144,6 +146,7 @@ export function ratioSeries(o: {
   scale?: number;
   round?: number;
   vfm?: boolean;
+  methodology?: string;
   annotations?: Annotation[];
 }): TrendSeries {
   const scale = o.scale ?? 1;
@@ -173,6 +176,7 @@ export function ratioSeries(o: {
     cadence: o.num.cadence,
     points,
     derivedFrom: [o.num.id, o.den.id],
+    methodology: o.methodology ?? `Computed as ${o.num.title} ÷ ${o.den.title}, aligned by year.`,
     annotations: o.annotations ?? [],
   };
 }
