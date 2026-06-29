@@ -1395,7 +1395,18 @@ async function gigabitBroadband() {
       setSrc(fileUrl);
     } catch (e) { console.log(`  gigabit-broadband[${year}] err ${e.message}`); }
   }
-  if (points.length < 3) throw new Error(`gigabit-broadband: only ${points.length} annual points parsed (see diagnostics)`);
+  if (points.length < 3) {
+    // Ofcom data-download pages 403 automated clients. Probe non-gated mirrors:
+    // gov.uk (DSIT/BDUK) statistics releases, and thinkbroadband's open coverage.
+    try {
+      const s = await fetch("https://www.gov.uk/api/search.json?q=gigabit+broadband+coverage&order=-public_timestamp&count=10", fetchOpts({ accept: "application/json" }));
+      if (s.ok) { const j = await s.json(); console.log(`  gigabit gov.uk search: ${(j.results || []).map((r) => r.link).slice(0, 8).join(" | ")}`); }
+    } catch (e) { console.log(`  gigabit gov.uk search err ${e.message}`); }
+    for (const u of ["https://labs.thinkbroadband.com/local/", "https://www.thinkbroadband.com/broadband/monitoring/quality/share"]) {
+      try { const tb = await fetch(u, fetchOpts({ accept: "text/html,*/*" })); console.log(`  gigabit ${u.split("/")[2]} HTTP ${tb.status}`); } catch (e) { console.log(`  gigabit ${u} err ${e.message}`); }
+    }
+    throw new Error(`gigabit-broadband: only ${points.length} annual points parsed (see diagnostics)`);
+  }
   return points.sort((a, b) => (a.date < b.date ? -1 : 1));
 }
 
@@ -3372,26 +3383,21 @@ const SOURCES = [
     min: 30,
     max: 100,
     get: async () => {
-      // The data lives on gp-patient.co.uk (Ipsos), not england.nhs.uk. Probe the
-      // surveys-and-reports / analysis-tool pages for downloadable national data
-      // files (the 2024 methodology break means a pre/post split next round).
-      const pages = [
-        "https://gp-patient.co.uk/surveysandreports",
-        "https://gp-patient.co.uk/analysistool",
-        "https://www.gp-patient.co.uk/surveysandreports",
-      ];
-      const found = [];
-      for (const page of pages) {
+      // The GP Patient Survey is published as a gov.uk statistics release each year
+      // (gp-patient-survey-results-{year}); the data files are reachable there even
+      // though gp-patient.co.uk is JS-rendered. Probe recent releases' attachments.
+      const slugs = ["gp-patient-survey-results-2025", "gp-patient-survey-results-2024", "gp-patient-survey-2023-results", "gp-patient-survey-2022-results"];
+      for (const slug of slugs) {
         try {
-          const res = await fetch(page, fetchOpts({ accept: "text/html,*/*" }));
-          if (!res.ok) { console.log(`  gp-access ${page} → HTTP ${res.status}`); continue; }
-          const html = await res.text();
-          const links = [...html.matchAll(/href="([^"]*\.(?:xlsx?|csv|ods)(?:\?[^"]*)?)"/gi)].map((m) => m[1]);
-          console.log(`  gp-access ${page} data links (${links.length}): ${links.slice(0, 20).join(" | ")}`);
-          found.push(...links);
-        } catch (e) { console.log(`  gp-access ${page} err ${e.message}`); }
+          const atts = await govukAttachments(`government/statistics/${slug}`);
+          console.log(`  gp-access ${slug} atts(${atts.length}): ${atts.map((a) => `${a.title}|${(a.url || "").split("/").pop()}`).slice(0, 10).join(" ; ")}`);
+        } catch (e) { console.log(`  gp-access ${slug} err ${e.message}`); }
       }
-      throw new Error(`gp-access: national trends file not yet identified — probe only (${found.length} links)`);
+      try {
+        const s = await fetch("https://www.gov.uk/api/search.json?q=GP+Patient+Survey+results&order=-public_timestamp&count=12", fetchOpts({ accept: "application/json" }));
+        if (s.ok) { const j = await s.json(); console.log(`  gp-access gov.uk search: ${(j.results || []).map((r) => r.link).slice(0, 10).join(" | ")}`); }
+      } catch (e) { console.log(`  gp-access search err ${e.message}`); }
+      throw new Error("gp-access: probing gov.uk GP Patient Survey releases");
     },
   },
 
@@ -3444,15 +3450,21 @@ const SOURCES = [
     min: 50,
     max: 100,
     get: async () => {
-      const slugs = ["passport-processing-times", "hm-passport-office-transparency-data", "migration-transparency-data"];
-      for (const slug of slugs) {
-        try {
-          const j = await govukContent(`government/collections/${slug}`);
-          const docs = (j?.links?.documents || []).slice(0, 12).map((d) => d.base_path);
-          console.log(`  passport-times collection ${slug} docs(${docs.length}): ${docs.join(" | ")}`);
-        } catch (e) { console.log(`  passport-times ${slug} err ${e.message}`); }
-      }
-      throw new Error("passport-times: data file not yet identified — probe only (see collection docs)");
+      // HMPO publishes per-quarter transparency-data publications on gov.uk. Find
+      // them via the Search API, then dump the most recent ones' attachments.
+      try {
+        const s = await fetch("https://www.gov.uk/api/search.json?q=HM+Passport+Office+transparency+data&order=-public_timestamp&count=15", fetchOpts({ accept: "application/json" }));
+        if (s.ok) {
+          const j = await s.json();
+          const hits = (j.results || []).map((r) => r.link);
+          console.log(`  passport-times search hits(${hits.length}): ${hits.slice(0, 12).join(" | ")}`);
+          for (const h of hits.slice(0, 4)) {
+            try { const atts = await govukAttachments(String(h).replace(/^\//, "")); console.log(`  passport-times ${h} atts(${atts.length}): ${atts.map((a) => `${a.title}|${(a.url || "").split("/").pop()}`).slice(0, 8).join(" ; ")}`); }
+            catch (e) { console.log(`  passport-times ${h} att-err ${e.message}`); }
+          }
+        } else console.log(`  passport-times search HTTP ${s.status}`);
+      } catch (e) { console.log(`  passport-times err ${e.message}`); }
+      throw new Error("passport-times: probing gov.uk HMPO transparency publications");
     },
   },
 
@@ -4296,6 +4308,15 @@ const SOURCES = [
           const ck = await fetch("https://data.gov.uk/api/3/action/package_search?q=NHS+workforce+turnover&rows=8", fetchOpts({ accept: "application/json" }));
           if (ck.ok) { const j = await ck.json(); console.log(`turnover CKAN: ${(j.result?.results || []).map((r) => `${r.name}[${[...new Set((r.resources || []).map((x) => x.format))].join("/")}]`).join(" ; ").slice(0, 500)}`); } else console.log(`turnover CKAN HTTP ${ck.status}`);
         } catch (e) { console.log(`turnover CKAN err ${e.message}`); }
+        // Probe the House of Commons Library NHS-workforce briefing (friendlier
+        // host) for a downloadable leaver-rate dataset.
+        for (const u of ["https://commonslibrary.parliament.uk/research-briefings/cbp-9731/", "https://researchbriefings.files.parliament.uk/documents/CBP-9731/CBP-9731.xlsx"]) {
+          try {
+            const hoc = await fetch(u, fetchOpts({ accept: "text/html,application/octet-stream,*/*" }));
+            if (hoc.ok && /html/.test(hoc.headers.get("content-type") || "")) { const h = await hoc.text(); const xl = [...h.matchAll(/href="([^"]*\.(?:xlsx?|csv)[^"]*)"/gi)].map((m) => m[1]); console.log(`  turnover HoC ${u.split("/")[2]} xlsx(${xl.length}): ${xl.slice(0, 6).join(" | ")}`); }
+            else console.log(`  turnover HoC ${u.split("/").pop()} HTTP ${hoc.status} ct=${hoc.headers.get("content-type")}`);
+          } catch (e) { console.log(`  turnover HoC err ${e.message}`); }
+        }
         throw new Error(`turnover: info page HTTP ${res.status}`);
       }
       const html = await res.text();
