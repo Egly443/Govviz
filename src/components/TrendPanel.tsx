@@ -147,6 +147,21 @@ export function TrendPanel({
     series.target ? Math.max(yMax + pad, series.target.value + pad / 2) : yMax + pad,
   ];
 
+  // Size the Y axis to its widest tick label. A fixed width + negative left
+  // margin right-anchors tick text at a fixed x, so wide labels (e.g.
+  // "£130.3bn", "32.3%") overflow past the SVG origin and get clipped by the
+  // card's overflow-hidden. Estimate the widest formatted label across the
+  // domain (and any target) and reserve enough width, with left margin 0 so the
+  // axis is never pulled off-canvas. ~6.6px/char at 11px is a safe over-estimate.
+  const yLabelSamples = [
+    yDomain[0],
+    yDomain[1],
+    (yDomain[0] + yDomain[1]) / 2,
+    ...(series.target ? [series.target.value] : []),
+  ];
+  const widestYChars = Math.max(1, ...yLabelSamples.map((v) => yFmt(v).length));
+  const yAxisWidth = Math.min(80, Math.max(34, Math.ceil(widestYChars * 6.6) + 12));
+
   const visibleAnnotations =
     showAnnotations && data.length
       ? series.annotations.filter(
@@ -293,7 +308,7 @@ export function TrendPanel({
       {/* Chart */}
       <div className="mt-5 w-full" style={{ height }}>
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={data} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+          <ComposedChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id={`grad-${series.id}`} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.32} />
@@ -315,7 +330,7 @@ export function TrendPanel({
               axisLine={false}
               domain={yDomain}
               tickFormatter={yFmt}
-              width={48}
+              width={yAxisWidth}
             />
             <Tooltip
               contentStyle={{
