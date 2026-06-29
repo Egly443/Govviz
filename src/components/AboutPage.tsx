@@ -65,16 +65,23 @@ export function AboutPage() {
             side of a methodology change are not directly comparable.
           </Section>
 
-          <Section title="What the treemap’s size and colour mean">
-            On the overview, tile <em>colour</em> scores each indicator against
-            its published target where one exists, otherwise against its own
-            history (those are desaturated, because an own-range score is not
-            comparable to a target-anchored one). Tile <em>size</em> is an
-            approximate departmental Total Managed Expenditure figure from HM
-            Treasury’s Public Spending Statistics — and, unlike every chart, it
-            is a hand-entered editorial estimate, not a fetched and validated
-            series. It is there to give the mosaic budget-weighted proportions,
-            not to be read as a precise number.
+          <Section title="What the treemap’s channels mean">
+            Each visual channel encodes exactly one thing. <em>Colour</em> scores
+            each indicator against its published target where one exists (green =
+            at or beyond the standard), otherwise against its own history (those
+            are desaturated, because an own-range score isn’t comparable to a
+            target-anchored one). Where the latest value carries a confidence
+            interval that straddles the target, the tile shows a distinct
+            “uncertain” state (≈) rather than a confident green or red — we won’t
+            claim pass or fail inside the margin of error. A <em>trend glyph</em>{" "}
+            (▲/▼ rising/falling, oriented to track the value; a smaller glyph for
+            a slighter move) shows the recent direction, computed from a robust
+            slope with a noise floor so a wobble doesn’t read as a trend. Every
+            indicator in a department gets an <em>equal-size</em> tile, so it is a
+            department’s whole block — not the individual tiles — whose area
+            reflects its approximate Total Managed Expenditure (a hand-entered HM
+            Treasury estimate, not a fetched series); the lead indicator is marked
+            with an accent ring, not a bigger tile.
           </Section>
 
           <Section title="Accessibility">

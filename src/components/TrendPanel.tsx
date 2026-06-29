@@ -126,6 +126,11 @@ export function TrendPanel({
   const current = latest(series);
   const yoy = deltaVs(series, 12);
   const dec = deltaVs(series, 120);
+  // Significance of each delta where the endpoints publish a confidence interval
+  // (undefined = no CI, so don't claim either way). Lets the chip avoid colouring
+  // a change that's within sampling noise as a real good/bad move.
+  const yoySig = deltaSignificance(series, 12);
+  const decSig = deltaSignificance(series, 120);
   const { min, max } = minMax(series);
 
   const yFmt = (v: number) => {
@@ -328,6 +333,7 @@ export function TrendPanel({
             good={series.goodDirection}
             unit={series.unit}
             customFormat={series.deltaFormat}
+            significant={yoySig}
           />
           <DeltaChip
             label="vs 10y"
@@ -335,6 +341,7 @@ export function TrendPanel({
             good={series.goodDirection}
             unit={series.unit}
             customFormat={series.deltaFormat}
+            significant={decSig}
           />
           {series.target && (
             <span
@@ -760,23 +767,57 @@ function RangeToggle({
   );
 }
 
+/**
+ * Is the change over `monthsBack` statistically distinguishable from no change,
+ * given the endpoints' published 95% confidence intervals? Returns `undefined`
+ * when either endpoint lacks a CI (we then don't claim significance either way).
+ */
+function deltaSignificance(series: TrendSeries, monthsBack: number): boolean | undefined {
+  const pts = series.points;
+  const step = series.cadence === "annual" ? 12 : 1;
+  const idx = pts.length - 1 - Math.round(monthsBack / step);
+  if (idx < 0 || idx >= pts.length) return undefined;
+  const a = pts[idx];
+  const b = pts[pts.length - 1];
+  if (a.lo == null || a.hi == null || b.lo == null || b.hi == null) return undefined;
+  const seA = (a.hi - a.lo) / 3.92;
+  const seB = (b.hi - b.lo) / 3.92;
+  const se = Math.hypot(seA, seB);
+  if (!Number.isFinite(se) || se === 0) return undefined;
+  return Math.abs(b.value - a.value) / se >= 1.96;
+}
+
 function DeltaChip({
   label,
   delta,
   good,
   unit,
   customFormat,
+  significant,
 }: {
   label: string;
   delta: number | undefined;
   good: "up" | "down";
   unit: SeriesUnit;
   customFormat?: (v: number) => string;
+  significant?: boolean;
 }) {
   if (delta === undefined || delta === null || Number.isNaN(delta)) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full border border-border bg-surface px-2 py-0.5 text-[11px] text-muted-foreground">
         <Minus className="h-3 w-3" /> {label} n/a
+      </span>
+    );
+  }
+  // Endpoints carry CIs and the move is inside them → not distinguishable from
+  // no change, so don't paint it good/bad.
+  if (significant === false) {
+    return (
+      <span
+        className="inline-flex items-center gap-1 rounded-full border border-border bg-surface px-2 py-0.5 text-[11px] text-muted-foreground"
+        title="Change is within the published margin of error — not statistically distinguishable from no change"
+      >
+        <Minus className="h-3 w-3" /> {label} ≈ noise
       </span>
     );
   }

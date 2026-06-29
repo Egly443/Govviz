@@ -1,6 +1,13 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { hierarchy, treemap, treemapSquarify } from "d3-hierarchy";
-import { buildOverview, ragColor, ragTextColor, type IndicatorCell } from "./overview";
+import {
+  buildOverview,
+  ragColor,
+  ragTextColor,
+  ragUncertainColor,
+  UNCERTAIN_TEXT,
+  type IndicatorCell,
+} from "./overview";
 import { SHOW_ILLUSTRATIVE } from "./data";
 
 const LABEL_H = 22; // reserved band for each department's label
@@ -126,18 +133,35 @@ export function GovTreemap({
             // In production, an unsourced indicator is greyed and shows no
             // (fabricated) value — its RAG colour would be meaningless.
             const sourced = cell.real || SHOW_ILLUSTRATIVE;
+            // Option A: when the latest CI straddles the target we can't claim
+            // pass/fail — a distinct desaturated-amber "uncertain" fill, not a
+            // confident green/red.
+            const uncertain = sourced && cell.uncertain;
+            const bg = !sourced
+              ? "var(--surface)"
+              : uncertain
+                ? ragUncertainColor()
+                : ragColor(cell.score, cell.targeted);
             // Contrast-safe label colour: white fails WCAG on amber tiles, black
             // fails on red — pick per-tile against the actual fill luminance.
-            const textColor = sourced
-              ? ragTextColor(cell.score, cell.targeted)
-              : "var(--muted-foreground)";
+            const textColor = !sourced
+              ? "var(--muted-foreground)"
+              : uncertain
+                ? UNCERTAIN_TEXT
+                : ragTextColor(cell.score, cell.targeted);
+            const mom = cell.momentum;
+            const hasTarget = cell.series.target && cell.series.target.kind !== "reference";
             return (
               <button
                 key={cell.series.id}
                 onClick={() => onSelect(cell)}
                 title={
                   sourced
-                    ? `${cell.series.title} — ${cell.series.format(cell.current)}`
+                    ? `${cell.series.title} — ${cell.series.format(cell.current)}${
+                        mom.dir !== "flat" ? ` · ${mom.label}` : ""
+                      }${uncertain ? " · within margin of error of target" : ""}${
+                        cell.role === "hero" ? " · lead indicator" : ""
+                      }`
                     : `${cell.series.title} — no official source wired yet`
                 }
                 className="absolute overflow-hidden rounded-[3px] text-left transition hover:z-20 hover:brightness-110 focus:z-20 focus:outline-none focus:ring-2 focus:ring-white/70"
@@ -146,8 +170,13 @@ export function GovTreemap({
                   top: l.y0,
                   width: w,
                   height: h,
-                  background: sourced ? ragColor(cell.score, cell.targeted) : "var(--surface)",
+                  background: bg,
                   opacity: sourced ? 1 : 0.5,
+                  // Role marker (not area): the lead indicator gets an accent ring.
+                  boxShadow:
+                    cell.role === "hero"
+                      ? "inset 0 0 0 2px color-mix(in oklab, var(--primary) 75%, transparent)"
+                      : undefined,
                 }}
               >
                 {showText && (
@@ -161,22 +190,42 @@ export function GovTreemap({
                     >
                       {cell.series.title}
                     </span>
-                    {showValue && (
-                      <span
-                        className="font-semibold tabular-nums"
-                        style={{ fontSize: fs + 1 }}
-                      >
-                        {sourced ? cell.series.format(cell.current) : "—"}
-                      </span>
-                    )}
+                    <span className="flex items-end justify-between gap-1">
+                      {showValue ? (
+                        <span className="font-semibold tabular-nums" style={{ fontSize: fs + 1 }}>
+                          {sourced ? cell.series.format(cell.current) : "—"}
+                        </span>
+                      ) : (
+                        <span />
+                      )}
+                      {sourced && mom.dir !== "flat" && (
+                        <span
+                          aria-label={mom.label}
+                          className="leading-none"
+                          style={{ fontSize: fs }}
+                        >
+                          {mom.glyph}
+                        </span>
+                      )}
+                    </span>
                   </span>
                 )}
-                {cell.series.target && cell.series.target.kind !== "reference" && (
+                {sourced && uncertain ? (
                   <span
-                    className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full opacity-70"
-                    style={{ background: textColor }}
-                    title="Has an official target"
-                  />
+                    className="absolute right-1 top-1 text-[11px] font-bold leading-none"
+                    style={{ color: textColor }}
+                    title="Within the margin of error of the target — pass/fail indeterminate"
+                  >
+                    ≈
+                  </span>
+                ) : (
+                  hasTarget && (
+                    <span
+                      className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full opacity-70"
+                      style={{ background: textColor }}
+                      title="Has an official target"
+                    />
+                  )
                 )}
               </button>
             );
