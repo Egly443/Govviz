@@ -3478,26 +3478,25 @@ const SOURCES = [
       console.log(`  srn table3="${t3.text}" ${t3.url}`);
       const book = await xlsxBook(t3.url);
       const num = (c) => { const v = typeof c === "number" ? c : parseFloat(String(c ?? "").replace(/[,%]/g, "")); return Number.isFinite(v) ? v : null; };
+      // Table_3a = pavement condition. Periods run DOWN col0 as "April YYYY to
+      // March YYYY+1"; the England SRN % is the "strategic road network" column.
       for (const sn of book.SheetNames) {
-        if (!/table_?\s*3/i.test(sn)) continue;
         const rows = (await sheetRows(book, sn)).map((r) => Array.from(r ?? []));
-        // Locate the pavement-condition row by label anywhere in the sheet.
-        const ri = rows.findIndex((r) => /pavement|road surface|surface condition|carriageway|not requir|further investigation/i.test(r.map((c) => String(c ?? "")).join(" ")));
-        // (A) years ACROSS a header row.
-        let hi = -1, yearCols = [];
-        for (let i = 0; i < Math.min(rows.length, 25); i++) {
-          const yc = rows[i].map((c, idx) => [idx, parsePeriodEnd(c)]).filter(([, d]) => d);
-          if (yc.length >= 3) { hi = i; yearCols = yc; break; }
+        const isPavement = rows.slice(0, 4).some((r) => /pavement condition/i.test(String(r[0] ?? "")));
+        if (!isPavement) continue;
+        const hi = rows.findIndex((r) => /time period/i.test(String(r[0] ?? "")) && r.some((c) => /strategic road network/i.test(String(c ?? ""))));
+        if (hi < 0) { console.log(`  srn "${sn}" pavement sheet but no header row`); continue; }
+        const valCol = rows[hi].findIndex((c) => /strategic road network/i.test(String(c ?? "")));
+        const pts = [];
+        for (const r of rows.slice(hi + 1)) {
+          const m = String(r[0] ?? "").match(/to\s+\w+\s+(\d{4})/i); // end year of "April Y to March Y+1"
+          if (!m) continue;
+          let v = num(r[valCol]); if (v == null) continue; if (v > 0 && v <= 1.5) v *= 100;
+          if (v >= 80 && v <= 100) pts.push({ date: `${m[1]}-01-01`, value: +v.toFixed(2) });
         }
-        if (ri >= 0 && hi >= 0) {
-          const pts = [];
-          for (const [idx, d] of yearCols) { let v = num(rows[ri][idx]); if (v == null) continue; if (v > 0 && v <= 1.5) v *= 100; if (v >= 80 && v <= 100) pts.push({ date: d, value: +v.toFixed(2) }); }
-          if (pts.length >= 3) { pts.sort((a, b) => (a.date < b.date ? -1 : 1)); console.log(`  srn ${pts.length} pts via "${sn}" latest=${pts[pts.length - 1].date}:${pts[pts.length - 1].value}`); return pts; }
-        }
-        // Dump the sheet layout (first 14 rows x 12 cols) to pin the metric/year axes.
-        console.log(`  srn DUMP "${sn}" pavementRow=${ri} yearHdr=${hi} rows=${JSON.stringify(rows.slice(0, 14).map((r) => r.slice(0, 12)))}`);
+        if (pts.length >= 3) { pts.sort((a, b) => (a.date < b.date ? -1 : 1)); console.log(`  srn ${pts.length} pts via "${sn}" valCol=${valCol} latest=${pts[pts.length - 1].date}:${pts[pts.length - 1].value}`); return pts; }
       }
-      throw new Error("srn: pavement-condition row not found in data table 3");
+      throw new Error("srn: pavement-condition table (3a) not parsed");
     },
   },
 

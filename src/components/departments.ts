@@ -567,17 +567,17 @@ const dftCapitalOverrun: TrendSeries = {
 const dftSrnDegradation: TrendSeries = {
   id: "dft-srn-degradation",
   title: "Strategic road network condition",
-  subtitle: "% of SRN pavement requiring further investigation",
+  subtitle: "% of SRN pavement in good condition (target ≥96.2%)",
   unit: "percent",
   format: fmtPct,
   shortFormat: fmtPct,
-  goodDirection: "down",
-  source: "National Highways performance statistics",
+  goodDirection: "up",
+  source: "Office of Rail and Road — annual assessment of National Highways (Table 3a)",
   sourceUrl:
-    "https://nationalhighways.co.uk/about-us/our-performance/our-performance-results/",
+    "https://www.orr.gov.uk/monitoring-and-regulation/roads-monitoring/annual-assessment-national-highways",
   cadence: "annual",
   points: realPoints("dft-srn-degradation"),
-  annotations: [],
+  annotations: [{ date: "2020-01-01", label: "Road period 2 begins" }],
 };
 
 // ============================================================
