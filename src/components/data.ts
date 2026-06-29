@@ -1,6 +1,8 @@
 import { SERIES_DATA } from "../generated/seriesData";
 
-export type Point = { date: string; value: number };
+// `lo`/`hi` carry a published uncertainty interval (e.g. a survey's 95%
+// confidence interval) around `value`, when the source provides one.
+export type Point = { date: string; value: number; lo?: number; hi?: number };
 export type Annotation = { date: string; label: string };
 
 export type SeriesUnit =
@@ -119,6 +121,10 @@ export function realSourceUrl(id: string): string | undefined {
 /** The plausibility guard range (min/max) the baked value passed, if known. */
 export function realGuard(id: string): { min: number; max: number } | undefined {
   return SERIES_DATA[id]?.guard;
+}
+/** Short content fingerprint of the exact baked dataset (pins the data version). */
+export function realHash(id: string): string | undefined {
+  return SERIES_DATA[id]?.srcHash;
 }
 
 // International peer set for World Bank comparator charts. Keep in sync with

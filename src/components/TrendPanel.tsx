@@ -18,6 +18,7 @@ import {
   minMax,
   realAsOf,
   realGuard,
+  realHash,
   realSourceUrl,
   seriesIsReal,
   SHOW_ILLUSTRATIVE,
@@ -77,11 +78,13 @@ export function TrendPanel({
   // Merge each line's sliced points into a single row-per-date dataset.
   const data = useMemo(() => {
     const years = range === "max" ? "max" : range;
-    const byDate = new Map<string, Record<string, number | string>>();
+    const byDate = new Map<string, Record<string, number | string | [number, number]>>();
     lines.forEach((l, i) => {
       for (const p of slicePoints(l.points, years)) {
         const row = byDate.get(p.date) ?? { date: p.date };
         row[`l${i}`] = p.value;
+        // Range tuple for an uncertainty band, when the point carries one.
+        if (p.lo != null && p.hi != null) row[`b${i}`] = [p.lo, p.hi];
         byDate.set(p.date, row);
       }
     });
@@ -106,6 +109,8 @@ export function TrendPanel({
   // The plausibility range the latest value passed at fetch time — a visible QA
   // signal. Only meaningful for a directly-fetched (non-derived) real series.
   const guard = real && !series.derivedFrom ? realGuard(series.id) : undefined;
+  // Content fingerprint of the exact baked dataset (data-version pin).
+  const fingerprint = real && !series.derivedFrom ? realHash(series.id) : undefined;
 
   // Production honesty gate: never render a fabricated trend line. An unsourced
   // series shows an explicit placeholder instead of its illustrative fallback.
@@ -177,6 +182,9 @@ export function TrendPanel({
             new Date(a.date) <= new Date(data[data.length - 1].date as string),
         )
       : [];
+
+  // Whether any line carries a published uncertainty band.
+  const hasBand = lines.some((_, i) => data.some((d) => Array.isArray(d[`b${i}`])));
 
   // Concise text alternative for the chart (read by screen readers via role=img).
   const rangeFrom = data.length ? formatMonth(data[0].date as string) : "";
@@ -438,6 +446,22 @@ export function TrendPanel({
                 isAnimationActive
               />
             )}
+            {/* Uncertainty bands (drawn behind the lines): range area from the
+                point's published lower to upper bound. */}
+            {lines.map((l, i) =>
+              data.some((d) => Array.isArray(d[`b${i}`])) ? (
+                <Area
+                  key={`band-${l.id}`}
+                  type="monotone"
+                  dataKey={`b${i}`}
+                  stroke="none"
+                  fill={l.color}
+                  fillOpacity={0.15}
+                  isAnimationActive={false}
+                  connectNulls
+                />
+              ) : null,
+            )}
             {lines.map((l, i) => (
               <Line
                 key={l.id}
@@ -511,6 +535,13 @@ export function TrendPanel({
           {series.shortFormat(guard.max)}
         </p>
       )}
+      {hasBand && (
+        <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+          <span className="font-medium text-foreground/70">Uncertainty: </span>
+          the shaded band shows the source&rsquo;s published confidence interval —
+          the line is an estimate, not an exact count.
+        </p>
+      )}
 
       {/* Footer */}
       <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 border-t border-border/60 pt-3 text-[11px] text-muted-foreground">
@@ -529,6 +560,14 @@ export function TrendPanel({
             Source: {series.source}{exactSrc ? " ⤓" : ""} ↗
           </a>
           {real && asOf && <span className="opacity-70">· fetched {asOf}</span>}
+          {fingerprint && (
+            <span
+              className="opacity-70"
+              title="Content fingerprint of the exact dataset shown — pins this chart to a specific data version, so two builds can be checked for identical data."
+            >
+              · data {fingerprint}
+            </span>
+          )}
         </span>
         {multi ? (
           <span className="tabular-nums">{formatMonth(current.date)}</span>
@@ -624,7 +663,7 @@ function DataTable({
 }: {
   series: TrendSeries;
   lines: Required<SeriesLine>[];
-  data: Record<string, number | string>[];
+  data: Record<string, number | string | [number, number]>[];
   visible: boolean;
 }) {
   const multi = lines.length > 1;
