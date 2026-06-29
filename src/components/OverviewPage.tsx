@@ -7,7 +7,7 @@ import { GovTreemap } from "./GovTreemap";
 import { Modal } from "./Modal";
 import { TrendPanel } from "./TrendPanel";
 import { DataHealthStrip } from "./DataHealthStrip";
-import { ragColor, type IndicatorCell } from "./overview";
+import { ragColor, ragUncertainColor, type IndicatorCell } from "./overview";
 import { SPEND_BASIS } from "./departments";
 
 export function OverviewPage() {
@@ -38,10 +38,10 @@ export function OverviewPage() {
               Whole of government
             </h1>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-              Every tracked indicator at a glance. Block size is proportional to
-              departmental spending; colour shows the latest value within each
-              indicator&rsquo;s own historical range. Click any tile to open its
-              full chart.
+              Every tracked indicator at a glance. Each department&rsquo;s block
+              area is proportional to its budget; colour shows performance
+              against target, and a glyph shows the recent trend. Click any tile
+              to open its full chart.
             </p>
           </div>
           <Legend />
@@ -56,8 +56,13 @@ export function OverviewPage() {
         <p className="mt-3 text-[11px] text-muted-foreground">
           Tile colour scores each indicator against its published target where
           one exists (green = at or beyond the standard), otherwise its own
-          historical range; always oriented so green is good. A dot marks
-          indicators with an official target. Tile size is approximate
+          historical range; always oriented so green is good. A trend glyph
+          (&#9650;/&#9660; rising/falling, &#9652;/&#9662; slight) tracks the
+          recent direction of the value; &ldquo;&asymp;&rdquo; marks an indicator
+          whose latest value is within the margin of error of its target; an
+          accent ring marks each department&rsquo;s lead indicator. Every
+          indicator in a department gets an equal-size tile, so a block&rsquo;s
+          area &mdash; not the individual tiles &mdash; reflects approximate
           departmental {SPEND_BASIS.measure} (
           <a
             href={SPEND_BASIS.url}
@@ -117,6 +122,22 @@ function Legend() {
           style={{ background: ragColor(0.5, false) }}
         />
         No external benchmark
+      </span>
+      <span
+        className="flex items-center gap-1.5"
+        title="Latest value is within the published margin of error of the target — pass/fail can't be claimed"
+      >
+        <span
+          className="grid h-2.5 w-2.5 place-items-center rounded-sm text-[8px] font-bold text-black/80"
+          style={{ background: ragUncertainColor() }}
+        >
+          ≈
+        </span>
+        Within margin of target
+      </span>
+      <span className="flex items-center gap-1.5" title="Recent direction of the value (oriented to track the chart line)">
+        <span className="tabular-nums text-foreground/80">▲▼</span>
+        Trend
       </span>
     </div>
   );

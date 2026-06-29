@@ -4,7 +4,14 @@ import { TrendPanel } from "./TrendPanel";
 import { TurnoverBreakdown } from "./TurnoverBreakdown";
 import { DepartmentTabs } from "./DepartmentTabs";
 import { realAsOf } from "./data";
-import { departmentIndicators, ragColor, ragLabel, ragTextColor } from "./overview";
+import {
+  departmentIndicators,
+  ragColor,
+  ragLabel,
+  ragTextColor,
+  ragUncertainColor,
+  UNCERTAIN_TEXT,
+} from "./overview";
 import type { Department } from "./departments";
 
 interface Props {
@@ -135,28 +142,33 @@ function SynthesisCard({ dept }: { dept: Department }) {
         <>
           <ul className="mt-3 flex list-none gap-1 p-0">
             {inds.map((i) => {
-              const rag = ragLabel(i.score, i.targeted);
+              const rag = ragLabel(i.score, i.targeted, i.uncertain);
+              const bg = i.uncertain ? ragUncertainColor() : ragColor(i.score, i.targeted);
+              const fg = i.uncertain ? UNCERTAIN_TEXT : ragTextColor(i.score, i.targeted);
+              const trend = i.momentum.dir !== "flat" ? ` · ${i.momentum.label}` : "";
               return (
                 <li
                   key={i.series.id}
-                  className="flex h-5 flex-1 items-center justify-center rounded-sm text-[10px] font-semibold leading-none"
-                  style={{
-                    background: ragColor(i.score, i.targeted),
-                    color: ragTextColor(i.score, i.targeted),
-                  }}
-                  title={`${i.series.title}: ${rag.label}${i.targeted ? "" : " (scored vs own history)"}`}
-                  aria-label={`${i.series.title}: ${rag.label}`}
+                  className="flex h-5 flex-1 items-center justify-center gap-0.5 rounded-sm text-[10px] font-semibold leading-none"
+                  style={{ background: bg, color: fg }}
+                  title={`${i.series.title}: ${rag.label}${i.targeted || i.uncertain ? "" : " (scored vs own history)"}${trend}`}
+                  aria-label={`${i.series.title}: ${rag.label}${trend}`}
                 >
                   <span aria-hidden="true">{rag.letter}</span>
+                  {i.momentum.dir !== "flat" && (
+                    <span aria-hidden="true" className="opacity-80">{i.momentum.glyph}</span>
+                  )}
                 </li>
               );
             })}
           </ul>
           <p className="mt-2 text-[11px] text-muted-foreground">
             Per-indicator RAG (G&nbsp;green · A&nbsp;amber · R&nbsp;red) against
-            each measure&rsquo;s published target where one exists; bars marked
-            &ldquo;–&rdquo; have no external benchmark and are scored against the
-            series&rsquo; own history. Deliberately not reduced to a single grade.
+            each measure&rsquo;s published target where one exists, with a trend
+            glyph (&#9650;/&#9660; rising/falling, oriented so it tracks the value).
+            &ldquo;&asymp;&rdquo; means the latest value is within the margin of
+            error of the target; &ldquo;&ndash;&rdquo; means no external benchmark
+            (scored vs own history). Deliberately not reduced to a single grade.
           </p>
         </>
       )}

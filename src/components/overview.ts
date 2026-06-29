@@ -11,14 +11,24 @@ import { departments, type Department } from "./departments";
 
 export type IndicatorRole = "hero" | "core" | "supporting";
 
+/** Recent direction of travel for an indicator (the treemap's momentum glyph). */
+export type Momentum = {
+  dir: "up" | "down" | "flat"; // direction of the underlying value (matches the chart line)
+  good: boolean; // is that movement in the good direction (false when flat)
+  steep: boolean; // strong vs slight
+  glyph: string; // ▬ ▴ ▲ ▾ ▼
+  label: string; // screen-reader text, e.g. "falling — improving"
+};
+
 export interface IndicatorCell {
   series: TrendSeries;
   dept: Department;
   role: IndicatorRole;
-  weight: number; // within-department size weight
-  value: number; // treemap leaf value (share of departmental spend)
+  value: number; // treemap leaf value — equal within a department (size encodes budget)
   score: number; // 0 (poor) .. 1 (good)
   targeted: boolean; // RAG anchored to a published target (vs own-range fallback)
+  uncertain: boolean; // latest CI straddles the target — pass/fail indeterminate
+  momentum: Momentum; // recent direction of travel
   current: number; // latest value
   real: boolean; // backed by an official source (derived-series aware)
 }
@@ -27,14 +37,6 @@ export interface DeptBlock {
   dept: Department;
   cells: IndicatorCell[];
 }
-
-// Hero indicators read biggest, then core measures, then supporting context —
-// gives the varied, Finviz-like mosaic within each department block.
-const ROLE_WEIGHT: Record<IndicatorRole, number> = {
-  hero: 3,
-  core: 2,
-  supporting: 1,
-};
 
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 
@@ -75,6 +77,75 @@ export function ragScore(series: TrendSeries): number {
   return series.goodDirection === "up" ? pos : 1 - pos;
 }
 
+// Trailing window for the momentum slope, by cadence (≈ a year-plus of data).
+const MOMENTUM_WINDOW: Record<TrendSeries["cadence"], number> = {
+  monthly: 12,
+  quarterly: 6,
+  annual: 5,
+};
+const FLAT = 0.03; // |change|/range below this reads flat (noise, not a trend)
+const STEEP = 0.12; // at/above this reads "strong"
+
+/**
+ * Recent direction of travel — the treemap's momentum channel, independent of
+ * the colour (which encodes level-vs-target). The glyph follows the underlying
+ * value (▲ rising / ▼ falling, matching the chart line); `good` says whether
+ * that movement is the way you'd want (respecting goodDirection), and drives the
+ * tint and the screen-reader label.
+ *
+ * Computed as an OLS slope over a cadence-aware trailing window; the modelled
+ * change across the window is expressed as a fraction of the series' full range
+ * so it is comparable across units, then bucketed flat / slight / strong. A move
+ * within ~3% of range reads flat, so noise is never shown as a trend (mirrors
+ * the delta chip's "≈ flat").
+ */
+export function momentum(series: TrendSeries): Momentum {
+  const flat: Momentum = { dir: "flat", good: false, steep: false, glyph: "▬", label: "broadly flat" };
+  const pts = series.points;
+  if (!pts || pts.length < 3) return flat;
+  const w = Math.min(MOMENTUM_WINDOW[series.cadence] ?? 6, pts.length);
+  const win = pts.slice(-w);
+  const n = win.length;
+  let sx = 0, sy = 0, sxx = 0, sxy = 0;
+  win.forEach((p, i) => {
+    sx += i;
+    sy += p.value;
+    sxx += i * i;
+    sxy += i * p.value;
+  });
+  const denom = n * sxx - sx * sx;
+  if (denom === 0) return flat;
+  const slope = (n * sxy - sx * sy) / denom;
+  const change = slope * (n - 1); // modelled change across the window
+  const { min, max } = minMax(series);
+  const range = max.value - min.value;
+  if (!Number.isFinite(range) || range === 0) return flat;
+  const frac = change / range;
+  const mag = Math.abs(frac);
+  if (mag < FLAT) return flat;
+  const rising = frac > 0;
+  const good = series.goodDirection === "up" ? rising : !rising;
+  const steep = mag >= STEEP;
+  const glyph = rising ? (steep ? "▲" : "▴") : steep ? "▼" : "▾";
+  const label = `${rising ? "rising" : "falling"}${steep ? " fast" : ""} — ${good ? "improving" : "worsening"}`;
+  return { dir: rising ? "up" : "down", good, steep, glyph, label };
+}
+
+/**
+ * Option-A uncertainty: true when the latest observation carries a published
+ * confidence interval that *straddles the target* — so we cannot statistically
+ * tell pass from fail and must not paint a confident green or red. Only applies
+ * to a real statutory/standard target (not a `reference` baseline) on a series
+ * whose latest point has lo/hi.
+ */
+export function isUncertain(series: TrendSeries): boolean {
+  if (!series.target || series.target.kind === "reference") return false;
+  const p = latest(series);
+  if (p.lo == null || p.hi == null) return false;
+  const t = series.target.value;
+  return t >= p.lo && t <= p.hi;
+}
+
 /**
  * Map 0..1 (poor..good) to a Finviz-style red → amber → green heat colour.
  * Piecewise hue so the midpoint reads amber rather than chartreuse.
@@ -93,13 +164,23 @@ export function ragScore(series: TrendSeries): number {
 export function ragLabel(
   score: number,
   benchmarked = true,
+  uncertain = false,
 ): { letter: string; label: string } {
+  if (uncertain) return { letter: "≈", label: "within margin of error of target" };
   if (!benchmarked) return { letter: "–", label: "no external benchmark" };
   const s = Math.max(0, Math.min(1, score));
   if (s >= 0.66) return { letter: "G", label: "green" };
   if (s >= 0.33) return { letter: "A", label: "amber" };
   return { letter: "R", label: "red" };
 }
+
+// Distinct fill for the Option-A "uncertain" state: a desaturated amber that
+// reads as *indeterminate* rather than a confident verdict. Bright enough that
+// near-black text always wins contrast, so the text colour is fixed.
+export function ragUncertainColor(): string {
+  return "hsl(46 24% 46%)";
+}
+export const UNCERTAIN_TEXT = "#0b0d12";
 
 function ragHsl(score: number, benchmarked: boolean) {
   const s = Math.max(0, Math.min(1, score));
@@ -161,6 +242,10 @@ export interface ScoredIndicator {
   score: number;
   /** True when the RAG is anchored to a published target/standard (not own-range). */
   targeted: boolean;
+  /** Latest CI straddles the target — pass/fail indeterminate. */
+  uncertain: boolean;
+  /** Recent direction of travel. */
+  momentum: Momentum;
 }
 
 /**
@@ -178,7 +263,13 @@ export function departmentIndicators(dept: Department): ScoredIndicator[] {
       if (seen.has(s.id)) continue;
       seen.add(s.id);
       if (!seriesIsReal(s) && !SHOW_ILLUSTRATIVE) continue; // skip prod placeholders
-      out.push({ series: s, score: ragScore(s), targeted: !!s.target });
+      out.push({
+        series: s,
+        score: ragScore(s),
+        targeted: !!s.target,
+        uncertain: isUncertain(s),
+        momentum: momentum(s),
+      });
     }
   }
   return out;
@@ -264,25 +355,30 @@ export function buildOverview(): DeptBlock[] {
       ["supporting", dept.supporting ?? []],
     ];
 
-    const raw: { series: TrendSeries; role: IndicatorRole; weight: number }[] = [];
+    const raw: { series: TrendSeries; role: IndicatorRole }[] = [];
     const seen = new Set<string>();
     for (const [role, list] of roleLists) {
       for (const series of list) {
         if (seen.has(series.id)) continue;
         seen.add(series.id);
-        raw.push({ series, role, weight: ROLE_WEIGHT[role] });
+        raw.push({ series, role });
       }
     }
 
-    const totalWeight = raw.reduce((sum, r) => sum + r.weight, 0);
+    // Option C: tile area encodes DEPARTMENT BUDGET only. Every indicator in a
+    // department gets an equal share, so the block area is proportional to spend
+    // and within-block size carries no (editorial) meaning. Role/importance is
+    // shown by a corner marker, not by area.
+    const per = raw.length ? dept.spendBn / raw.length : 0;
     const cells: IndicatorCell[] = raw.map((r) => ({
       series: r.series,
       dept,
       role: r.role,
-      weight: r.weight,
-      value: (dept.spendBn * r.weight) / totalWeight,
+      value: per,
       score: ragScore(r.series),
       targeted: !!r.series.target,
+      uncertain: isUncertain(r.series),
+      momentum: momentum(r.series),
       current: latest(r.series).value,
       real: seriesIsReal(r.series),
     }));
