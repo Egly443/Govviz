@@ -15,6 +15,9 @@ export function TopNav() {
           </span>
         </Link>
         <nav className="flex items-center gap-4 text-xs text-muted-foreground">
+          <Link to="/data" className="hover:text-foreground">
+            Data
+          </Link>
           <Link to="/blog" className="hover:text-foreground">
             Essay
           </Link>

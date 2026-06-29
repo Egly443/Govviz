@@ -23,6 +23,29 @@ Food & Rural Affairs).
 > series and `scripts/build-data.mjs` for the per-series sourcing, and
 > `docs/conformance/` for the AI-readiness conformance suite and series profile.
 
+## Open data — the essay, made real
+
+Govviz re-publishes every series as a **reference implementation of its own
+[AI-ready series profile](docs/conformance/ai-ready-series-profile.md)** — the
+machine-first publishing standard argued for in
+[the essay](docs/blog-open-data-for-ai.md). Built into `dist/data/` and served at
+[`/Govviz/data/`](https://egly443.github.io/Govviz/data/):
+
+- **Stable, resolvable id per series** → `GET /data/series/{id}.json` returns the
+  metadata record: unit (+ SDMX multiplier), coverage, periodicity, revision
+  status, provenance with verifiable upstream lineage, licence, next release, and
+  a published **`validRange`** a consumer uses to reject a wrong-but-plausible value.
+- **Tidy data** → `/data/series/{id}/data.csv` (long-format, one observation per
+  row) with a **CSVW** schema and a content-versioned twin beside the `latest` alias.
+- **DCAT catalogue** (`/data/catalog.json`) and an open-agent **MCP** interface
+  (`tools/mcp/govviz-mcp.mjs`).
+- **Self-certifying:** `scripts/check-open-data.mjs` fails the build if any record
+  is non-conformant or any value falls outside its `validRange`.
+
+So an agent — or a fifteen-line script — can read any series with
+`resolve id → GET tidy data`, no scraping. Govviz is a downstream compiler; every
+record names its primary producer. Licence: see [`DATA-LICENCE.md`](DATA-LICENCE.md).
+
 ## Getting started
 
 ```bash

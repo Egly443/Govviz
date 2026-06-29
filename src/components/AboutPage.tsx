@@ -85,6 +85,27 @@ export function AboutPage() {
             colour-blindness and greyscale.
           </Section>
 
+          <Section title="Published as AI-ready open data — the essay, made real">
+            Govviz doesn’t just consume official data; it re-publishes every
+            series as a{" "}
+            <a
+              href={`${import.meta.env.BASE_URL}data/`}
+              className="text-primary hover:underline"
+            >
+              reference implementation of its own AI-ready series profile
+            </a>
+            . Each indicator has a stable, resolvable id that returns JSON
+            metadata — unit, coverage, periodicity, revision status, provenance,
+            licence and a published validation range — pointing at long-format
+            tidy CSV with a CSVW schema, all catalogued in DCAT and reachable
+            over an open agent (MCP) interface. So an agent, or a fifteen-line
+            script, can read any Govviz series without scraping or guessing — and
+            a build-time conformance gate fails the release if any record
+            doesn’t meet the profile. Govviz is a downstream compiler: every
+            record names its primary producer and records the exact upstream
+            file it was built from.
+          </Section>
+
           <Section title="Built in the open">
             The data pipeline, the validation rules and this site are all open
             source. Data is fetched in continuous integration before each

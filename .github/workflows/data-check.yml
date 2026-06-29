@@ -38,3 +38,11 @@ jobs:
       - name: Fixture regression check
         if: always()
         run: node tools/loop/ci-reward.mjs --check-fixtures --summary --log=fetch.log >> "$GITHUB_STEP_SUMMARY"
+      # AI-ready open-data conformance gate, run against the freshly-fetched real
+      # data: emits the per-series profile records + tidy CSV, then fails if any
+      # record is non-conformant or any observation falls outside its published
+      # validRange. This is the essay's "release-assurance gate", on ourselves.
+      - name: AI-ready open-data conformance gate
+        run: |
+          node scripts/build-open-data.mjs
+          node scripts/check-open-data.mjs
