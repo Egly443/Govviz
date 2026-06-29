@@ -126,6 +126,10 @@ export function realGuard(id: string): { min: number; max: number } | undefined 
 export function realHash(id: string): string | undefined {
   return SERIES_DATA[id]?.srcHash;
 }
+/** Hash of the raw upstream source bytes CI fetched for this series, if known. */
+export function realSourceBytesHash(id: string): string | undefined {
+  return SERIES_DATA[id]?.srcBytesHash;
+}
 
 // International peer set for World Bank comparator charts. Keep in sync with
 // WB_PEERS in scripts/build-data.mjs and src/components/departments.ts.

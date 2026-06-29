@@ -19,6 +19,7 @@ import {
   realAsOf,
   realGuard,
   realHash,
+  realSourceBytesHash,
   realSourceUrl,
   seriesIsReal,
   SHOW_ILLUSTRATIVE,
@@ -111,6 +112,8 @@ export function TrendPanel({
   const guard = real && !series.derivedFrom ? realGuard(series.id) : undefined;
   // Content fingerprint of the exact baked dataset (data-version pin).
   const fingerprint = real && !series.derivedFrom ? realHash(series.id) : undefined;
+  // Hash of the raw upstream source bytes (lineage pin to the fetched file).
+  const srcBytesHash = real && !series.derivedFrom ? realSourceBytesHash(series.id) : undefined;
 
   // Production honesty gate: never render a fabricated trend line. An unsourced
   // series shows an explicit placeholder instead of its illustrative fallback.
@@ -563,7 +566,10 @@ export function TrendPanel({
           {fingerprint && (
             <span
               className="opacity-70"
-              title="Content fingerprint of the exact dataset shown — pins this chart to a specific data version, so two builds can be checked for identical data."
+              title={
+                `Content fingerprint of the exact dataset shown — pins this chart to a specific data version, so two builds can be checked for identical data.` +
+                (srcBytesHash ? `\nSource-file fingerprint (raw upstream bytes): ${srcBytesHash}` : "")
+              }
             >
               · data {fingerprint}
             </span>

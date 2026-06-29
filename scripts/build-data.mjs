@@ -12,6 +12,33 @@ import { createHash } from "node:crypto";
 
 const OUT = "src/generated/seriesData.ts";
 
+// --- Source-bytes lineage (review item 1) -------------------------------------
+// Hash the raw bytes of every successful response, keyed to the series currently
+// being fetched, so each chart can be pinned to the exact upstream file(s) it
+// was built from (not just the parsed values). We wrap the global fetch and tee
+// each response: the clone is read for hashing, the original flows to the helper
+// untouched. Failures here must never break a fetch, so everything is guarded.
+let _currentSeries = null;
+const _srcByteHashers = new Map(); // series id -> running sha256 over response bytes
+const _origFetch = globalThis.fetch;
+globalThis.fetch = async (...args) => {
+  const res = await _origFetch(...args);
+  if (_currentSeries && res && res.ok) {
+    try {
+      const buf = Buffer.from(await res.clone().arrayBuffer());
+      let h = _srcByteHashers.get(_currentSeries);
+      if (!h) {
+        h = createHash("sha256");
+        _srcByteHashers.set(_currentSeries, h);
+      }
+      h.update(buf);
+    } catch {
+      /* clone/read failure must not affect the real fetch */
+    }
+  }
+  return res;
+};
+
 // Shared fetch options: identify ourselves (some gov APIs throttle anonymous
 // bots) and bound every request so a hung server can't stall the CI job.
 const fetchOpts = (headers) => ({
@@ -1321,13 +1348,39 @@ async function sportActiveLives() {
         continue;
       }
 
-      let pct = num(overallRow[pctCol]);
-      // Active Lives stores rates as proportions (0.6207 = 62.07%). Scale up.
-      if (pct != null && pct <= 1.5) pct = pct * 100;
+      const rawPct = num(overallRow[pctCol]);
+      const asProportion = rawPct != null && rawPct <= 1.5; // 0.6207 = 62.07%
+      const scl = (v) => (v == null ? null : asProportion ? v * 100 : v);
+      let pct = scl(rawPct);
+
+      // 95% confidence interval (review item 2). Active Lives groups the Active
+      // block as: Population total | Rate (%) | CI. The CI may be published as
+      // explicit lower/upper bound columns or as a single +/- margin. Detect the
+      // sub-header within the Active group; log it so a CI run reveals the real
+      // layout if these guesses miss.
+      let lo = null, hi = null, loCol = -1, hiCol = -1, marginCol = -1;
+      for (let c = activeCol; c <= activeCol + 5 && c < subHeader.length; c++) {
+        const h = String(subHeader[c] ?? "").toLowerCase();
+        if (/lower|lcl|\blcb\b|\blci\b/.test(h)) loCol = c;
+        else if (/upper|ucl|\bucb\b|\buci\b/.test(h)) hiCol = c;
+        else if (/(±|\+\/-|\bci\b|confidence|margin)/.test(h)) marginCol = c;
+      }
+      if (loCol >= 0 && hiCol >= 0) {
+        lo = scl(num(overallRow[loCol]));
+        hi = scl(num(overallRow[hiCol]));
+      } else if (marginCol >= 0 && pct != null) {
+        const m = scl(num(overallRow[marginCol]));
+        if (m != null) { lo = pct - m; hi = pct + m; }
+      }
+      // Sanity: bounds must straddle the point and be plausible; else drop them.
+      if (!(lo != null && hi != null && lo < pct && pct < hi && lo >= 20 && hi <= 95)) {
+        lo = hi = null;
+      }
+      console.log(`  sport-participation[${year}] CI: loCol=${loCol} hiCol=${hiCol} marginCol=${marginCol} lo=${lo} hi=${hi} subHeader=[${subHeader.slice(activeCol, activeCol + 6).map((c) => String(c ?? "")).join("|")}]`);
 
       if (pct != null && pct >= 40 && pct <= 80) {
         console.log(`  sport-participation[${year}] sheet="${sn}" headerRow=${headerRowIdx} activeCol=${activeCol} pctCol=${pctCol} label="${overallRow[0]}" pct=${pct}`);
-        points.push({ date: `${year}-01-01`, value: pct });
+        points.push(lo != null ? { date: `${year}-01-01`, value: pct, lo, hi } : { date: `${year}-01-01`, value: pct });
       } else {
         console.log(`  sport-participation[${year}] sheet="${sn}" headerRow=${headerRowIdx} activeCol=${activeCol} pctCol=${pctCol} label="${overallRow[0]}" pct=${pct} — out of 40-80 guard, rejected`);
         console.log(`  sport-participation[${year}] header row + first 6 data rows for diagnosis:`);
@@ -4586,8 +4639,15 @@ for (const s of SOURCES) {
   const tag = `${s.id}${s.line ? ":" + s.line : ""}`;
   try {
     _src = null;
+    _currentSeries = s.id;
     let points = await s.get();
-    if (s.scale) points = points.map((p) => ({ date: p.date, value: p.value * s.scale }));
+    if (s.scale)
+      points = points.map((p) => ({
+        ...p,
+        value: p.value * s.scale,
+        ...(p.lo != null ? { lo: p.lo * s.scale } : {}),
+        ...(p.hi != null ? { hi: p.hi * s.scale } : {}),
+      }));
     // Sanity guard: a wrong-but-resolving code can't show wrong data. Reject
     // the whole series when the latest value or a majority of points is out
     // of range; isolated out-of-range points (corrupt rows, e.g. ONS J5IK has
@@ -4628,7 +4688,7 @@ for (const s of SOURCES) {
 // lines). Pins a chart to an exact data version — lets two builds be compared
 // for identical data and surfaces silent upstream changes. Computed over the
 // data only (deterministic, independent of fetch date).
-for (const [, series] of Object.entries(out)) {
+for (const [id, series] of Object.entries(out)) {
   const payload = series.lines
     ? series.lines.map((l) => [l.id, l.points])
     : series.points ?? [];
@@ -4636,12 +4696,16 @@ for (const [, series] of Object.entries(out)) {
     .update(JSON.stringify(payload))
     .digest("hex")
     .slice(0, 10);
+  // Source-bytes lineage (item 1): fingerprint of the exact upstream file bytes
+  // fetched for this series, distinct from the parsed-data fingerprint above.
+  const bh = _srcByteHashers.get(id);
+  if (bh) series.srcBytesHash = bh.digest("hex").slice(0, 12);
 }
 
 const file =
   `// AUTO-GENERATED by scripts/build-data.mjs — do not edit or commit populated data.\n` +
   `export type RawPoint = { date: string; value: number; lo?: number; hi?: number };\n` +
-  `export type RawSeries = { points?: RawPoint[]; lines?: { id: string; points: RawPoint[] }[]; asOf?: string; srcUrl?: string; guard?: { min: number; max: number }; srcHash?: string };\n` +
+  `export type RawSeries = { points?: RawPoint[]; lines?: { id: string; points: RawPoint[] }[]; asOf?: string; srcUrl?: string; guard?: { min: number; max: number }; srcHash?: string; srcBytesHash?: string };\n` +
   `export const SERIES_DATA: Record<string, RawSeries> = ${JSON.stringify(out, null, 2)};\n`;
 mkdirSync(dirname(OUT), { recursive: true });
 writeFileSync(OUT, file);
