@@ -3456,36 +3456,6 @@ const SOURCES = [
     },
   },
 
-  // Strategic road network condition (the motorway/trunk-road surface): the
-  // National Highways pavement-condition KPI (% of the surface in good condition,
-  // since 2015) is monitored by the ORR, which publishes downloadable data tables
-  // on its annual-assessment pages. PROBE the ORR pages for the spreadsheet first
-  // (methodology changed in 2022: lane-1-only → all-lanes).
-  {
-    id: "dft-srn-degradation",
-    min: 80,
-    max: 100,
-    get: async () => {
-      const pages = [
-        "https://www.orr.gov.uk/monitoring-and-regulation/roads-monitoring/annual-assessment-national-highways",
-        "https://www.orr.gov.uk/annual-assessment-national-highways-performance-end-second-road-period-april-2020-march-2025-0",
-      ];
-      const found = [];
-      for (const page of pages) {
-        try {
-          const res = await fetch(page, fetchOpts({ accept: "text/html,*/*" }));
-          if (!res.ok) { console.log(`  srn ${page} → HTTP ${res.status}`); continue; }
-          const html = await res.text();
-          const links = [...html.matchAll(/href="([^"]*\.(?:ods|xlsx?|csv)(?:\?[^"]*)?)"/gi)]
-            .map((m) => (m[1].startsWith("http") ? m[1] : `https://www.orr.gov.uk${m[1]}`));
-          console.log(`  srn ${page.split("/").pop()} data links (${links.length}): ${links.slice(0, 20).join(" | ")}`);
-          found.push(...links);
-        } catch (e) { console.log(`  srn ${page} err ${e.message}`); }
-      }
-      throw new Error(`srn: pavement-condition table not yet identified — probe only (${found.length} links)`);
-    },
-  },
-
   // --- in progress ---
   // AWE pay growth — KAC3 is monthly YoY %; request months (annual key returns index).
   { id: "hmt-cost-of-living", line: "wages", min: -10, max: 30, get: () => ons(EARN, ["KAC3"], ["lms", "emp"], "months") },
