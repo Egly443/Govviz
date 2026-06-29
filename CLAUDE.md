@@ -119,7 +119,7 @@ find ONS CDIDs/WB codes/EES dataset IDs/gov.uk collection slugs, then wire the f
 - **data.gov.uk CKAN `.zip`:** `package_show` → resource `.zip` URLs → `unzipUrl` → `xlsxBookFromBuffer` per entry; sum the duration column across per-company sheets (defra-sewage EDM, pkg `19f6064d…`, 6 pts 2020–2025). Watch `\b` word boundaries on years flanked by underscores (`EDM_2020_…` needs digit boundaries, not `\b`). **Two layout traps (2026-06-28):** 2024+ stores the duration as `(hh:mm:ss)` = an Excel day-fraction serial (×24 → hours); and the 2025 workbook adds an **"All WaSC" aggregate sheet** that duplicates the per-company sheets — **skip aggregate sheets by name** (never per-row dedup: that strips legit within-permit repeats the official total counts). The `environment.data.gov.uk` host still rate-limits intermittently.
 - **Branch CI harness:** `.github/workflows/data-check.yml` runs the fetcher on non-main pushes **without deploying** — validate parsers against live sources here (the sandbox has no internet), then promote to main. Production deploy (`deploy.yml`) runs only on `main`.
 
-### Coverage — current state (130 ok / 4 skip as of 2026-06-28)
+### Coverage — current state (131 ok / 4 skip as of 2026-06-29)
 Read the latest CI **"Fetch live data"** log (`mcp__github__get_job_logs`) for the authoritative
 `ok`/`SKIP` tally — the manifest is cumulative so one run shows everything. The **four `SKIP`s are
 `turnover`** (digital.nhs.uk Cloudflare 403), **`dsit-gigabit-broadband`** (Ofcom 403) — both hard
@@ -166,6 +166,25 @@ indicators the thesis predicts are missing. **13 new series now bake real data**
   migration-transparency-data lists 0 docs); HMPO publishes per-quarter *transparency data* statistics
   pages instead — needs `govukLatest`/search discovery + per-quarter ODS parsing (SLA basis changed
   over time).
+
+### Probed the "hard-blocked (no fetcher)" placeholders (2026-06-29) — 1 of 6 was wrong
+Tested whether the six "blocked (PDF/parliamentary/LA-return/classified)" labels were untested-and-wrong
+(as council-tax/sewage/bathing-water turned out to be). Verdict: **mostly right this time — but
+`dft-srn-degradation` was wrong and is now real.**
+- **`dft-srn-degradation` → `ok`, 10 pts (2015/16-2024/25, ~92%->96.5% pavement in good condition vs the
+  96.2% target).** Source is the **ORR** annual-assessment of National Highways "data table 3a". **Key
+  lesson: ORR serves files as extensionless `/media/{id}/download` URLs**, so a `\.(ods|xlsx)` href regex
+  finds 0 links — match `/media/\d+/download` anchors + their link text instead. The data table opens as a
+  normal workbook; Table_3a has the period DOWN col0 as `"April YYYY to March YYYY+1"` (parse the END year)
+  and England's SRN % in the "strategic road network" column. Chart reframed `degradation`→`% in good
+  condition` (goodDirection up). Frozen (floor 6).
+- **`dfe-dsg-deficit` → confirmed genuinely blocked.** The EES "School funding statistics" release has 3
+  machine-readable data sets but they carry only *school-funding* columns (`school_funding_cashterms_gbpm`,
+  `basic_entitlement_primary`…) — **no high-needs or DSG-deficit metric**. The cumulative deficit is
+  S251-outturn/PDF-derived; not cleanly machine-readable. Probe removed.
+- **`mod-readiness` (classified), `ho-caseworker-turnover`, `ho-hotel-spend`, `dft-dvla-backlog`** —
+  confirmed genuinely blocked: point figures exist only in NAO reports / parliamentary answers / annual
+  accounts / HTML snapshots, not as a machine-readable time series. They stay placeholders.
 
 ### Whole-of-government expansion (2026-06): six more departments
 The registry grew from ten to **sixteen** departments (the major missing ministerial departments).

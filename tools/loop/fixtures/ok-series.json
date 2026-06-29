@@ -89,6 +89,11 @@
       "minPoints": 15,
       "frozenAt": "2026-06-28",
       "note": "Observed 26 annual pts (1998-2023) from the ONS balanced regional GVA-per-head workbook (Table 2): London GVA per head / UK average, latest 1.79x. Single deterministic ONS workbook; floor 15 leaves headroom for an edition that republishes a shorter window."
+    },
+    "dft-srn-degradation": {
+      "minPoints": 6,
+      "frozenAt": "2026-06-29",
+      "note": "Observed 10 annual pts (2015/16-2024/25, ~92%->96.5% pavement in good condition vs 96.2% target) from the ORR annual-assessment 'data table 3a' (orr.gov.uk /media/{id}/download). Floor 6: the data-table link is discovered by anchor text on the assessment landing page and the workbook layout can shift by yearly edition, so stay well below observed."
     }
   }
 }
