@@ -1259,167 +1259,91 @@ async function fcdoOdaTotal() {
 
 // ============================================================================
 
-// DCMS — adult sport participation (% active, 150+ min/week), Sport England
-// Active Lives. Scrape the data-tables landing page for the current "Tables 1-5
-// Levels of activity" workbooks (S3, dated paths) and read the "Active" row.
+// DCMS — adult sport participation (% "active", 150+ min/week), Sport England
+// Active Lives. The dated per-year download links on the landing page all
+// resolve to the CURRENT workbook (verified 2026-06-29: identical population
+// counts across every "year"), so a multi-year series CANNOT be built by
+// reading one file per year. Instead read the in-workbook trend table
+// "Table 1b Levels Trends": survey periods are laid out as repeating ~8-column
+// blocks (period label e.g. "November 2015 - November 2016"; a group-header row
+// with Active / Fairly Active / Inactive; a sub-header row Population total |
+// Rate (%)); the "All adults (aged 16+)" row holds each period's Active Rate in
+// the column just after that period's "Active" header. sheet_to_json reads this
+// sheet as empty, so we reconstruct it from raw cells. No per-period confidence
+// interval is published in this table (CIs exist only in the single-period
+// "Levels" sheet, whose historical files collapse to the current one), so this
+// series ships without an uncertainty band.
 async function sportActiveLives() {
   const pageUrl = "https://www.sportengland.org/research-and-data/data/active-lives/active-lives-data-tables";
   const res = await fetch(pageUrl, fetchOpts({ accept: "text/html,*/*" }));
   if (!res.ok) throw new Error(`sport-participation: landing page HTTP ${res.status}`);
   const html = await res.text();
   const hrefs = [...html.matchAll(/href="([^"]*Tables%201-5[^"]*\.xlsx[^"]*)"/gi)].map((m) => m[1]);
-  if (!hrefs.length) {
-    const loose = [...html.matchAll(/href="([^"]*\.xlsx[^"]*)"/gi)].map((m) => m[1]);
-    console.log(`  sport-participation: no "Tables 1-5" href; ${loose.length} .xlsx links, sample: ${loose.slice(0, 6).join(" , ")}`);
-    throw new Error("sport-participation: no Tables 1-5 Levels of activity link found");
-  }
-  const seen = new Set();
-  const urls = hrefs.filter((h) => { if (seen.has(h)) return false; seen.add(h); return true; }).map((h) => (h.startsWith("http") ? h : `https://www.sportengland.org${h}`));
-  console.log(`  sport-participation: ${urls.length} "Tables 1-5" links found, trying newest first`);
-  for (const u of urls) console.log(`     url: ${decodeURIComponent(u)}`);
+  if (!hrefs.length) throw new Error("sport-participation: no Tables 1-5 Levels of activity link found");
+  const url = hrefs[0].startsWith("http") ? hrefs[0] : `https://www.sportengland.org${hrefs[0]}`;
+  const book = await xlsxBook(url);
+  const tsn = book.SheetNames.find((n) => /trend/i.test(n));
+  if (!tsn) throw new Error(`sport-participation: no trend sheet; sheets=[${book.SheetNames.join("|")}]`);
+
+  // Raw-cell grid reconstruction (sheet_to_json returns [] on this sheet).
+  const XLSX = await sheetjs();
+  const sheet = book.Sheets[tsn];
+  const cellKeys = Object.keys(sheet).filter((k) => /^[A-Z]+\d+$/.test(k));
+  let maxR = 0, maxC = 0;
+  for (const k of cellKeys) { const cell = XLSX.utils.decode_cell(k); if (cell.r > maxR) maxR = cell.r; if (cell.c > maxC) maxC = cell.c; }
+  const grid = Array.from({ length: maxR + 1 }, () => Array(maxC + 1).fill(null));
+  for (const k of cellKeys) { const cell = XLSX.utils.decode_cell(k); grid[cell.r][cell.c] = sheet[k].v; }
+
   const num = (c) => { const v = typeof c === "number" ? c : parseFloat(String(c ?? "").replace(/[,%]/g, "")); return Number.isFinite(v) ? v : null; };
-  const yearFromUrl = (u) => {
-    const m = u.match(/(?:Nov(?:ember)?[%20_ ]*)(\d{2,4})[-–](\d{2})/i);
-    if (m) { const endYY = m[2]; const century = m[1].length === 4 ? m[1].slice(0, 2) : Math.floor(new Date().getFullYear() / 100); return `${century}${endYY}`; }
-    const y4 = u.match(/20\d\d/);
-    return y4 ? y4[0] : null;
-  };
-  // Pick the headline activity-levels sheet. The table is named "Table 1a
-  // Levels" / "Table 1 Levels" in newer workbooks but "Table 1 Demographics" /
-  // "Table 1a Demographics" in older ones (2021/2022) — same All-adults ×
-  // activity-level structure, different sheet name. Accept either, excluding
-  // trend/region/local-authority breakdowns (which lack a single headline row).
-  const pickLevelsSheet = (sheetNames) => {
-    const candidates = sheetNames.filter((n) => /level|demographic/i.test(n) && !/trend|local authorit|region/i.test(n));
-    // Prefer an explicit "Levels" sheet over a "Demographics" one when both exist.
-    return candidates.find((n) => /level/i.test(n)) ?? candidates[0] ?? null;
-  };
-  // A row is "the national/overall row" if its label matches one of these.
-  const isOverallLabel = (s) => /^(all adults|overall|england|aged\s*16|16\s*\+)/i.test(String(s ?? "").trim());
-  const points = [];
-  for (const url of urls) {
-    const year = yearFromUrl(decodeURIComponent(url));
-    if (!year) { console.log(`  sport-participation: couldn't parse year from ${url}`); continue; }
-    if (points.some((p) => p.date.startsWith(year))) continue;
-    try {
-      const book = await xlsxBook(url);
-      if (url === urls[0]) {
-        const XLSX = await sheetjs();
-        console.log(`  sport-participation DIAG sheets=[${book.SheetNames.join("|")}]`);
-        const tsn = book.SheetNames.find((n) => /trend/i.test(n));
-        if (tsn) {
-          const sheet = book.Sheets[tsn];
-          const keys = Object.keys(sheet).filter((k) => /^[A-Z]+\d+$/.test(k));
-          let maxR = 0, maxC = 0;
-          for (const k of keys) { const cell = XLSX.utils.decode_cell(k); if (cell.r > maxR) maxR = cell.r; if (cell.c > maxC) maxC = cell.c; }
-          const grid = Array.from({ length: maxR + 1 }, () => Array(maxC + 1).fill(null));
-          for (const k of keys) { const cell = XLSX.utils.decode_cell(k); grid[cell.r][cell.c] = sheet[k].v; }
-          console.log(`  sport-participation DIAG trend "${tsn}" raw ${grid.length}x${maxC + 1} ref=${sheet["!ref"] ?? "(none)"} cells=${keys.length}`);
-          for (const r of grid.slice(0, 24)) console.log(`     ${JSON.stringify(r.slice(0, 16)).slice(0, 340)}`);
-        }
-      }
-      const sn = pickLevelsSheet(book.SheetNames);
-      if (!sn) {
-        console.log(`  sport-participation[${year}] no Levels/Demographics sheet; sheets=[${book.SheetNames.join("|")}]`);
-        continue;
-      }
-      const rows = (await sheetRows(book, sn)).map((r) => Array.from(r ?? []));
-      if (!rows.length) { console.log(`  sport-participation[${year}] sheet "${sn}" empty`); continue; }
+  const txt = (c) => String(c ?? "").replace(/\s+/g, " ").trim();
+  const isActiveHdr = (c) => /^active\b/i.test(txt(c)) && !/fairly|in[\s-]?active/i.test(txt(c));
 
-      // Locate the header row: contains a cell matching /^active\b/i that is
-      // NOT "fairly active"/"inactive". The FIRST such cell is the anchor for
-      // the Active group (later "Active" matches are spurious — e.g. other
-      // tables stacked below, or confidence-interval artefacts).
-      let headerRowIdx = -1;
-      let activeCol = -1;
-      for (let i = 0; i < Math.min(rows.length, 12); i++) {
-        const idx = rows[i].findIndex((c) => /^active\b/i.test(String(c ?? "").trim()) && !/fairly|in[\s-]?active/i.test(String(c ?? "")));
-        if (idx >= 0) { headerRowIdx = i; activeCol = idx; break; }
-      }
-      if (headerRowIdx < 0) {
-        console.log(`  sport-participation[${year}] no "Active" header found in sheet "${sn}"; dumping rows:`);
-        for (const r of rows.slice(0, 8)) console.log(`     ${JSON.stringify(r.slice(0, 12)).slice(0, 240)}`);
-        continue;
-      }
-
-      // Within the Active group (anchorCol .. anchorCol+3) the values are
-      // grouped Population total | Rate (%) | 95% CI. Find the "Rate (%)"
-      // sub-header column in the row immediately below the header.
-      const subHeader = rows[headerRowIdx + 1] ?? [];
-      let pctCol = -1;
-      for (let c = activeCol; c <= activeCol + 3 && c < subHeader.length; c++) {
-        if (/rate\s*\(?\s*%|rate|%|percent/i.test(String(subHeader[c] ?? ""))) { pctCol = c; break; }
-      }
-      // Fallback: the column right after the "Population total" count.
-      if (pctCol < 0) pctCol = activeCol + 1;
-
-      // Overall row: the All-adults / Aged-16+ row (else the first data row
-      // carrying a numeric value in the chosen % column).
-      const dataRows = rows.slice(headerRowIdx + 1, headerRowIdx + 24);
-      const overallRow = dataRows.find((r) => isOverallLabel(r[0])) ?? dataRows.find((r) => num(r[pctCol]) != null);
-      if (overallRow) console.log(`  sport-participation[${year}] url=${decodeURIComponent(url).split("/").pop()} overallRow=${JSON.stringify(overallRow.slice(0, 8))}`);
-
-      if (!overallRow) {
-        console.log(`  sport-participation[${year}] sheet "${sn}" header row=${headerRowIdx} activeCol=${activeCol} pctCol=${pctCol} but no overall row; dumping:`);
-        for (const r of rows.slice(headerRowIdx, headerRowIdx + 8)) console.log(`     ${JSON.stringify(r.slice(0, 12)).slice(0, 240)}`);
-        continue;
-      }
-
-      const rawPct = num(overallRow[pctCol]);
-      const asProportion = rawPct != null && rawPct <= 1.5; // 0.6207 = 62.07%
-      const scl = (v) => (v == null ? null : asProportion ? v * 100 : v);
-      let pct = scl(rawPct);
-
-      // 95% confidence interval (review item 2). Active Lives groups the Active
-      // block as: Population total | Rate (%) | CI. The CI may be published as
-      // explicit lower/upper bound columns or as a single +/- margin. Detect the
-      // sub-header within the Active group; log it so a CI run reveals the real
-      // layout if these guesses miss.
-      // Confirmed layout (CI run, 2026-06-29): the Active group sub-header is
-      // [Population total | Rate (%) | 95% confidence interval | (blank) | …],
-      // i.e. the CI header is MERGED across two columns and the data row holds
-      // [lower, upper] in those two cells. Also support explicit Lower/Upper
-      // columns in case an edition splits them.
-      // Search ONLY within the Active group (activeCol..activeCol+3) and take the
-      // FIRST CI header — the sheet repeats "95% confidence interval" for every
-      // activity group, so without a break the next group's CI (col ~8, a ~12%
-      // rate) wins and fails the straddle check.
-      let lo = null, hi = null, loCol = -1, hiCol = -1, ciCol = -1;
-      for (let c = activeCol; c <= activeCol + 3 && c < subHeader.length; c++) {
-        const h = String(subHeader[c] ?? "").toLowerCase();
-        if (loCol < 0 && /lower|lcl|\blcb\b|\blci\b/.test(h)) loCol = c;
-        else if (hiCol < 0 && /upper|ucl|\bucb\b|\buci\b/.test(h)) hiCol = c;
-        else if (ciCol < 0 && /confidence\s*interval|\b95\s*%/.test(h)) { ciCol = c; break; }
-      }
-      if (loCol >= 0 && hiCol >= 0) {
-        lo = scl(num(overallRow[loCol]));
-        hi = scl(num(overallRow[hiCol]));
-      } else if (ciCol >= 0) {
-        const a = scl(num(overallRow[ciCol]));
-        const b = scl(num(overallRow[ciCol + 1]));
-        console.log(`  sport-participation[${year}] CI cells: [${ciCol}]=${a} [${ciCol + 1}]=${b}`);
-        if (a != null && b != null && a < b) { lo = a; hi = b; }
-      }
-      // Sanity: bounds must straddle the point and be plausible; else drop them.
-      if (!(lo != null && hi != null && lo < pct && pct < hi && lo >= 20 && hi <= 95)) {
-        lo = hi = null;
-      }
-      console.log(`  sport-participation[${year}] CI: loCol=${loCol} hiCol=${hiCol} ciCol=${ciCol} lo=${lo} hi=${hi} subHeader=[${subHeader.slice(activeCol, activeCol + 7).map((c) => String(c ?? "")).join("|")}]`);
-
-      if (pct != null && pct >= 40 && pct <= 80) {
-        console.log(`  sport-participation[${year}] sheet="${sn}" headerRow=${headerRowIdx} activeCol=${activeCol} pctCol=${pctCol} label="${overallRow[0]}" pct=${pct}`);
-        points.push(lo != null ? { date: `${year}-01-01`, value: pct, lo, hi } : { date: `${year}-01-01`, value: pct });
-      } else {
-        console.log(`  sport-participation[${year}] sheet="${sn}" headerRow=${headerRowIdx} activeCol=${activeCol} pctCol=${pctCol} label="${overallRow[0]}" pct=${pct} — out of 40-80 guard, rejected`);
-        console.log(`  sport-participation[${year}] header row + first 6 data rows for diagnosis:`);
-        for (const r of rows.slice(headerRowIdx, headerRowIdx + 7)) console.log(`     ${JSON.stringify(r.slice(0, 12)).slice(0, 240)}`);
-      }
-    } catch (e) { console.log(`  sport-participation[${year}] err ${e.message}`); }
-    if (points.length >= 8) break;
+  // Period-label row: the row carrying the most "November YYYY - November YYYY".
+  const periodRe = /November\s*(\d{4})\s*-\s*November\s*(\d{4})/i;
+  let periodRowIdx = -1, bestN = 0;
+  for (let i = 0; i < Math.min(grid.length, 10); i++) {
+    const n = grid[i].filter((c) => periodRe.test(txt(c))).length;
+    if (n > bestN) { bestN = n; periodRowIdx = i; }
   }
-  if (points.length < 3) throw new Error(`sport-participation: only ${points.length} annual points parsed`);
-  setSrc(pageUrl);
-  return points.sort((a, b) => (a.date < b.date ? -1 : 1));
+  if (periodRowIdx < 0) throw new Error("sport-participation: no period-label row in trend sheet");
+  const periodYears = [];
+  grid[periodRowIdx].forEach((c, col) => { const m = txt(c).match(periodRe); if (m) periodYears.push({ col, year: +m[2] }); });
+
+  // "Active" group-header row (just below the period labels).
+  let activeRowIdx = -1;
+  for (let i = periodRowIdx; i < Math.min(grid.length, periodRowIdx + 4); i++) {
+    if (grid[i].some(isActiveHdr)) { activeRowIdx = i; break; }
+  }
+  if (activeRowIdx < 0) throw new Error("sport-participation: no Active header row in trend sheet");
+  const activeCols = [];
+  grid[activeRowIdx].forEach((c, col) => { if (isActiveHdr(c)) activeCols.push(col); });
+
+  // The "All adults (aged 16+)" data row (anchored so the "Overall …" title row
+  // can't match first).
+  const allAdults = grid.find((r) => /^all adults/i.test(txt(r[0])));
+  if (!allAdults) throw new Error("sport-participation: no 'All adults' row in trend sheet");
+
+  const points = [];
+  for (const ac of activeCols) {
+    let py = null;
+    for (const p of periodYears) if (p.col <= ac && (py == null || p.col > py.col)) py = p;
+    if (!py) continue;
+    // The Active header sits over [Population total, Rate (%)]; the rate is the
+    // proportion cell of that pair (try the two columns after the header).
+    let rate = null;
+    for (const c of [ac + 1, ac + 2]) { const v = num(allAdults[c]); if (v != null && v > 0 && v <= 1.5) { rate = v; break; } }
+    if (rate == null) continue;
+    const pct = +(rate * 100).toFixed(2);
+    if (pct >= 40 && pct <= 80) points.push({ date: `${py.year}-01-01`, value: pct });
+    else console.log(`  sport-participation[${py.year}] active rate ${pct} out of 40-80 guard`);
+  }
+  const byYear = new Map();
+  for (const p of points) byYear.set(p.date, p);
+  const out = [...byYear.values()].sort((a, b) => (a.date < b.date ? -1 : 1));
+  console.log(`  sport-participation: ${out.length} annual trend points — ${out.map((p) => `${p.date.slice(0, 4)}:${p.value}`).join(" ")}`);
+  if (out.length < 3) throw new Error(`sport-participation: only ${out.length} trend points parsed`);
+  setSrc(url);
+  return out;
 }
 
 // DSIT — gigabit-capable broadband coverage (% premises), Ofcom Connected
