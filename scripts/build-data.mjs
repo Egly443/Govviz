@@ -1402,6 +1402,11 @@ async function gigabitBroadband() {
       const s = await fetch("https://www.gov.uk/api/search.json?q=gigabit+broadband+coverage&order=-public_timestamp&count=10", fetchOpts({ accept: "application/json" }));
       if (s.ok) { const j = await s.json(); console.log(`  gigabit gov.uk search: ${(j.results || []).map((r) => r.link).slice(0, 8).join(" | ")}`); }
     } catch (e) { console.log(`  gigabit gov.uk search err ${e.message}`); }
+    // BDUK (Building Digital UK) research portal — official gov.uk gigabit data.
+    for (const slug of ["building-digital-uk-research-portal", "gigabit-broadband-statistics"]) {
+      try { const j = await govukContent(`government/collections/${slug}`); const docs = (j?.links?.documents || []).map((d) => d.base_path); console.log(`  gigabit BDUK ${slug} docs(${docs.length}): ${docs.slice(0, 12).join(" | ")}`); }
+      catch (e) { console.log(`  gigabit BDUK ${slug} err ${e.message}`); }
+    }
     for (const u of ["https://labs.thinkbroadband.com/local/", "https://www.thinkbroadband.com/broadband/monitoring/quality/share"]) {
       try { const tb = await fetch(u, fetchOpts({ accept: "text/html,*/*" })); console.log(`  gigabit ${u.split("/")[2]} HTTP ${tb.status}`); } catch (e) { console.log(`  gigabit ${u} err ${e.message}`); }
     }
@@ -3450,17 +3455,18 @@ const SOURCES = [
     min: 50,
     max: 100,
     get: async () => {
-      // HMPO publishes per-quarter transparency-data publications on gov.uk. Find
-      // them via the Search API, then dump the most recent ones' attachments.
+      // HMPO publishes per-quarter transparency-data publications on gov.uk. The
+      // generic search ranks junk first, so filter by organisation = hm-passport-office.
       try {
-        const s = await fetch("https://www.gov.uk/api/search.json?q=HM+Passport+Office+transparency+data&order=-public_timestamp&count=15", fetchOpts({ accept: "application/json" }));
+        const s = await fetch("https://www.gov.uk/api/search.json?filter_organisations%5B%5D=hm-passport-office&order=-public_timestamp&count=30", fetchOpts({ accept: "application/json" }));
         if (s.ok) {
           const j = await s.json();
-          const hits = (j.results || []).map((r) => r.link);
-          console.log(`  passport-times search hits(${hits.length}): ${hits.slice(0, 12).join(" | ")}`);
-          for (const h of hits.slice(0, 4)) {
-            try { const atts = await govukAttachments(String(h).replace(/^\//, "")); console.log(`  passport-times ${h} atts(${atts.length}): ${atts.map((a) => `${a.title}|${(a.url || "").split("/").pop()}`).slice(0, 8).join(" ; ")}`); }
-            catch (e) { console.log(`  passport-times ${h} att-err ${e.message}`); }
+          const hits = j.results || [];
+          const trans = hits.filter((h) => /transparency|data|performance|processing|turnaround/i.test(`${h.title || ""} ${h.link || ""}`));
+          console.log(`  passport-times HMPO pubs(${hits.length}) data-like(${trans.length}): ${trans.slice(0, 12).map((h) => h.link).join(" | ")}`);
+          for (const h of trans.slice(0, 4)) {
+            try { const atts = await govukAttachments(String(h.link).replace(/^\//, "")); console.log(`  passport-times ${h.link} atts(${atts.length}): ${atts.map((a) => `${a.title}|${(a.url || "").split("/").pop()}`).slice(0, 8).join(" ; ")}`); }
+            catch (e) { console.log(`  passport-times ${h.link} att-err ${e.message}`); }
           }
         } else console.log(`  passport-times search HTTP ${s.status}`);
       } catch (e) { console.log(`  passport-times err ${e.message}`); }
