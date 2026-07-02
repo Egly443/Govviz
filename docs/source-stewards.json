@@ -1,0 +1,77 @@
+{
+  "version": "0.1",
+  "updated": "2026-07-02",
+  "scope": "Downstream source-family stewardship routes for Govviz public aggregate series. These are not official named data stewards unless the producer publishes that role.",
+  "default": {
+    "producer": "Unknown primary producer",
+    "ownerUrl": null,
+    "feedbackUrl": "https://github.com/Egly443/Govviz/issues/new?template=data-quality.yml",
+    "licenceUrl": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+    "knownAccessConstraints": [
+      "Primary source contact not mapped yet.",
+      "Use the Govviz data-quality issue template so the source can be mapped."
+    ]
+  },
+  "families": [
+    {
+      "id": "ons",
+      "match": ["ONS", "Office for National Statistics"],
+      "producer": "Office for National Statistics",
+      "ownerUrl": "https://www.ons.gov.uk/",
+      "feedbackUrl": "https://www.ons.gov.uk/aboutus/contactus/generalandstatisticalenquiries",
+      "licenceUrl": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+      "releaseCalendarUrl": "https://www.ons.gov.uk/releasecalendar",
+      "knownAccessConstraints": ["Public aggregate statistics; API and publication formats vary by dataset."]
+    },
+    {
+      "id": "nhs-england",
+      "match": ["NHS England"],
+      "producer": "NHS England",
+      "ownerUrl": "https://www.england.nhs.uk/statistics/",
+      "feedbackUrl": "https://www.england.nhs.uk/contact-us/",
+      "licenceUrl": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+      "releaseCalendarUrl": "https://www.england.nhs.uk/statistics/statistical-work-areas/",
+      "knownAccessConstraints": ["Some series are monthly workbook releases; national aggregates may require reconstruction."]
+    },
+    {
+      "id": "defra-environment-agency",
+      "match": ["Defra", "Environment Agency"],
+      "producer": "Defra / Environment Agency",
+      "ownerUrl": "https://www.gov.uk/government/organisations/department-for-environment-food-rural-affairs",
+      "feedbackUrl": "https://www.gov.uk/government/organisations/department-for-environment-food-rural-affairs#org-contacts",
+      "licenceUrl": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+      "releaseCalendarUrl": "https://www.gov.uk/search/research-and-statistics?organisations%5B%5D=department-for-environment-food-rural-affairs",
+      "knownAccessConstraints": ["Some Environment Agency downloads are zip archives or intermittently rate-limited."]
+    },
+    {
+      "id": "mhclg",
+      "match": ["MHCLG", "Ministry of Housing", "DLUHC"],
+      "producer": "Ministry of Housing, Communities and Local Government",
+      "ownerUrl": "https://www.gov.uk/government/organisations/ministry-of-housing-communities-local-government",
+      "feedbackUrl": "https://www.gov.uk/government/organisations/ministry-of-housing-communities-local-government#org-contacts",
+      "licenceUrl": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+      "releaseCalendarUrl": "https://www.gov.uk/search/research-and-statistics?organisations%5B%5D=ministry-of-housing-communities-local-government",
+      "knownAccessConstraints": ["Many live tables are workbook-based and require table-specific parsing."]
+    },
+    {
+      "id": "hmrc",
+      "match": ["HMRC"],
+      "producer": "HM Revenue and Customs",
+      "ownerUrl": "https://www.gov.uk/government/organisations/hm-revenue-customs",
+      "feedbackUrl": "https://www.gov.uk/government/organisations/hm-revenue-customs#org-contacts",
+      "licenceUrl": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+      "releaseCalendarUrl": "https://www.gov.uk/search/research-and-statistics?organisations%5B%5D=hm-revenue-customs",
+      "knownAccessConstraints": ["Monthly performance reports can have inconsistent workbook cell typing across editions."]
+    },
+    {
+      "id": "world-bank",
+      "match": ["World Bank"],
+      "producer": "World Bank",
+      "ownerUrl": "https://data.worldbank.org/",
+      "feedbackUrl": "https://datahelpdesk.worldbank.org/",
+      "licenceUrl": "https://creativecommons.org/licenses/by/4.0/",
+      "releaseCalendarUrl": null,
+      "knownAccessConstraints": ["International aggregator; provenance may point to upstream national or international producers."]
+    }
+  ]
+}

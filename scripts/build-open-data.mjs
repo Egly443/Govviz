@@ -8,6 +8,8 @@
 //   catalog.json                         DCAT-AP catalogue (one dcat:Dataset / series)
 //   profile.json / suppression/v1.json   the served, versioned contracts
 //   series/index.json                    machine index
+//   graph.jsonld                         semantic graph for active cataloguing
+//   health-history.json                  rolling build-time health snapshots
 //   series/{id}.json                     the per-series METADATA RECORD (the stable id)
 //   series/{id}/data.csv                 tidy long-format CSV (the `latest` alias)
 //   series/{id}/data-{hash}.csv          content-versioned twin (cache-busting)
@@ -35,7 +37,14 @@ const SUPPRESSION_URL = `${DATA_BASE}/suppression/v1`;
 const OGL = "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/";
 const CCBY = "https://creativecommons.org/licenses/by/4.0/";
 const BUILT = new Date().toISOString().slice(0, 10);
+const BUILT_AT = new Date().toISOString();
 const OUT = "dist/data";
+const COMPILER = {
+  name: "Govviz",
+  url: SITE,
+  conformanceVersion: "ai-ready-series-profile-v0.2",
+};
+const PIPELINE_COMMIT = process.env.GITHUB_SHA || process.env.VERCEL_GIT_COMMIT_SHA || "unknown-local-build";
 
 const esc = (s = "") =>
   String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -126,6 +135,37 @@ function geographyOf(coverage) {
 
 const ISO3 = { gbr: "GBR", deu: "DEU", fra: "FRA" };
 const PERIODICITY = { monthly: "P1M", quarterly: "P3M", annual: "P1Y" };
+const POLICY_TAG_RULES = [
+  [/waiting|rtt|a&e|ambulance|hospital|discharge|clinical|infant|life expectancy/i, ["health", "waiting lists", "nhs performance"]],
+  [/housing|homeless|temporary accommodation|affordability|rent|house price/i, ["housing", "housing supply", "homelessness"]],
+  [/sewage|storm overflow|bathing water|water|river|flood|carbon|emissions|climate/i, ["environment", "sewage", "climate"]],
+  [/asylum|migration|visa|passport|border|refugee/i, ["migration", "home affairs", "public service backlog"]],
+  [/court|prison|probation|reoffending|justice|case/i, ["courts backlog", "justice"]],
+  [/school|teacher|attainment|education|pupil|training/i, ["schools", "education"]],
+  [/energy|fuel|bill|poverty|cost of living/i, ["energy bills", "cost of living"]],
+  [/productivity|gdp|growth|investment|debt|tax|spend|public finance/i, ["productivity", "public finance"]],
+  [/rail|road|transport|bus|train|journey/i, ["transport", "infrastructure"]],
+  [/defence|armed forces|equipment|procurement/i, ["defence", "procurement"]],
+];
+const GOV_ORG = {
+  dhsc: "https://www.gov.uk/government/organisations/department-of-health-and-social-care",
+  dfe: "https://www.gov.uk/government/organisations/department-for-education",
+  "home-office": "https://www.gov.uk/government/organisations/home-office",
+  moj: "https://www.gov.uk/government/organisations/ministry-of-justice",
+  mod: "https://www.gov.uk/government/organisations/ministry-of-defence",
+  dwp: "https://www.gov.uk/government/organisations/department-for-work-pensions",
+  dft: "https://www.gov.uk/government/organisations/department-for-transport",
+  mhclg: "https://www.gov.uk/government/organisations/ministry-of-housing-communities-local-government",
+  defra: "https://www.gov.uk/government/organisations/department-for-environment-food-rural-affairs",
+  treasury: "https://www.gov.uk/government/organisations/hm-treasury",
+  desnz: "https://www.gov.uk/government/organisations/department-for-energy-security-and-net-zero",
+  dsit: "https://www.gov.uk/government/organisations/department-for-science-innovation-and-technology",
+  dbt: "https://www.gov.uk/government/organisations/department-for-business-and-trade",
+  dcms: "https://www.gov.uk/government/organisations/department-for-culture-media-and-sport",
+  fcdo: "https://www.gov.uk/government/organisations/foreign-commonwealth-development-office",
+  "cabinet-office": "https://www.gov.uk/government/organisations/cabinet-office",
+  hmrc: "https://www.gov.uk/government/organisations/hm-revenue-customs",
+};
 
 function isWorldBank(s) { return /world bank/i.test(s.source || ""); }
 function statisticTypeOf(s) {
@@ -134,9 +174,53 @@ function statisticTypeOf(s) {
 }
 function licenceOf(s) { return isWorldBank(s) ? CCBY : OGL; }
 
-// Estimated next data period (one cadence step past the latest observation).
-// Flagged estimated — we do not know publishers' actual release calendars.
-function nextReleaseOf(latestDate, cadence) {
+function uniq(values) {
+  return [...new Set(values.filter(Boolean).map((x) => String(x).trim()).filter(Boolean))];
+}
+
+function semanticTagsOf(s, dept, unit) {
+  const haystack = `${s.id} ${s.title} ${s.subtitle || ""} ${s.definition || ""} ${s.source || ""}`;
+  const inferred = POLICY_TAG_RULES.flatMap(([re, tags]) => re.test(haystack) ? tags : []);
+  return uniq([
+    ...(s.semanticTags || []),
+    dept.code,
+    dept.fullName,
+    ...(dept.themes || []),
+    s.lens,
+    s.cadence,
+    s.coverage,
+    unit.unit,
+    ...inferred,
+  ].filter(Boolean).map((x) => String(x).toLowerCase()));
+}
+
+function subjectUrisOf(s, dept, geo) {
+  return uniq([
+    ...(s.subjectUris || []),
+    GOV_ORG[dept.code],
+    geo?.code ? `https://statistics.data.gov.uk/id/statistical-geography/${geo.code}` : null,
+    s.sourceUrl,
+  ]);
+}
+
+function qualityDimensionsOf({ s, rows, guard, freshness, provenance }) {
+  return {
+    accuracy: s.qualityDimensions?.accuracy || "Not asserted by Govviz; upstream producer methodology remains authoritative.",
+    completeness: s.qualityDimensions?.completeness || (rows.length
+      ? `${rows.length} observations emitted in the tidy data file.`
+      : "No observations were available in this build."),
+    uniqueness: s.qualityDimensions?.uniqueness || "One observation per period/ref_area key in the emitted tidy table.",
+    consistency: s.qualityDimensions?.consistency || "Compiled by the same source-specific parser and emitted through one CSVW schema.",
+    timeliness: s.qualityDimensions?.timeliness || freshness.freshnessReason,
+    validity: s.qualityDimensions?.validity || (guard
+      ? `Latest source values passed the published validRange ${guard.min} to ${guard.max}.`
+      : "No validRange was available for this derived or locally unavailable series."),
+  };
+}
+
+// Estimated next data period (one cadence step past the latest observed period).
+// This is a compiler-side cadence projection, not a publisher release calendar.
+function estimatedNextPeriodOf(latestDate, cadence) {
   if (!latestDate) return null;
   const d = new Date(latestDate);
   if (Number.isNaN(d.getTime())) return null;
@@ -144,6 +228,43 @@ function nextReleaseOf(latestDate, cadence) {
   else if (cadence === "quarterly") d.setUTCMonth(d.getUTCMonth() + 3);
   else d.setUTCFullYear(d.getUTCFullYear() + 1);
   return d.toISOString().slice(0, 10);
+}
+
+function latestPeriodDate(period, cadence) {
+  if (!period) return null;
+  if (cadence === "annual" && /^\d{4}$/.test(String(period))) return `${period}-12-31`;
+  if (/^\d{4}-\d{2}$/.test(String(period))) return `${period}-01`;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(String(period))) return period;
+  const d = new Date(period);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
+}
+
+function freshnessOf({ latestObservedPeriod, cadence, fetchedAt }) {
+  const latestDate = latestPeriodDate(latestObservedPeriod, cadence);
+  const estimatedNextPeriod = estimatedNextPeriodOf(latestDate, cadence);
+  if (!latestObservedPeriod) {
+    return {
+      estimatedNextPeriod: null,
+      freshnessStatus: "unknown",
+      freshnessReason: "No observations were available in this build.",
+    };
+  }
+  if (!estimatedNextPeriod) {
+    return {
+      estimatedNextPeriod: null,
+      freshnessStatus: "unknown",
+      freshnessReason: "The latest observed period could not be converted into a cadence projection.",
+    };
+  }
+  const status = estimatedNextPeriod < BUILT ? "aged" : "current";
+  const fetched = fetchedAt ? `; latest source fetch recorded ${fetchedAt}` : "; no source fetch timestamp was recorded";
+  return {
+    estimatedNextPeriod,
+    freshnessStatus: status,
+    freshnessReason: status === "current"
+      ? `Latest observed period ${latestObservedPeriod} is within the expected ${cadence || "unknown"} cadence${fetched}.`
+      : `Latest observed period ${latestObservedPeriod} is older than the expected ${cadence || "unknown"} cadence projection ${estimatedNextPeriod}${fetched}.`,
+  };
 }
 
 const csvCell = (v) =>
@@ -175,6 +296,8 @@ function buildSeries(s, dept) {
     for (const p of pts) rows.push({ period: yr(p.date, s.cadence), ...p });
   }
   const hasBand = rows.some((r) => r.lo != null && r.hi != null);
+  const latestObservedPeriod = rows.map((r) => r.period).filter(Boolean).sort().at(-1) || null;
+  const freshness = freshnessOf({ latestObservedPeriod, cadence: s.cadence, fetchedAt: asOf });
 
   // CSV (long-format, one observation per row, typed; suppression-ready `status`).
   const cols = ["period"];
@@ -205,7 +328,16 @@ function buildSeries(s, dept) {
     fetchedAt: asOf || null,
     contentHash: realHash(s.id) || dataHash,
     sourceBytesHash: realSourceBytesHash(s.id) || null,
-    compiledBy: "Govviz (downstream compiler — not the primary producer)",
+    compiledBy: COMPILER.name,
+  };
+  const semanticTags = semanticTagsOf(s, dept, unit);
+  const subjectUris = subjectUrisOf(s, dept, geo);
+  const qualityDimensions = qualityDimensionsOf({ s, rows, guard, freshness, provenance });
+  const compiler = {
+    ...COMPILER,
+    compiledAt: new Date().toISOString(),
+    pipelineCommit: PIPELINE_COMMIT,
+    sourceBytesHash: provenance.sourceBytesHash,
   };
 
   const record = {
@@ -227,8 +359,26 @@ function buildSeries(s, dept) {
     revisionStatus,
     licence: licenceOf(s),
     provenance,
-    nextRelease: nextReleaseOf(asOf, s.cadence),
-    nextReleaseEstimated: true,
+    semanticTags,
+    subjectUris,
+    qualityDimensions,
+    compiler,
+    upstreamConformance: "not-asserted-by-primary-publisher",
+    publisherClaim: "not-asserted-by-primary-publisher",
+    nextRelease: null,
+    nextReleaseEstimated: false,
+    expectedCadence: s.cadence || null,
+    latestObservedPeriod,
+    latestFetchedAt: asOf || null,
+    ...freshness,
+    conformanceLevel: "M5-reference-rendering",
+    limitations: [
+      "Govviz is a downstream compiler, not the primary publisher.",
+      "The primary producer may not publish the same tidy structure, stable id, CSVW metadata, or validation range upstream.",
+      "Freshness metadata is inferred from observed periods and fetch timestamps; it is not an official release calendar.",
+      "The contact and accountability route remains the primary producer's published route, not a Govviz official statistics contact.",
+      "No upstream policy-as-code conformance assertion has been made by the primary producer.",
+    ],
     latest: dataLatest,
     distribution: [dataLatest, versioned, csvwUrl, id],
     csvw: csvwUrl,
@@ -279,7 +429,7 @@ function buildSeries(s, dept) {
     "dct:license": { "@id": record.licence },
     ...(geo?.code ? { "dct:spatial": { "@id": `https://statistics.data.gov.uk/id/statistical-geography/${geo.code}` } } : {}),
     "dct:accrualPeriodicity": record.periodicity,
-    "dcat:keyword": [dept.fullName, ...(dept.themes || []), unit.unit],
+    "dcat:keyword": semanticTags,
     "dcat:landingPage": id,
     "dcat:distribution": [
       { "@type": "dcat:Distribution", "dcat:accessURL": dataLatest, "dcat:downloadURL": dataLatest, "dct:format": "text/csv", "dct:title": "Tidy CSV (latest)" },
@@ -331,7 +481,20 @@ await mkdir(`${OUT}/series`, { recursive: true });
 await writeFile(
   `${OUT}/series/index.json`,
   JSON.stringify(
-    { built: BUILT, count: built.length, series: built.map((b) => ({ id: b.s.id, record: b.record.id, latest: b.record.latest, title: b.s.title })) },
+    {
+      built: BUILT,
+      count: built.length,
+      tags: uniq(built.flatMap((b) => b.record.semanticTags || [])).sort(),
+      series: built.map((b) => ({
+        id: b.s.id,
+        record: b.record.id,
+        latest: b.record.latest,
+        title: b.s.title,
+        department: b.dept.code,
+        tags: b.record.semanticTags,
+        subjectUris: b.record.subjectUris,
+      })),
+    },
     null, 2,
   ),
 );
@@ -351,16 +514,21 @@ const catalog = {
   "dcat:dataset": built.map((b) => b.dcatDataset),
 };
 await writeFile(`${OUT}/catalog.json`, JSON.stringify(catalog, null, 2));
+await writeFile(`${OUT}/graph.jsonld`, JSON.stringify(GRAPH_DOC(built), null, 2));
 
 // Served profile + suppression scheme (the contracts the records reference).
 await mkdir(`${OUT}/suppression`, { recursive: true });
 await writeFile(`${OUT}/suppression/v1.json`, JSON.stringify(SUPPRESSION_SCHEME(), null, 2));
 if (existsSync("docs/conformance/ai-ready-series-profile.md"))
   await writeFile(`${OUT}/profile.md`, await readFile("docs/conformance/ai-ready-series-profile.md", "utf8"));
+if (existsSync("docs/conformance/ai-ready-series.schema.json"))
+  await writeFile(`${OUT}/ai-ready-series.schema.json`, await readFile("docs/conformance/ai-ready-series.schema.json", "utf8"));
 await writeFile(`${OUT}/profile.json`, JSON.stringify(PROFILE_DOC(), null, 2));
 
 // MCP descriptor (the agent layer points here).
 await writeFile(`${OUT}/mcp.json`, JSON.stringify(MCP_DESCRIPTOR(), null, 2));
+await writeFile(`${OUT}/openapi.json`, JSON.stringify(OPENAPI_DOC(), null, 2));
+await writeFile(`${OUT}/health-history.json`, JSON.stringify(await HEALTH_HISTORY(built), null, 2));
 
 // Human portal, rendered FROM the catalogue (machine-first, human-rendered).
 await writeFile(`${OUT}/index.html`, portalHtml(built));
@@ -380,7 +548,7 @@ async function patchDiscoverability(items) {
     if (existsSync(path)) {
       let xml = await readFile(path, "utf8");
       const extra = [
-        `${DATA_BASE}/`, `${DATA_BASE}/catalog.json`, `${DATA_BASE}/profile.json`,
+        `${DATA_BASE}/`, `${DATA_BASE}/catalog.json`, `${DATA_BASE}/profile.json`, `${DATA_BASE}/health-history.json`,
         ...items.map((b) => b.record.id),
       ]
         .map((loc) => `  <url><loc>${loc}</loc><lastmod>${BUILT}</lastmod><priority>0.5</priority></url>`)
@@ -396,7 +564,7 @@ async function patchDiscoverability(items) {
     if (existsSync(path)) {
       let txt = await readFile(path, "utf8");
       if (!txt.includes("## Open data")) {
-        txt += `\n## Open data (AI-ready, machine-first)\n- [DCAT catalogue](${DATA_BASE}/catalog.json): every Govviz series as a catalogued dataset with stable id, tidy CSV, CSVW and in-band semantics.\n- [AI-ready series profile](${DATA_BASE}/profile.json): the normative profile this data implements (resolve id → GET tidy data; published validRange to reject wrong-but-plausible values).\n- [Worked example](${DATA_BASE}/series/defra-sewage-hours.json): the essay's hardest case (sewage spill hours) collapsed to one record + one tidy file.\n- [Agent interface (MCP)](${DATA_BASE}/mcp.json): open agent layer over the catalogue.\n`;
+        txt += `\n## Open data (AI-ready, machine-first)\n- [DCAT catalogue](${DATA_BASE}/catalog.json): every Govviz series as a catalogued dataset with stable id, tidy CSV, CSVW and in-band semantics.\n- [AI-ready series profile](${DATA_BASE}/profile.json): the normative profile this data implements (resolve id -> GET tidy data; published validRange to reject wrong-but-plausible values).\n- [Health history](${DATA_BASE}/health-history.json): rolling build-time source and series health snapshots.\n- [Worked example](${DATA_BASE}/series/defra-sewage-hours.json): the essay's hardest case (sewage spill hours) collapsed to one record + one tidy file.\n- [Agent interface (MCP)](${DATA_BASE}/mcp.json): open agent layer over the catalogue.\n`;
         await writeFile(path, txt);
       }
     }
@@ -422,15 +590,238 @@ function SUPPRESSION_SCHEME() {
 }
 
 function PROFILE_DOC() {
+  const recommendedFields = [
+    "semanticTags", "subjectUris", "qualityDimensions", "dataSteward", "contact",
+    "accessClass", "accessProcess", "legalBasis", "dataProtection", "riskOwner",
+    "qualityOwner", "methodologyUrl", "revisionPolicyUrl", "releaseCalendarUrl",
+    "relatedSeries", "sourceSystem", "lineage", "qualityStatement",
+    "knownLimitations", "machineUseRestrictions",
+  ];
   return {
     id: PROFILE_URL,
-    title: "AI-ready series profile (v0.1) — served form",
+    title: "AI-ready series profile (v0.2) — served form",
     canonical: "https://github.com/Egly443/Govviz/blob/main/docs/conformance/ai-ready-series-profile.md",
-    requiredFields: ["id", "title", "description", "producer", "statisticType", "measure", "unit", "geography", "periodicity", "validRange", "suppressionScheme", "revisionStatus", "licence", "provenance", "nextRelease", "latest"],
-    optionalFields: ["csvw", "agent", "unitMultiplier", "basis", "caveat", "lens", "target"],
+    requiredFields: ["id", "title", "description", "producer", "statisticType", "measure", "unit", "periodicity", "suppressionScheme", "revisionStatus", "licence", "provenance", "compiler", "upstreamConformance", "expectedCadence", "latestObservedPeriod", "latestFetchedAt", "freshnessStatus", "freshnessReason", "conformanceLevel", "limitations", "latest"],
+    optionalFields: ["validRange", "csvw", "agent", "unitMultiplier", "basis", "caveat", "lens", "target", "estimatedNextPeriod", "nextRelease", "nextReleaseEstimated", ...recommendedFields],
+    recommendedFields,
+    qualityDimensions: ["accuracy", "completeness", "uniqueness", "consistency", "timeliness", "validity"],
+    crosswalk: {
+      gdsDsitPillars: ["technical optimisation", "data and metadata quality", "organisation and infrastructure context", "legal, security and ethical compliance"],
+      odiEnterpriseCategories: ["dataset properties", "metadata", "surrounding infrastructure", "governance"],
+      satisfiedByGovviz: ["appropriate file formats", "machine-readable metadata", "provenance", "versioned assets", "static data product URLs", "version control", "build-gate monitoring checkpoints"],
+      knownGaps: ["upstream policy-as-code access controls", "named official data stewards", "primary-publisher access process", "complete official cataloguing", "full semantic knowledge graph", "closed AI-data feedback loop"],
+    },
     dataFile: "Long-format, one observation per row: period,value,unit,unit_multiplier,status (+ref_area for multi-area, +lower,upper for published CIs).",
-    note: "validRange may be absent on derived ratio series and on a local build with no CI-fetched data; it is present for directly-fetched series in the production build.",
+    note: "Govviz is a downstream reference rendering. upstreamConformance defaults to not-asserted-by-primary-publisher, and nextRelease is null unless a source-specific official release calendar is known.",
   };
+}
+
+function OPENAPI_DOC() {
+  const schemaUrl = `${DATA_BASE}/ai-ready-series.schema.json`;
+  return {
+    openapi: "3.1.0",
+    info: {
+      title: "Govviz AI-ready open data",
+      version: BUILT,
+      description: "Static contract for the Govviz AI-ready series catalogue and per-series data endpoints.",
+      license: { name: "OGL v3.0", url: OGL },
+    },
+    servers: [{ url: DATA_BASE }],
+    paths: {
+      "/catalog.json": {
+        get: {
+          summary: "DCAT catalogue of all series",
+          responses: { "200": { description: "DCAT catalogue", content: { "application/json": { schema: { type: "object" } } } } },
+        },
+      },
+      "/series/index.json": {
+        get: {
+          summary: "Machine index of available series",
+          responses: { "200": { description: "Series index", content: { "application/json": { schema: { type: "object" } } } } },
+        },
+      },
+      "/series/{id}.json": {
+        get: {
+          summary: "AI-ready metadata record for one series",
+          parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+          responses: {
+            "200": {
+              description: "Series metadata record conforming to the AI-ready series profile",
+              content: { "application/json": { schema: { $ref: schemaUrl } } },
+            },
+          },
+        },
+      },
+      "/series/{id}/data.csv": {
+        get: {
+          summary: "Latest tidy observations for one series",
+          parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+          responses: { "200": { description: "CSV with period,value,unit,unit_multiplier,status columns", content: { "text/csv": { schema: { type: "string" } } } } },
+        },
+      },
+      "/series/{id}/data.csv-metadata.json": {
+        get: {
+          summary: "CSVW metadata for one series data file",
+          parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+          responses: { "200": { description: "CSVW table schema", content: { "application/json": { schema: { type: "object" } } } } },
+        },
+      },
+    },
+    components: {
+      schemas: {
+        AiReadySeries: {
+          type: "object",
+          description: `Canonical schema is published at ${schemaUrl} and mirrored in docs/conformance/ai-ready-series.schema.json.`,
+        },
+      },
+    },
+  };
+}
+
+async function HEALTH_HISTORY(items) {
+  const previous = await readPreviousHealthHistory();
+  const entry = {
+    builtAt: BUILT_AT,
+    built: BUILT,
+    pipelineCommit: PIPELINE_COMMIT,
+    totalSeries: items.length,
+    withObservations: items.filter((b) => b.record.observationCount > 0).length,
+    withValidRange: items.filter((b) => b.record.validRange).length,
+    freshness: countBy(items.map((b) => b.record.freshnessStatus || "unknown")),
+    series: items.map((b) => ({
+      id: b.s.id,
+      title: b.s.title,
+      department: b.dept.code,
+      observationCount: b.record.observationCount,
+      hasValidRange: Boolean(b.record.validRange),
+      freshnessStatus: b.record.freshnessStatus || "unknown",
+      latestObservedPeriod: b.record.latestObservedPeriod,
+      latestFetchedAt: b.record.latestFetchedAt,
+      source: b.record.provenance?.upstreamUrl || b.s.sourceUrl || null,
+      contentHash: b.record.provenance?.contentHash || null,
+      sourceBytesHash: b.record.provenance?.sourceBytesHash || null,
+      warnings: [
+        b.record.observationCount ? null : "no-observations",
+        b.record.validRange ? null : "no-valid-range",
+        b.record.freshnessStatus === "aged" ? "aged" : null,
+      ].filter(Boolean),
+    })),
+  };
+  return {
+    id: `${DATA_BASE}/health-history.json`,
+    title: "Govviz data health history",
+    description: "Rolling build-time health snapshots for the AI-ready open-data product. CI can seed this from the currently deployed file before appending the new build.",
+    generatedAt: BUILT_AT,
+    sourceHistory: previous.sourceHistory || process.env.GOVVIZ_HEALTH_HISTORY_IN || `${DATA_BASE}/health-history.json`,
+    retention: "Most recent 60 build snapshots.",
+    entries: [entry, ...(previous.entries || [])]
+      .filter((item, index, all) => all.findIndex((other) => other.builtAt === item.builtAt && other.pipelineCommit === item.pipelineCommit) === index)
+      .slice(0, 60),
+  };
+}
+
+function countBy(values) {
+  const out = {};
+  for (const value of values) out[value] = (out[value] || 0) + 1;
+  return out;
+}
+
+async function readPreviousHealthHistory() {
+  const candidates = [
+    process.env.GOVVIZ_HEALTH_HISTORY_IN,
+    `${OUT}/health-history.json`,
+  ].filter(Boolean);
+  for (const file of candidates) {
+    try {
+      return JSON.parse(await readFile(file, "utf8"));
+    } catch {
+      // Missing or invalid history should not block publication of the current snapshot.
+    }
+  }
+  return { entries: [] };
+}
+
+function GRAPH_DOC(items) {
+  const departments = new Map();
+  const producers = new Map();
+  const geographies = new Map();
+  for (const b of items) {
+    departments.set(`${DATA_BASE}/department/${b.dept.code}`, {
+      "@id": `${DATA_BASE}/department/${b.dept.code}`,
+      "@type": "schema:GovernmentOrganization",
+      "schema:name": b.dept.fullName,
+      ...(GOV_ORG[b.dept.code] ? { "schema:sameAs": GOV_ORG[b.dept.code] } : {}),
+    });
+    producers.set(`${DATA_BASE}/producer/${slug(b.record.producer)}`, {
+      "@id": `${DATA_BASE}/producer/${slug(b.record.producer)}`,
+      "@type": "schema:Organization",
+      "schema:name": b.record.producer,
+    });
+    if (b.record.geography) {
+      geographies.set(`https://statistics.data.gov.uk/id/statistical-geography/${b.record.geography}`, {
+        "@id": `https://statistics.data.gov.uk/id/statistical-geography/${b.record.geography}`,
+        "@type": "dct:Location",
+        "schema:name": b.record.geographyLabel || b.record.geography,
+      });
+    }
+  }
+  return {
+    "@context": {
+      schema: "https://schema.org/",
+      dcat: "http://www.w3.org/ns/dcat#",
+      dct: "http://purl.org/dc/terms/",
+      prov: "http://www.w3.org/ns/prov#",
+    },
+    "@graph": [
+      {
+        "@id": `${DATA_BASE}/catalog.json`,
+        "@type": ["dcat:Catalog", "schema:DataCatalog"],
+        "schema:name": "Govviz AI-ready open data catalogue",
+        "schema:url": `${DATA_BASE}/catalog.json`,
+        "schema:dateModified": BUILT,
+      },
+      ...departments.values(),
+      ...producers.values(),
+      ...geographies.values(),
+      ...items.map((b) => datasetJsonLd(b)),
+    ],
+  };
+}
+
+function datasetJsonLd(b) {
+  const r = b.record;
+  const temporalCoverage = r.latestObservedPeriod ? `../${r.latestObservedPeriod}` : undefined;
+  return {
+    "@id": r.id,
+    "@type": ["schema:Dataset", "dcat:Dataset"],
+    "schema:name": r.title,
+    "schema:description": r.description,
+    "schema:creator": { "@id": `${DATA_BASE}/producer/${slug(r.producer)}`, "schema:name": r.producer },
+    "schema:publisher": { "@id": `${DATA_BASE}/department/${b.dept.code}`, "schema:name": b.dept.fullName },
+    "schema:license": r.licence,
+    "schema:isAccessibleForFree": true,
+    "schema:dateModified": BUILT,
+    ...(r.geography ? { "schema:spatialCoverage": { "@id": `https://statistics.data.gov.uk/id/statistical-geography/${r.geography}` } } : {}),
+    ...(temporalCoverage ? { "schema:temporalCoverage": temporalCoverage } : {}),
+    "schema:measurementTechnique": r.measure,
+    "schema:keywords": r.semanticTags,
+    "schema:about": (r.subjectUris || []).map((uri) => ({ "@id": uri })),
+    "schema:distribution": [
+      { "@type": "schema:DataDownload", "schema:encodingFormat": "application/json", "schema:contentUrl": r.id, "schema:name": "AI-ready series metadata" },
+      { "@type": "schema:DataDownload", "schema:encodingFormat": "text/csv", "schema:contentUrl": r.latest, "schema:name": "Tidy CSV" },
+      { "@type": "schema:DataDownload", "schema:encodingFormat": "application/csvm+json", "schema:contentUrl": r.csvw, "schema:name": "CSVW schema" },
+    ],
+    "dct:source": r.provenance.upstreamUrl ? { "@id": r.provenance.upstreamUrl } : undefined,
+    "prov:wasGeneratedBy": {
+      "@type": "prov:Activity",
+      "prov:endedAtTime": r.compiler.compiledAt,
+      "prov:wasAssociatedWith": { "@id": r.compiler.url, "schema:name": r.compiler.name },
+    },
+  };
+}
+
+function slug(value) {
+  return String(value || "unknown").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "unknown";
 }
 
 function MCP_DESCRIPTOR() {
@@ -444,12 +835,24 @@ function MCP_DESCRIPTOR() {
       { name: "list_series", description: "List all series (id, title, unit, periodicity)." },
       { name: "get_series_metadata", description: "Get the AI-ready metadata record for a series id." },
       { name: "get_observations", description: "Get the tidy observations for a series id." },
+      { name: "validate_value", description: "Validate a proposed value against validRange, unit and periodicity metadata." },
+      { name: "get_data_health", description: "Return current catalogue health and the latest rolling health-history snapshots." },
     ],
     note: "Standards under standards: the data is independently usable via DCAT/CSVW, so the agent interface carries no lock-in.",
   };
 }
 
 function portalHtml(items) {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "DataCatalog",
+    name: "Govviz AI-ready open data",
+    description: "Every Govviz UK-government performance series published as stable metadata, tidy CSV and CSVW.",
+    url: `${DATA_BASE}/`,
+    dateModified: BUILT,
+    license: OGL,
+    dataset: items.map((b) => datasetJsonLd(b)),
+  };
   const css = `:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#0b0d12;color:#e7e9ee;font:15px/1.6 Inter,system-ui,sans-serif}
 .wrap{max-width:1000px;margin:0 auto;padding:2.5rem 1.25rem 5rem}a{color:#8ab4ff}h1{font-size:1.8rem;margin:0 0 .4rem}
 .lead{color:#9aa3b2;max-width:60ch}code{background:#11141c;border:1px solid #232838;border-radius:.3rem;padding:.1rem .35rem;font:.85em ui-monospace,monospace}
@@ -468,11 +871,12 @@ th{color:#9aa3b2;font-weight:600}.muted{color:#9aa3b2}.links a{margin-right:.6re
 <meta name="description" content="Every Govviz UK-government performance series, published as AI-ready open data: stable IDs, tidy CSV, CSVW, DCAT catalogue, in-band semantics and a validation range — a reference implementation of the AI-ready series profile.">
 <link rel="canonical" href="${DATA_BASE}/">
 <link rel="alternate" type="application/ld+json" href="${DATA_BASE}/catalog.json">
+<script type="application/ld+json">${JSON.stringify(jsonLd).replace(/</g, "\\u003c")}</script>
 <style>${css}</style></head><body><div class="wrap">
 <nav class="muted"><a href="${SITE}/">← Govviz</a> · <a href="${SITE}/blog">The essay</a> · <a href="https://github.com/Egly443/Govviz/blob/main/docs/conformance/ai-ready-series-profile.md">Profile</a></nav>
 <h1>AI-ready open data</h1>
 <p class="lead">Govviz publishes every indicator as a <strong>reference implementation of its own <a href="${SITE}/blog">AI-ready series profile</a></strong>: resolve a stable id → tidy CSV, with unit, coverage, periodicity, revision status, provenance and a published <em>validation range</em> in-band. No scraping, no tab-guessing, no wrong-but-plausible measure. Govviz is a downstream compiler; every record names its primary producer.</p>
-<p class="muted">Catalogue: <a href="catalog.json">catalog.json</a> (DCAT) · Profile: <a href="profile.json">profile.json</a> · Suppression scheme: <a href="suppression/v1.json">v1</a> · Agent: <a href="mcp.json">MCP</a></p>
+<p class="muted">Catalogue: <a href="catalog.json">catalog.json</a> (DCAT) · Graph: <a href="graph.jsonld">graph.jsonld</a> · Profile: <a href="profile.json">profile.json</a> · Health history: <a href="health-history.json">health-history.json</a> · Suppression scheme: <a href="suppression/v1.json">v1</a> · Agent: <a href="mcp.json">MCP</a></p>
 <h2>Read any series in three lines</h2>
 <pre>curl -s ${DATA_BASE}/series/defra-sewage-hours.json | jq '.title,.unit,.validRange'
 curl -s ${DATA_BASE}/series/defra-sewage-hours/data.csv</pre>

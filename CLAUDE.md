@@ -137,6 +137,19 @@ explicit "no source yet" placeholder (illustrative generators removed 2026-06).
 - CI installs the parser deps via `npm install --no-save xlsx fflate` (keeps package-lock in sync); both are imported lazily so local/offline runs skip them.
 - `parseCsvLine(line)` → quote-aware CSV splitter. Plus raw `fetch(url, fetchOpts({...}))` for HTML scrapes & CKAN APIs (`fetchOpts` sets UA + 30s timeout; pass `"user-agent"` to override).
 
+### Reproducing real data locally
+- Install optional workbook/zip parsers when testing source-backed series:
+  `npm install --no-save xlsx fflate`.
+- Run targeted fetches instead of the full manifest when checking one claim:
+  `npm run fetch-data -- --only=defra-sewage-hours`
+  or `npm run fetch-data -- --only=hmrc-call-wait,cab-foi-intime,desnz-electricity-price`.
+- A full local fetch needs outbound network access and can run for many minutes
+  because sources include GOV.UK collections, ONS/World Bank APIs, workbooks,
+  zip files and HTML release pages.
+- `src/generated/seriesData.ts` is CI-owned generated data. Restore it to the
+  committed empty object after local fetch tests unless the task explicitly
+  asks to inspect or keep generated output.
+
 ### Discovering codes — **WebSearch works** (curl/WebFetch don't!)
 The sandbox blocks `curl`/`WebFetch`, **but `WebSearch` reaches the internet.** Use it to
 find ONS CDIDs/WB codes/EES dataset IDs/gov.uk collection slugs, then wire the fetcher

@@ -1,5 +1,7 @@
 import { dataHealth } from "./overview";
 
+const DATA_BASE = `${import.meta.env.BASE_URL}data`;
+
 /**
  * System-level data-quality strip for the overview. Surfaces the
  * whole-of-government coverage/freshness signals (live vs placeholder,
@@ -51,11 +53,41 @@ export function DataHealthStrip() {
         <h2 className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
           Data health
         </h2>
-        {h.newestFetch && (
-          <span className="text-[11px] text-muted-foreground">
-            Last fetched {h.newestFetch}
-          </span>
-        )}
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
+          {h.newestFetch && <span>Last fetched {h.newestFetch}</span>}
+          <a
+            href={`${DATA_BASE}/catalog.json`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline decoration-dotted underline-offset-2 hover:text-foreground"
+          >
+            Catalogue
+          </a>
+          <a
+            href={`${DATA_BASE}/conformance-report.html`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline decoration-dotted underline-offset-2 hover:text-foreground"
+          >
+            Conformance
+          </a>
+          <a
+            href={`${DATA_BASE}/profile.json`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline decoration-dotted underline-offset-2 hover:text-foreground"
+          >
+            Profile
+          </a>
+          <a
+            href={`${DATA_BASE}/health-history.json`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline decoration-dotted underline-offset-2 hover:text-foreground"
+          >
+            History
+          </a>
+        </div>
       </div>
       <dl className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
         {stats.map((s) => (

@@ -29,6 +29,7 @@ import {
   type SeriesUnit,
   type TrendSeries,
 } from "./data";
+import { SourceFeedbackLink } from "./SourceFeedbackLink";
 
 type Range = 5 | 10 | 20 | "max";
 
@@ -590,6 +591,11 @@ export function TrendPanel({
             <a className="underline decoration-dotted underline-offset-2 hover:text-foreground" href={`${dataBase}/data.csv`} target="_blank" rel="noopener noreferrer">CSV</a>
             <a className="underline decoration-dotted underline-offset-2 hover:text-foreground" href={`${dataBase}/data.csv-metadata.json`} target="_blank" rel="noopener noreferrer">CSVW</a>
           </span>
+          <span className="opacity-50">·</span>
+          <SourceFeedbackLink
+            series={series}
+            observedValue={!multi ? series.format(current.value) : undefined}
+          />
         </span>
         {multi ? (
           <span className="tabular-nums">{formatMonth(current.date)}</span>
@@ -666,6 +672,7 @@ function UnsourcedPanel({
         >
           Source being chased: {series.source} ↗
         </a>
+        <SourceFeedbackLink series={series} />
       </div>
     </div>
   );

@@ -31,8 +31,17 @@ an everyday AI agent.
 
 ## Provenance, not impersonation
 
-Every record names its **primary producer** in `producer` and `provenance.source`,
-and marks Govviz as the compiler in `provenance.compiledBy`. Govviz does not
-assert authorship of the underlying statistics; it re-publishes them in a
-machine-first shape, with the exact upstream file and content/byte fingerprints
-recorded for verifiable lineage.
+Every record names its **primary producer** in `producer` and
+`provenance.source`, and separately names Govviz in the `compiler` object
+(`name`, `url`, `compiledAt`, `pipelineCommit`, `sourceBytesHash`, and
+`conformanceVersion`). `upstreamConformance` defaults to
+`not-asserted-by-primary-publisher` unless the primary producer has published its
+own assertion.
+
+Govviz does not assert authorship of the underlying statistics; it re-publishes
+them in a machine-first shape, with upstream file and content/byte fingerprints
+recorded for verifiable lineage where available. Freshness fields such as
+`expectedCadence`, `latestObservedPeriod`, `latestFetchedAt`,
+`freshnessStatus`, `freshnessReason`, and `estimatedNextPeriod` are compiler-side
+metadata. `nextRelease` is kept `null` unless a source-specific official release
+calendar is known.

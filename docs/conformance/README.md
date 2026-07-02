@@ -9,6 +9,44 @@ UK government datasets that a downstream integrator had to consume to build the
 
 The machine-readable cases live in [`test-cases.json`](./test-cases.json).
 
+Run the executable Govviz reference check with:
+
+```bash
+npm run conformance
+```
+
+Use `node scripts/run-conformance-suite.mjs --target=govviz --offline` to check
+local `dist/data` instead of the deployed site. When `dist/data` exists, the
+runner writes `dist/data/conformance-suite-report.json` and
+`dist/data/conformance-suite-report.md`.
+
+Reviewer aids:
+
+- [Conformance source map](../source-map.md)
+- [Priority evidence notes](../evidence/README.md)
+- [Primary producer target shapes](./target-shapes/)
+- [Producer outreach packets](../outreach/README.md)
+
+## Crosswalk to current AI-ready data frameworks
+
+| Govviz evidence | GDS/DSIT four-pillar alignment | ODI enterprise criteria alignment | Current status |
+|---|---|---|---|
+| AI-ready series profile, JSON schema, long CSV and CSVW | Technical optimisation; data and metadata quality | Appropriate formats; machine-readable metadata | Implemented by the generated open-data product. |
+| `provenance`, source URL, source hashes, `compiler`, pipeline commit | Organisation and infrastructure context | Provenance; versioned assets; version control | Implemented as downstream evidence. |
+| `catalog.json`, `series/index.json`, `graph.jsonld`, MCP descriptor | Technical optimisation; data and metadata quality | Data product access; API-like static URLs; active cataloguing | Implemented as static artefacts under `/data/`. |
+| Build gates for schema shape, `validRange`, source fingerprints and generated records | Technical optimisation; metadata quality | Monitoring checkpoints | Implemented in local/CI checks where the scripts run. |
+| `semanticTags`, `subjectUris`, policy-problem tags | Data and metadata quality | Semantic interlinkage; discovery metadata | Initial conservative tagging generated from known metadata. |
+| `qualityDimensions` | Data and metadata quality | Quality evidence | Warning-level downstream evidence aligned to the Government Data Quality Framework. |
+| `dataSteward`, `contact`, `accessProcess`, `legalBasis`, `riskOwner`, `qualityOwner` | Organisation and infrastructure context; legal, security and ethical compliance | Governance | Recommended fields in the profile/schema, not hard required for Govviz because primary publishers own those facts. |
+
+Govviz currently satisfies the file-format, machine-readable metadata,
+provenance, versioned-asset, static data product, version-control and build-gate
+parts of the GDS/DSIT and ODI guidance for its own downstream reference build.
+It does **not** claim to satisfy upstream policy-as-code access controls, named
+official data stewards, primary-publisher access processes, complete official
+cataloguing, a government knowledge graph, or a closed AI-data feedback loop.
+Those remain explicit gaps or recommended warning fields.
+
 ## Why this exists
 
 Aggregation prototypes (rightly) start with tractable sources. But "AI-ready" has
@@ -31,6 +69,13 @@ the GDS/DSIT four-pillar self-assessment (technical optimisation, metadata,
 governance, access); the probes here are the **externally-auditable** form of that
 self-assessment. The highest-value work is the **high-T, low-M** quadrant —
 trusted National Statistics still trapped in PDFs and transposed workbooks.
+
+## Non-goals
+
+The suite does not certify official statistics, replace producer methodology,
+centralise primary data, publish restricted microdata, or bypass disclosure
+control. It tests whether already-published public aggregates can be consumed
+through a thin, inspectable machine profile.
 
 ## The enforcement point
 
@@ -82,3 +127,7 @@ statistical platform or the NDL, the useful loop is: take a high-T/low-M case,
 publish a version that satisfies its `pass_criteria`, and the corresponding
 Govviz fetcher should collapse to "resolve id → GET tidy data." When that happens
 for a case, its `M` score has genuinely moved. Licence follows the repository.
+
+For a minimum viable producer route, see the
+[producer implementation guide](../producer-guide.md). For reported data-quality
+or agent-consumption failures, use the [feedback loop](../feedback-loop.md).

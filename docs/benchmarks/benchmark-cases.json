@@ -1,0 +1,150 @@
+{
+  "name": "Govviz AI-ready public data benchmark",
+  "version": "0.1",
+  "updated": "2026-07-02",
+  "summary": "Task-based benchmark for measuring whether a public performance series is directly usable by scripts and AI agents.",
+  "score": {
+    "0": "fails, unavailable, blocked, or human-only",
+    "1": "possible with bespoke scraping, manual lookup, or out-of-band semantics",
+    "2": "directly machine-readable, stable, documented, and semantically safe"
+  },
+  "tasks": [
+    {
+      "id": "stable-id",
+      "question": "Can a client resolve a stable identifier for the series?",
+      "evidence": "Permanent URL or id that is not a release-specific slug."
+    },
+    {
+      "id": "latest-value",
+      "question": "Can a client fetch the latest value directly?",
+      "evidence": "JSON, CSV, API response, or equivalent structured field."
+    },
+    {
+      "id": "full-series",
+      "question": "Can a client fetch the full time series directly?",
+      "evidence": "One observation per row or a documented equivalent."
+    },
+    {
+      "id": "unit",
+      "question": "Can a client identify unit and multiplier?",
+      "evidence": "Machine-readable unit metadata, including scale."
+    },
+    {
+      "id": "coverage",
+      "question": "Can a client identify geography or population coverage?",
+      "evidence": "ONS geography code, country code, or explicit coverage field."
+    },
+    {
+      "id": "licence",
+      "question": "Can a client determine reuse licence?",
+      "evidence": "Machine-readable licence URI or unambiguous page metadata."
+    },
+    {
+      "id": "freshness",
+      "question": "Can a client determine latest period, fetch date, and freshness status?",
+      "evidence": "Published release date, fetchedAt, latest period, or release calendar."
+    },
+    {
+      "id": "provenance",
+      "question": "Can a client trace provenance to primary producer and upstream file?",
+      "evidence": "Producer, source URL, methodology, derivation, and/or content hash."
+    },
+    {
+      "id": "scripted-access",
+      "question": "Can a low-volume scripted client fetch the data without a browser?",
+      "evidence": "HTTP 200 to curl/fetch with ordinary identifying headers."
+    },
+    {
+      "id": "formal-contract",
+      "question": "Is there a formal API, OpenAPI, DCAT, CSVW, SDMX, or MCP contract?",
+      "evidence": "Machine-readable contract linked from the data product."
+    },
+    {
+      "id": "value-guard",
+      "question": "Can a client reject a wrong-but-plausible value?",
+      "evidence": "Published valid range, code list, validation rule, or test case."
+    },
+    {
+      "id": "measure-disambiguation",
+      "question": "Can a client distinguish similar measures safely?",
+      "evidence": "Separate series ids and disambiguating descriptions."
+    }
+  ],
+  "targets": [
+    {
+      "id": "govviz",
+      "label": "Govviz reference data product",
+      "baseUrl": "https://egly443.github.io/Govviz/data",
+      "type": "downstream-reference-implementation"
+    },
+    {
+      "id": "govuk-publication",
+      "label": "GOV.UK publication or statistical data set page",
+      "type": "primary-publication-surface"
+    },
+    {
+      "id": "data-gov-uk",
+      "label": "data.gov.uk package/resource page",
+      "type": "catalogue"
+    },
+    {
+      "id": "ons-api",
+      "label": "ONS API or timeseries endpoint",
+      "type": "primary-statistical-api"
+    },
+    {
+      "id": "ndl-lite",
+      "label": "ODI NDL-lite style indexed catalogue",
+      "type": "prototype-catalogue"
+    }
+  ],
+  "cases": [
+    {
+      "id": "storm-overflow-spill-hours",
+      "seriesId": "defra-sewage-hours",
+      "policyArea": "environment",
+      "whyItMatters": "High-accountability environmental metric that is public but awkward upstream.",
+      "referenceRecord": "https://egly443.github.io/Govviz/data/series/defra-sewage-hours.json",
+      "comparisonTargets": ["govviz", "govuk-publication", "data-gov-uk"]
+    },
+    {
+      "id": "nhs-rtt-18-week",
+      "seriesId": "rtt-18-week",
+      "policyArea": "health",
+      "whyItMatters": "National waiting-time performance that agents should not have to reconstruct from provider workbooks.",
+      "referenceRecord": "https://egly443.github.io/Govviz/data/series/rtt-18-week.json",
+      "comparisonTargets": ["govviz", "govuk-publication", "data-gov-uk"]
+    },
+    {
+      "id": "temporary-accommodation",
+      "seriesId": "mhclg-temp-accommodation",
+      "policyArea": "housing",
+      "whyItMatters": "Quarterly homelessness measure with carry-forward workbook layout upstream.",
+      "referenceRecord": "https://egly443.github.io/Govviz/data/series/mhclg-temp-accommodation.json",
+      "comparisonTargets": ["govviz", "govuk-publication"]
+    },
+    {
+      "id": "house-price-to-earnings-median",
+      "seriesId": "mhclg-affordability",
+      "policyArea": "housing",
+      "whyItMatters": "Semantic-safety case: median and lower-quartile measures are both plausible but not interchangeable.",
+      "referenceRecord": "https://egly443.github.io/Govviz/data/series/mhclg-affordability.json",
+      "comparisonTargets": ["govviz", "ons-api", "govuk-publication"]
+    },
+    {
+      "id": "hmrc-call-wait",
+      "seriesId": "hmrc-call-wait",
+      "policyArea": "public-service-performance",
+      "whyItMatters": "Everyday service metric with source typing inconsistencies that can produce plausible wrong values.",
+      "referenceRecord": "https://egly443.github.io/Govviz/data/series/hmrc-call-wait.json",
+      "comparisonTargets": ["govviz", "govuk-publication"]
+    }
+  ],
+  "reporting": {
+    "plannedOutputs": [
+      "dist/data/benchmark-report.json",
+      "dist/data/benchmark-report.html"
+    ],
+    "minimumClaim": "Govviz should only claim to be better when it scores higher on the same tasks for the same cases, with failures and limitations published."
+  }
+}

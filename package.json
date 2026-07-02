@@ -5,8 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && node scripts/prerender-blog.mjs && node scripts/prerender-departments.mjs && node scripts/build-open-data.mjs && node scripts/check-open-data.mjs",
+    "build": "vite build && node scripts/prerender-blog.mjs && node scripts/prerender-static-routes.mjs && node scripts/prerender-departments.mjs && node scripts/build-open-data.mjs && node scripts/check-open-data.mjs",
     "fetch-data": "node scripts/build-data.mjs",
+    "test:mcp": "node scripts/test-mcp.mjs",
+    "check-policy-references": "node scripts/check-policy-references.mjs",
+    "conformance": "node scripts/run-conformance-suite.mjs --target=govviz",
+    "prerender-static-routes": "node scripts/prerender-static-routes.mjs",
+    "check-deployed-site": "node scripts/check-deployed-site.mjs",
     "preview": "vite preview",
     "typecheck": "tsc -b"
   },

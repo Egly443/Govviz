@@ -15,9 +15,15 @@ interface, keep the data.
 
 | Tool | Purpose |
 |---|---|
-| `list_series` | List every series (`id`, `title`, `periodicity`). |
+| `list_series` | Page through series (`id`, `title`, `department`, `unit`, `periodicity`) with optional `department`, `theme`, `cadence` and `q` filters. |
 | `get_series_metadata` | The full AI-ready record for an id: unit, coverage, periodicity, revision status, provenance, licence, and the **`validRange`** a consumer uses to reject a wrong-but-plausible value. |
 | `get_observations` | The tidy observations for an id: `{period,value,unit,unit_multiplier,status}`. Base-unit value = `value × 10^unit_multiplier`. |
+| `validate_value` | Check a proposed `{id,value,period,unit}` against published `validRange`, unit and periodicity metadata where available. |
+| `get_data_health` | Current catalogue health summary plus recent `health-history.json` snapshots: series count, observation coverage, validRange coverage, freshness buckets and per-build history. |
+
+Each tool advertises both `inputSchema` and `outputSchema` through
+`tools/list`, so MCP clients can validate calls and parse responses without
+depending on prose descriptions.
 
 ## Run
 
@@ -31,6 +37,18 @@ By default it reads `https://egly443.github.io/Govviz/data`. Point it elsewhere
 ```bash
 GOVVIZ_DATA_BASE=http://localhost:4173/Govviz/data node tools/mcp/govviz-mcp.mjs
 ```
+
+## Smoke test
+
+Build or otherwise provide `dist/data`, then run:
+
+```bash
+npm run test:mcp
+```
+
+The smoke test serves `dist/data` from a temporary localhost server, starts the
+MCP server over stdio, and exercises `initialize`, `tools/list`, `list_series`,
+`get_series_metadata`, `get_observations`, and `validate_value`.
 
 ## Wire into an MCP client
 
@@ -47,9 +65,10 @@ Claude Desktop (`claude_desktop_config.json`):
 }
 ```
 
-Then ask, e.g., *"Using govviz, what were England's storm-overflow spill hours,
-and is the latest value inside its published validRange?"* — the agent resolves
-the series, reads the tidy data, and honours the guard, with no scraping.
+Then ask, e.g., *"Using govviz, find the Defra storm-overflow series and check
+whether 3.6 million hours for 2023 has the right unit and cadence and falls
+inside its published validRange."* — the agent resolves the series, reads the
+metadata/tidy data, and honours the guard, with no scraping.
 
 > Reference interface: it runs locally against the live published data; Govviz
 > is a static site and does not host the server itself. Hosting is an

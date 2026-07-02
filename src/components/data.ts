@@ -66,6 +66,12 @@ export type TrendSeries = {
   definition?: string;
   /** Measurement basis, e.g. "real terms, 2023-24 prices", "seasonally adjusted", "nominal", "cash terms". */
   basis?: string;
+  /** Conservative policy/topic tags used by the open-data index and agent search. */
+  semanticTags?: string[];
+  /** Stable subject identifiers such as GOV.UK organisations, ONS geography URIs, or controlled vocabulary concepts. */
+  subjectUris?: string[];
+  /** Optional source-level quality evidence aligned to the Government Data Quality Framework. */
+  qualityDimensions?: Partial<Record<"accuracy" | "completeness" | "uniqueness" | "consistency" | "timeliness" | "validity", string>>;
   /**
    * Which side of government the indicator measures (the "measurement gap"):
    * - "experience" = consumer/citizen-side outcome (could I get a GP, afford

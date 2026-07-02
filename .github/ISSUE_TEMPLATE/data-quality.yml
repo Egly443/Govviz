@@ -1,0 +1,86 @@
+name: Data quality or agent consumption issue
+description: Report a wrong value, stale source, unclear definition, bad unit, bad geography, missing series, or machine-consumption failure.
+title: "[data-quality]: "
+labels:
+  - data-quality
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for data and metadata problems. Include exact URLs so the issue can be reproduced by a maintainer or agent.
+  - type: dropdown
+    id: failure_type
+    attributes:
+      label: Failure type
+      options:
+        - Wrong value
+        - Stale source
+        - Unclear definition
+        - Missing series
+        - Bad unit
+        - Bad geography
+        - Agent-consumption failure
+        - Other data-quality issue
+    validations:
+      required: true
+  - type: input
+    id: series_id
+    attributes:
+      label: Series id
+      description: The Govviz series id, if one exists.
+      placeholder: rtt-waiting-list
+    validations:
+      required: false
+  - type: input
+    id: record_url
+    attributes:
+      label: Govviz record URL
+      placeholder: https://egly443.github.io/Govviz/data/series/example.json
+    validations:
+      required: false
+  - type: input
+    id: source_url
+    attributes:
+      label: Official source URL
+      placeholder: https://www.gov.uk/...
+    validations:
+      required: false
+  - type: input
+    id: latest_fetched
+    attributes:
+      label: Latest fetched date shown by Govviz
+      placeholder: "2026-07-02T10:30:00Z"
+    validations:
+      required: false
+  - type: input
+    id: observed_value
+    attributes:
+      label: Observed Govviz value
+      placeholder: "7423000"
+    validations:
+      required: false
+  - type: input
+    id: expected_value
+    attributes:
+      label: Expected official value
+      placeholder: "7391000"
+    validations:
+      required: false
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence and reproduction steps
+      description: Include CSV row, source table reference, agent/tool error, or script output.
+      placeholder: |
+        1. Fetch ...
+        2. Compare with ...
+        3. Expected ...
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+      description: Explain how this affects interpretation, automation, or public accountability.
+    validations:
+      required: false

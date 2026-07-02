@@ -1,0 +1,91 @@
+{
+  "$schema": "https://egly443.github.io/Govviz/data/access-policy.schema.json",
+  "id": "https://egly443.github.io/Govviz/data/access-policy.json",
+  "title": "Govviz open public aggregate access policy",
+  "version": "2026-07-02",
+  "defaultClass": "open-public-aggregate",
+  "classes": {
+    "open-public-aggregate": {
+      "label": "Open public aggregate",
+      "description": "Published aggregate statistics that contain no personal data and can be downloaded by people, scripts, search crawlers, and agents without registration.",
+      "authentication": "none",
+      "apiKeyRequired": false,
+      "personalData": false,
+      "restrictedMicrodata": false,
+      "licenseInheritance": [
+        "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+        "https://creativecommons.org/licenses/by/4.0/"
+      ],
+      "cors": {
+        "allowed": true,
+        "expectedHeader": "Access-Control-Allow-Origin: *"
+      },
+      "automatedUse": {
+        "allowed": true,
+        "expectations": [
+          "Cache stable URLs where practical.",
+          "Respect HTTP caching and retry headers.",
+          "Identify high-volume crawlers with a user agent or contact route.",
+          "Do not imply Govviz or the primary producer endorses downstream analysis."
+        ]
+      },
+      "redistribution": "Allowed subject to upstream licence terms and attribution.",
+      "contact": "https://github.com/egly443/Govviz/issues/new?template=data-quality.yml"
+    },
+    "open-registration-required": {
+      "label": "Open registration required",
+      "description": "Open aggregate data that requires a no-fee account, API key, token, or click-through before automated access.",
+      "authentication": "registration-or-token",
+      "apiKeyRequired": true,
+      "personalData": false,
+      "automatedUse": {
+        "allowed": "subject-to-source-terms",
+        "expectations": [
+          "Document registration steps and rate limits.",
+          "Provide a contact route for bulk or agent access."
+        ]
+      }
+    },
+    "restricted-sensitive": {
+      "label": "Restricted sensitive",
+      "description": "Sensitive, personal, confidential, or disclosive data that is not suitable for open publication.",
+      "authentication": "controlled-access",
+      "apiKeyRequired": true,
+      "personalData": "possible",
+      "restrictedMicrodata": true,
+      "automatedUse": {
+        "allowed": false,
+        "expectations": [
+          "Use existing legal gateways, disclosure control, accreditation, and secure research access routes."
+        ]
+      }
+    },
+    "not-published-by-source": {
+      "label": "Not published by source",
+      "description": "A value or series Govviz cannot republish because no official source publishes the required aggregate in a reusable form.",
+      "authentication": "not-applicable",
+      "apiKeyRequired": false,
+      "personalData": "unknown",
+      "automatedUse": {
+        "allowed": false,
+        "expectations": [
+          "Do not invent or infer a public statistic where the producer has not published one."
+        ]
+      }
+    }
+  },
+  "govvizPublication": {
+    "appliesTo": [
+      "https://egly443.github.io/Govviz/data/catalog.json",
+      "https://egly443.github.io/Govviz/data/series/index.json",
+      "https://egly443.github.io/Govviz/data/series/{series-id}.json",
+      "https://egly443.github.io/Govviz/data/series/{series-id}/data.csv"
+    ],
+    "accessClass": "open-public-aggregate",
+    "notes": [
+      "Govviz republishes downstream compiled public aggregates only.",
+      "Govviz does not publish restricted microdata, personal data, or unpublished official statistics.",
+      "Each record should cite this policy URI when profile generation supports per-record access policy metadata."
+    ]
+  }
+}
