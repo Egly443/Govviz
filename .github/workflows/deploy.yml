@@ -101,6 +101,8 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          timeout: 900000
 
       - name: Setup Node
         uses: actions/setup-node@v4
