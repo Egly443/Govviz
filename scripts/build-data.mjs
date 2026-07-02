@@ -1377,9 +1377,23 @@ async function gigabitBroadband() {
       const fileUrl = await ofcomFixedCoverageUrl(page);
       console.log(`  gigabit-broadband[${year}] file: ${fileUrl}`);
       let rows;
-      if (/\.zip$/i.test(fileUrl)) {
-        const entries = (await unzipUrl(fileUrl)).filter((e) => /\.csv$/i.test(e.name));
+      if (/\.zip(?:\?|$)/i.test(fileUrl)) {
+        const entries = (await unzipUrl(fileUrl))
+          .filter((e) => /\.csv$/i.test(e.name))
+          .sort((a, b) => {
+            const score = (e) => {
+              const n = e.name.toLowerCase();
+              let s = 0;
+              if (/uk[_-]and[_-]nations|uk[_-]nations|nations/.test(n)) s += 10;
+              if (/coverage/.test(n)) s += 4;
+              if (/fixed/.test(n)) s += 3;
+              if (/laua|postcode|output[_-]?area|pcon|parl/.test(n)) s -= 8;
+              return s;
+            };
+            return score(b) - score(a);
+          });
         if (!entries.length) { console.log(`  gigabit-broadband[${year}]: zip had no CSV entries`); continue; }
+        console.log(`  gigabit-broadband[${year}] zip csv: ${entries.slice(0, 4).map((e) => e.name).join(" | ")}`);
         rows = entries[0].buf.toString("utf8").trim().split(/\r?\n/).map(parseCsvLine);
       } else {
         const res = await fetch(fileUrl, fetchOpts({ accept: "text/csv,*/*" }));
@@ -1389,14 +1403,37 @@ async function gigabitBroadband() {
       if (rows.length < 2) { console.log(`  gigabit-broadband[${year}]: empty CSV`); continue; }
       const header = rows[0].map((h) => h.toLowerCase().trim());
       console.log(`  gigabit-broadband[${year}] header: [${header.join("|")}]`);
-      const giga = header.findIndex((h) => /gigabit/.test(h) && (/%|percent|premises/.test(h)));
-      if (giga < 0) { console.log(`  gigabit-broadband[${year}]: no gigabit % column`); continue; }
       const geoCol = header.findIndex((h) => /nation|region|geograph|area|country/.test(h));
-      let row = geoCol >= 0 ? rows.slice(1).find((r) => /^uk$|united kingdom/i.test(String(r[geoCol] ?? "").trim())) : null;
-      if (!row) row = rows[1];
-      const pct = num(row[giga]);
-      if (pct == null || pct < 0 || pct > 100) { console.log(`  gigabit-broadband[${year}]: unusable value "${row[giga]}" in col ${giga}`); continue; }
-      console.log(`  gigabit-broadband[${year}]: ${pct}% (col "${header[giga]}")`);
+      const locCol = header.findIndex((h) => /^location$/.test(h));
+      const typeCol = header.findIndex((h) => /premise type/.test(h));
+      const ruralityCol = header.findIndex((h) => /rurality/.test(h));
+      const speedCol = header.findIndex((h) => /^speed$/.test(h));
+      const pctCol = header.findIndex((h) => /% premises|percent.*premises/.test(h));
+      let pct = null;
+      let pctLabel = null;
+      if (speedCol >= 0 && pctCol >= 0) {
+        const row = rows.slice(1).find((r) =>
+          /^uk$|united kingdom/i.test(String(r[locCol >= 0 ? locCol : geoCol] ?? "").trim()) &&
+          (typeCol < 0 || /^all$/i.test(String(r[typeCol] ?? "").trim())) &&
+          (ruralityCol < 0 || /^total$/i.test(String(r[ruralityCol] ?? "").trim())) &&
+          /gigabit/i.test(String(r[speedCol] ?? "")),
+        );
+        pct = row ? num(row[pctCol]) : null;
+        if (pct != null && pct > 0 && pct <= 1.5) pct *= 100;
+        pctLabel = "% premises";
+        if (row) console.log(`  gigabit-broadband[${year}]: long row speed="${row[speedCol]}" value="${row[pctCol]}"`);
+      }
+      if (pct == null) {
+        const giga = header.findIndex((h) => /gigabit/.test(h) && (/%|percent|premises/.test(h)));
+        if (giga < 0) { console.log(`  gigabit-broadband[${year}]: no gigabit % column`); continue; }
+        let row = geoCol >= 0 ? rows.slice(1).find((r) => /^uk$|united kingdom/i.test(String(r[geoCol] ?? "").trim())) : null;
+        if (!row) { console.log(`  gigabit-broadband[${year}]: no UK aggregate row in wide CSV`); continue; }
+        pct = num(row[giga]);
+        if (pct != null && pct > 0 && pct <= 1.5) pct *= 100;
+        pctLabel = header[giga];
+      }
+      if (pct == null || pct < 0 || pct > 100) { console.log(`  gigabit-broadband[${year}]: unusable gigabit value`); continue; }
+      console.log(`  gigabit-broadband[${year}]: ${pct}% (${pctLabel})`);
       points.push({ date: `${year}-07-01`, value: pct });
       setSrc(fileUrl);
     } catch (e) { console.log(`  gigabit-broadband[${year}] err ${e.message}`); }
@@ -4584,10 +4621,21 @@ const SOURCES = [
   },
 ];
 
+const onlyArg = process.argv.find((a) => a.startsWith("--only="));
+const only = onlyArg
+  ? new Set(onlyArg.slice("--only=".length).split(",").map((s) => s.trim()).filter(Boolean))
+  : null;
+const selectedSources = only ? SOURCES.filter((s) => only.has(s.id)) : SOURCES;
+if (only) {
+  const selected = new Set(selectedSources.map((s) => s.id));
+  for (const id of only) if (!selected.has(id)) console.warn(`WARN --only ignored unknown source id: ${id}`);
+  console.log(`fetch-data: --only ${selectedSources.length}/${SOURCES.length} source entries`);
+}
+
 const out = {};
 let ok = 0;
 let fail = 0;
-for (const s of SOURCES) {
+for (const s of selectedSources) {
   const tag = `${s.id}${s.line ? ":" + s.line : ""}`;
   try {
     _src = null;
