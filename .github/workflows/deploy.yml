@@ -41,12 +41,30 @@ jobs:
       - name: Install spreadsheet parser
         run: npm install --no-save xlsx fflate
 
+      - name: Check policy references
+        run: npm run check-policy-references
+
       # Fetch official statistics and bake them into src/generated/seriesData.ts.
       # Best-effort: any source that fails is skipped (bundled illustrative data
       # is used for it). The script always exits 0 by design, so no
       # continue-on-error is needed here.
       - name: Fetch live data
-        run: node scripts/build-data.mjs
+        run: node scripts/build-data.mjs 2>&1 | tee fetch.log
+
+      - name: Data fetch reward summary
+        if: always()
+        run: node tools/loop/ci-reward.mjs --summary --log=fetch.log >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Fixture regression check
+        if: always()
+        run: node tools/loop/ci-reward.mjs --check-fixtures --summary --log=fetch.log >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Seed health history
+        run: |
+          mkdir -p .cache/govviz
+          curl --fail --location --silent --show-error \
+            https://egly443.github.io/Govviz/data/health-history.json \
+            --output .cache/govviz/health-history.json || true
 
       - name: Build
         run: npm run build
@@ -55,6 +73,7 @@ jobs:
           # VITE_GOATCOUNTER to e.g. https://YOURCODE.goatcounter.com/count.
           # Unset = no tracker is shipped.
           VITE_GOATCOUNTER: ${{ vars.VITE_GOATCOUNTER }}
+          GOVVIZ_HEALTH_HISTORY_IN: .cache/govviz/health-history.json
 
       # SPA deep-link fallback is provided by public/404.html (Vite copies it
       # into dist/), which redirects unknown paths back into the app.
@@ -76,6 +95,17 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Check deployed site
+        run: node scripts/check-deployed-site.mjs --base="${{ steps.deployment.outputs.page_url }}" --retries=8 --delay-ms=5000

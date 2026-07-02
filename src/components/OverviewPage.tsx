@@ -9,6 +9,7 @@ import { TrendPanel } from "./TrendPanel";
 import { DataHealthStrip } from "./DataHealthStrip";
 import { ragColor, ragUncertainColor, type IndicatorCell } from "./overview";
 import { SPEND_BASIS } from "./departments";
+import { SourceFeedbackLink } from "./SourceFeedbackLink";
 
 export function OverviewPage() {
   const [selected, setSelected] = useState<IndicatorCell | null>(null);
@@ -79,21 +80,57 @@ export function OverviewPage() {
 
       {selected && (
         <Modal onClose={() => setSelected(null)}>
-          <div className="mb-2 flex items-center gap-1.5 pr-8 text-xs text-muted-foreground">
-            <Link
-              to="/$dept"
-              params={{ dept: selected.dept.code }}
-              className="hover:text-foreground"
-            >
-              {selected.dept.name}
-            </Link>
-            <span className="opacity-50">/</span>
-            <span className="text-foreground">{selected.series.title}</span>
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2 pr-8 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1.5">
+              <Link
+                to="/$dept"
+                params={{ dept: selected.dept.code }}
+                className="hover:text-foreground"
+              >
+                {selected.dept.name}
+              </Link>
+              <span className="opacity-50">/</span>
+              <span className="text-foreground">{selected.series.title}</span>
+            </div>
+            <SeriesProofLinks cell={selected} />
           </div>
           <TrendPanel series={selected.series} height={340} />
         </Modal>
       )}
     </div>
+  );
+}
+
+function SeriesProofLinks({ cell }: { cell: IndicatorCell }) {
+  const dataBase = `${import.meta.env.BASE_URL}data/series/${cell.series.id}`;
+  const links = [
+    ["JSON", `${dataBase}.json`],
+    ["CSV", `${dataBase}/data.csv`],
+    ["CSVW", `${dataBase}/data.csv-metadata.json`],
+    ["Source", cell.series.sourceUrl],
+  ] as const;
+
+  return (
+    <span
+      className="flex flex-wrap items-center gap-2 text-[11px]"
+      title="Machine-readable artefacts and upstream source for this indicator"
+    >
+      {links.map(([label, href]) => (
+        <a
+          key={label}
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline decoration-dotted underline-offset-2 hover:text-foreground"
+        >
+          {label}
+        </a>
+      ))}
+      <SourceFeedbackLink
+        series={cell.series}
+        observedValue={cell.real ? cell.series.format(cell.current) : undefined}
+      />
+    </span>
   );
 }
 

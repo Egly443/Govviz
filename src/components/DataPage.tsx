@@ -4,8 +4,10 @@ import { TopNav } from "./TopNav";
 
 const BASE = import.meta.env.BASE_URL; // e.g. "/Govviz/"
 const DATA = `${BASE}data`;
+const REPO_DOCS_TREE = "https://github.com/Egly443/Govviz/tree/main/docs";
+const REPO_DOCS_BLOB = "https://github.com/Egly443/Govviz/blob/main/docs";
 
-type IndexEntry = { id: string; title: string };
+type IndexEntry = { id: string; title: string; tags?: string[] };
 
 /**
  * In-app front door for the AI-ready open-data product. The canonical artifact
@@ -27,7 +29,9 @@ export function DataPage() {
   }, []);
 
   const filtered = entries?.filter((e) =>
-    `${e.title} ${e.id}`.toLowerCase().includes(q.trim().toLowerCase()),
+    `${e.title} ${e.id} ${(e.tags ?? []).join(" ")}`
+      .toLowerCase()
+      .includes(q.trim().toLowerCase()),
   );
 
   return (
@@ -56,7 +60,10 @@ export function DataPage() {
         <div className="mt-5 flex flex-wrap gap-2 text-xs">
           {[
             ["Catalogue (DCAT)", `${DATA}/catalog.json`],
+            ["Conformance report", `${DATA}/conformance-report.html`],
+            ["OpenAPI", `${DATA}/openapi.json`],
             ["Series profile", `${DATA}/profile.json`],
+            ["Health history", `${DATA}/health-history.json`],
             ["Suppression scheme", `${DATA}/suppression/v1.json`],
             ["Agent interface (MCP)", `${DATA}/mcp.json`],
             ["Full portal", `${DATA}/`],
@@ -72,6 +79,44 @@ export function DataPage() {
             </a>
           ))}
         </div>
+
+        <section className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <ProofLink
+            title="Build conformance"
+            href={`${DATA}/conformance-report.html`}
+            body="Generated pass/fail report for the published profile records, tidy CSV files, valid ranges and recommended governance warnings."
+          />
+          <ProofLink
+            title="API contract"
+            href={`${DATA}/openapi.json`}
+            body="Static OpenAPI contract for catalogue, series metadata, CSV and CSVW endpoints."
+          />
+          <ProofLink
+            title="Health history"
+            href={`${DATA}/health-history.json`}
+            body="Rolling build-time snapshots of observation coverage, valid-range coverage, freshness status, source hashes and per-series warnings."
+          />
+          <ProofLink
+            title="Benchmark suite"
+            href={`${REPO_DOCS_TREE}/benchmarks`}
+            body="Task-based benchmark for comparing Govviz against other public-data implementations."
+          />
+          <ProofLink
+            title="Source stewards"
+            href={`${REPO_DOCS_BLOB}/source-stewards.json`}
+            body="Producer contact and access-route mapping for common source families."
+          />
+          <ProofLink
+            title="Feedback loop"
+            href={`${REPO_DOCS_BLOB}/feedback-loop.md`}
+            body="Structured route for wrong values, stale sources, bad units, geography errors and agent-consumption failures."
+          />
+          <ProofLink
+            title="Producer guide"
+            href={`${REPO_DOCS_BLOB}/producer-guide.md`}
+            body="Minimum viable implementation guide for a producer making one statistical series AI-ready."
+          />
+        </section>
 
         <pre className="mt-5 overflow-x-auto rounded-lg border border-border bg-card p-4 text-[12px] leading-relaxed text-muted-foreground">
 {`curl -s ${DATA}/series/defra-sewage-hours.json | jq '.title,.unit,.validRange'
@@ -122,6 +167,14 @@ curl -s ${DATA}/series/defra-sewage-hours/data.csv`}
                     <a className="text-primary hover:underline" href={`${DATA}/series/${e.id}.json`} target="_blank" rel="noopener noreferrer">JSON</a>
                     <a className="text-primary hover:underline" href={`${DATA}/series/${e.id}/data.csv`} target="_blank" rel="noopener noreferrer">CSV</a>
                     <a className="text-primary hover:underline" href={`${DATA}/series/${e.id}/data.csv-metadata.json`} target="_blank" rel="noopener noreferrer">CSVW</a>
+                    <a
+                      className="text-primary hover:underline"
+                      href={`https://github.com/Egly443/Govviz/issues/new?template=data-quality.yml&title=${encodeURIComponent(`[data-quality]: ${e.id}`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Issue
+                    </a>
                   </span>
                 </li>
               ))}
@@ -132,5 +185,29 @@ curl -s ${DATA}/series/defra-sewage-hours/data.csv`}
         <Footer />
       </main>
     </div>
+  );
+}
+
+function ProofLink({
+  title,
+  body,
+  href,
+}: {
+  title: string;
+  body: string;
+  href: string;
+}) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="rounded-lg border border-border bg-card p-4 text-sm transition-colors hover:border-primary/40"
+    >
+      <span className="font-medium text-foreground">{title}</span>
+      <span className="mt-1 block text-[12px] leading-snug text-muted-foreground">
+        {body}
+      </span>
+    </a>
   );
 }
