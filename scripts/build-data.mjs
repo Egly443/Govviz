@@ -3444,21 +3444,28 @@ const SOURCES = [
     min: 30,
     max: 100,
     get: async () => {
-      // The GP Patient Survey is published as a gov.uk statistics release each year
-      // (gp-patient-survey-results-{year}); the data files are reachable there even
-      // though gp-patient.co.uk is JS-rendered. Probe recent releases' attachments.
-      const slugs = ["gp-patient-survey-results-2025", "gp-patient-survey-results-2024", "gp-patient-survey-2023-results", "gp-patient-survey-2022-results"];
-      for (const slug of slugs) {
-        try {
-          const atts = await govukAttachments(`government/statistics/${slug}`);
-          console.log(`  gp-access ${slug} atts(${atts.length}): ${atts.map((a) => `${a.title}|${(a.url || "").split("/").pop()}`).slice(0, 10).join(" ; ")}`);
-        } catch (e) { console.log(`  gp-access ${slug} err ${e.message}`); }
+      // GP Patient Survey national trends. Q16 captures whether contacting the
+      // GP practice worked for the patient; use the combined "Good" row.
+      const url = "https://gp-patient.co.uk/FileDownload/Download?fileRedirect=2025%2Fsurvey-results%2Fnational-results%2Fnational-results-and-trends%2FGPPS_2025_National_results_and_trends_PUBLIC.xlsx";
+      const book = await xlsxBook(url);
+      const rows = await sheetRows(book, "National results and trends");
+      const qIdx = rows.findIndex((r) => /Q16\.\s+Overall, how would you describe your experience of contacting your GP practice/i.test(String(r[0] ?? "")));
+      if (qIdx < 0) throw new Error("gp-access: Q16 block not found");
+      const headerIdx = rows.findIndex((r, i) => i > qIdx && i < qIdx + 8 && r.some((c) => /^20\d{2}$/.test(String(c ?? "").trim())));
+      if (headerIdx < 0) throw new Error("gp-access: year header not found");
+      const good = rows.slice(headerIdx + 1, headerIdx + 10).find((r) => /^good$/i.test(String(r[0] ?? "").trim()));
+      if (!good) throw new Error("gp-access: Good row not found");
+      const points = [];
+      for (let c = 1; c < rows[headerIdx].length; c++) {
+        const year = Number(String(rows[headerIdx][c] ?? "").trim());
+        if (!Number.isInteger(year) || year < 2020 || year > 2035) continue;
+        const raw = Number(good[c]);
+        if (!Number.isFinite(raw)) continue;
+        const value = raw <= 1 ? raw * 100 : raw;
+        if (value >= 30 && value <= 100) points.push({ date: `${year}-12-31`, value: +value.toFixed(1) });
       }
-      try {
-        const s = await fetch("https://www.gov.uk/api/search.json?q=GP+Patient+Survey+results&order=-public_timestamp&count=12", fetchOpts({ accept: "application/json" }));
-        if (s.ok) { const j = await s.json(); console.log(`  gp-access gov.uk search: ${(j.results || []).map((r) => r.link).slice(0, 10).join(" | ")}`); }
-      } catch (e) { console.log(`  gp-access search err ${e.message}`); }
-      throw new Error("gp-access: probing gov.uk GP Patient Survey releases");
+      if (points.length < 2) throw new Error(`gp-access: only ${points.length} points`);
+      return points.sort((a, b) => (a.date < b.date ? -1 : 1));
     },
   },
 
@@ -4348,6 +4355,13 @@ const SOURCES = [
     min: 0,
     max: 100,
     get: () => gmppVariance(/^DFT/, "departmentfortransport"),
+  },
+  // IPA/NISTA GMPP: DHSC in-year delivery confidence % at risk.
+  {
+    id: "capital-overrun",
+    min: 0,
+    max: 100,
+    get: () => gmppVariance(/^DHSC|^DH$/, "departmentofhealthandsocialcare"),
   },
 
   // DHSC — NHS HCHS staff 12-month rolling leaver rate (%), England aggregate.
