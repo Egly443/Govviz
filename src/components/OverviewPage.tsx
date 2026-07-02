@@ -1,18 +1,18 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Activity, Box, Grid2X2, Orbit } from "lucide-react";
+import { Grid2X2, Radar } from "lucide-react";
 import { Footer } from "./Footer";
 import { TopNav } from "./TopNav";
 import { DepartmentTabs } from "./DepartmentTabs";
 import { GovTreemap } from "./GovTreemap";
-import { GovConstellation, GovHorizon, GovPulseField } from "./GovAltVisualizations";
+import { GovSpatialCommand } from "./GovAltVisualizations";
 import { Modal } from "./Modal";
 import { TrendPanel } from "./TrendPanel";
 import { DataHealthStrip } from "./DataHealthStrip";
 import { ragColor, ragUncertainColor, type IndicatorCell } from "./overview";
 import { SPEND_BASIS } from "./departments";
 
-type OverviewViz = "treemap" | "constellation" | "horizon" | "pulse";
+type OverviewViz = "treemap" | "spatial";
 
 const VIEWS: {
   id: OverviewViz;
@@ -28,25 +28,11 @@ const VIEWS: {
       "Budget-weighted departmental blocks; colour shows performance against target, and glyphs show recent trend.",
   },
   {
-    id: "constellation",
-    label: "Constellation",
-    icon: Orbit,
+    id: "spatial",
+    label: "Spatial",
+    icon: Radar,
     description:
-      "Departments become spend-weighted hubs, with live indicators orbiting them as performance signals.",
-  },
-  {
-    id: "horizon",
-    label: "Horizon",
-    icon: Activity,
-    description:
-      "Every indicator is plotted from pressure to performing, making weak spots and outliers visible across departments.",
-  },
-  {
-    id: "pulse",
-    label: "Pulse",
-    icon: Box,
-    description:
-      "A kinetic depth field where live indicators rise, pulse, and sweep by performance, spend, and momentum.",
+      "A projected command surface for rapidly moving between departments and opening lead charts.",
   },
 ];
 
@@ -80,9 +66,9 @@ export function OverviewPage() {
               Whole of government
             </h1>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-              Every tracked indicator at a glance. Switch between the original
-              budget treemap and three experimental views; colour shows
-              performance against target, and each mark opens the full chart.
+              Every tracked indicator at a glance. Keep the original budget
+              treemap or switch into a projected command surface for moving
+              quickly between departments and charts.
             </p>
           </div>
           <Legend />
@@ -127,9 +113,7 @@ export function OverviewPage() {
 
         <section className="mt-8 rounded-xl border border-border bg-card/40 p-2 sm:p-3">
           {viz === "treemap" && <GovTreemap onSelect={setSelected} />}
-          {viz === "constellation" && <GovConstellation onSelect={setSelected} />}
-          {viz === "horizon" && <GovHorizon onSelect={setSelected} />}
-          {viz === "pulse" && <GovPulseField onSelect={setSelected} />}
+          {viz === "spatial" && <GovSpatialCommand onSelect={setSelected} />}
         </section>
 
         <p className="mt-3 text-[11px] text-muted-foreground">
