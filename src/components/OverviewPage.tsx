@@ -1,17 +1,59 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
+import { Activity, Box, Grid2X2, Orbit } from "lucide-react";
 import { Footer } from "./Footer";
 import { TopNav } from "./TopNav";
 import { DepartmentTabs } from "./DepartmentTabs";
 import { GovTreemap } from "./GovTreemap";
+import { GovConstellation, GovHorizon, GovPulseField } from "./GovAltVisualizations";
 import { Modal } from "./Modal";
 import { TrendPanel } from "./TrendPanel";
 import { DataHealthStrip } from "./DataHealthStrip";
 import { ragColor, ragUncertainColor, type IndicatorCell } from "./overview";
 import { SPEND_BASIS } from "./departments";
 
+type OverviewViz = "treemap" | "constellation" | "horizon" | "pulse";
+
+const VIEWS: {
+  id: OverviewViz;
+  label: string;
+  description: string;
+  icon: typeof Grid2X2;
+}[] = [
+  {
+    id: "treemap",
+    label: "Treemap",
+    icon: Grid2X2,
+    description:
+      "Budget-weighted departmental blocks; colour shows performance against target, and glyphs show recent trend.",
+  },
+  {
+    id: "constellation",
+    label: "Constellation",
+    icon: Orbit,
+    description:
+      "Departments become spend-weighted hubs, with live indicators orbiting them as performance signals.",
+  },
+  {
+    id: "horizon",
+    label: "Horizon",
+    icon: Activity,
+    description:
+      "Every indicator is plotted from pressure to performing, making weak spots and outliers visible across departments.",
+  },
+  {
+    id: "pulse",
+    label: "Pulse",
+    icon: Box,
+    description:
+      "A kinetic depth field where live indicators rise, pulse, and sweep by performance, spend, and momentum.",
+  },
+];
+
 export function OverviewPage() {
   const [selected, setSelected] = useState<IndicatorCell | null>(null);
+  const [viz, setViz] = useState<OverviewViz>("treemap");
+  const activeView = VIEWS.find((view) => view.id === viz) ?? VIEWS[0];
 
   return (
     <div className="relative min-h-screen bg-background text-foreground">
@@ -38,10 +80,9 @@ export function OverviewPage() {
               Whole of government
             </h1>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-              Every tracked indicator at a glance. Each department&rsquo;s block
-              area is proportional to its budget; colour shows performance
-              against target, and a glyph shows the recent trend. Click any tile
-              to open its full chart.
+              Every tracked indicator at a glance. Switch between the original
+              budget treemap and three experimental views; colour shows
+              performance against target, and each mark opens the full chart.
             </p>
           </div>
           <Legend />
@@ -49,8 +90,46 @@ export function OverviewPage() {
 
         <DataHealthStrip />
 
+        <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold">{activeView.label}</h2>
+            <p className="mt-1 max-w-3xl text-xs text-muted-foreground">
+              {activeView.description}
+            </p>
+          </div>
+          <div
+            className="flex flex-wrap gap-1 rounded-lg border border-border bg-card/55 p-1"
+            aria-label="Choose overview visualisation"
+          >
+            {VIEWS.map((view) => {
+              const Icon = view.icon;
+              const active = view.id === viz;
+              return (
+                <button
+                  key={view.id}
+                  type="button"
+                  onClick={() => setViz(view.id)}
+                  title={view.description}
+                  className={`inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition ${
+                    active
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-surface-elevated hover:text-foreground"
+                  }`}
+                  aria-pressed={active}
+                >
+                  <Icon className="h-3.5 w-3.5" aria-hidden />
+                  {view.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         <section className="mt-8 rounded-xl border border-border bg-card/40 p-2 sm:p-3">
-          <GovTreemap onSelect={setSelected} />
+          {viz === "treemap" && <GovTreemap onSelect={setSelected} />}
+          {viz === "constellation" && <GovConstellation onSelect={setSelected} />}
+          {viz === "horizon" && <GovHorizon onSelect={setSelected} />}
+          {viz === "pulse" && <GovPulseField onSelect={setSelected} />}
         </section>
 
         <p className="mt-3 text-[11px] text-muted-foreground">
