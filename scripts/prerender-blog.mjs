@@ -203,7 +203,7 @@ const llmstxt = `# Govviz — UK government performance data, made AI-readable
 > by the AI agents increasingly acting on citizens' behalf.
 
 ## Essay (full text, Markdown)
-- [Agentic Open Data](${SITE}/blog.md): why AI agents can't reliably read UK government open data today, and a costed, standards-based plan (stable IDs, tidy data / CSVW / SDMX, in-band semantics, open access, MCP) to fix it.
+- [Agentic Open Data](${SITE}/blog.md): why AI agents can't reliably read UK government open data today, and a costed, standards-based plan (stable IDs, tidy data / CSVW / SDMX, in-band semantics, open access, conformance tests, optional agent adapters) to fix it.
 
 ## Specifications
 - [AI-ready series profile](https://github.com/Egly443/Govviz/blob/main/docs/conformance/ai-ready-series-profile.md): a thin, normative profile for publishing one statistical series so an agent can consume it.
