@@ -2,8 +2,21 @@ import { SERIES_DATA } from "../generated/seriesData";
 
 // `lo`/`hi` carry a published uncertainty interval (e.g. a survey's 95%
 // confidence interval) around `value`, when the source provides one.
-export type Point = { date: string; value: number; lo?: number; hi?: number };
-export type Annotation = { date: string; label: string };
+// `status` carries the official revision status of the observation when the
+// source distinguishes it: a `provisional` figure is expected to be revised in
+// a later edition, so the most recent points of many series are not yet final.
+export type RevisionStatus = "provisional" | "revised" | "final";
+export type Point = {
+  date: string;
+  value: number;
+  lo?: number;
+  hi?: number;
+  status?: RevisionStatus;
+};
+// `break: true` marks a structural break (e.g. Covid, a methodology change) at
+// which a control chart's process limits should be re-baselined — the series
+// before and after is a different process, so limits must not be pooled across it.
+export type Annotation = { date: string; label: string; break?: boolean };
 
 export type SeriesUnit =
   | "people"
@@ -247,7 +260,7 @@ export const waitingList: TrendSeries = {
   points: realPoints("waiting-list"),
   annotations: [
     { date: "2010-05-01", label: "Austerity" },
-    { date: "2020-03-01", label: "Covid-19" },
+    { date: "2020-03-01", label: "Covid-19", break: true },
     { date: "2023-03-01", label: "Industrial action" },
   ],
 };
@@ -275,7 +288,7 @@ export const rtt18Week: TrendSeries = {
   points: realPoints("rtt-18-week"),
   annotations: [
     { date: "2016-01-01", label: "Standard last met" },
-    { date: "2020-03-01", label: "Covid-19" },
+    { date: "2020-03-01", label: "Covid-19", break: true },
   ],
 };
 
@@ -297,7 +310,7 @@ export const dischargeDelays: TrendSeries = {
   points: realPoints("discharge-delays"),
   annotations: [
     { date: "2017-03-01", label: "Social-care funding crisis" },
-    { date: "2020-03-01", label: "Covid-19" },
+    { date: "2020-03-01", label: "Covid-19", break: true },
     { date: "2022-09-01", label: "Discharge fund" },
   ],
 };
@@ -322,7 +335,7 @@ export const agencySpend: TrendSeries = {
   points: realPoints("agency-spend"),
   annotations: [
     { date: "2015-11-01", label: "Agency caps introduced" },
-    { date: "2020-03-01", label: "Covid-19" },
+    { date: "2020-03-01", label: "Covid-19", break: true },
     { date: "2023-03-01", label: "Strike cover surge" },
   ],
 };
@@ -372,7 +385,7 @@ export const aePerformance: TrendSeries = {
   points: realPoints("ae-performance"),
   annotations: [
     { date: "2010-05-01", label: "Austerity" },
-    { date: "2020-03-01", label: "Covid-19" },
+    { date: "2020-03-01", label: "Covid-19", break: true },
     { date: "2023-12-01", label: "Winter crisis" },
   ],
 };
@@ -415,7 +428,7 @@ export const turnover: TrendSeries = {
   points: realPoints("turnover"),
   annotations: [
     { date: "2016-06-01", label: "Brexit vote" },
-    { date: "2020-03-01", label: "Covid-19" },
+    { date: "2020-03-01", label: "Covid-19", break: true },
     { date: "2023-03-01", label: "Pay disputes" },
   ],
 };
@@ -435,7 +448,7 @@ export const vacancyRate: TrendSeries = {
   points: realPoints("vacancy"),
   // By-group breakdown removed (was illustrative). If CI later supplies the
   // real NHS Vacancy Statistics by staff group, add them as real lines here.
-  annotations: [{ date: "2020-03-01", label: "Covid-19" }],
+  annotations: [{ date: "2020-03-01", label: "Covid-19", break: true }],
 };
 
 // Doctors vs nurses per 1,000 people — real data from the World Bank (OECD/WHO).
@@ -490,7 +503,7 @@ export const healthSpendGdp: TrendSeries = {
   cadence: "annual",
   points: realLine("dhsc-health-spend-gdp", "gbr"),
   lines: wbLines("dhsc-health-spend-gdp"),
-  annotations: [{ date: "2020-01-01", label: "Covid-19" }],
+  annotations: [{ date: "2020-01-01", label: "Covid-19", break: true }],
 };
 
 export const infantMortality: TrendSeries = {
@@ -525,7 +538,7 @@ export const lifeExpectancy: TrendSeries = {
   points: realPoints("life-expectancy"),
   annotations: [
     { date: "2011-01-01", label: "Stalling" },
-    { date: "2020-01-01", label: "Covid-19" },
+    { date: "2020-01-01", label: "Covid-19", break: true },
   ],
 };
 
@@ -591,6 +604,33 @@ export function stalenessOf(series: TrendSeries): {
     monthsOld,
     stale: monthsOld > limit,
   };
+}
+
+/**
+ * The date from which a series' trailing points are provisional (the first
+ * provisional point in the final unbroken provisional run), or null if none are.
+ * Used to shade the "subject to revision" region of the chart and to caption it.
+ */
+export function provisionalFrom(series: TrendSeries): { date: string; count: number } | null {
+  const pts = series.points;
+  let i = pts.length - 1;
+  let count = 0;
+  while (i >= 0 && pts[i].status === "provisional") {
+    count++;
+    i--;
+  }
+  return count ? { date: pts[i + 1].date, count } : null;
+}
+
+/** The latest point's published confidence interval, when it carries one. */
+export function latestCI(series: TrendSeries): { lo: number; hi: number } | null {
+  const p = series.points[series.points.length - 1];
+  return p && p.lo != null && p.hi != null ? { lo: p.lo, hi: p.hi } : null;
+}
+
+/** True when any point in the series carries a published confidence interval. */
+export function hasUncertainty(series: TrendSeries): boolean {
+  return series.points.some((p) => p.lo != null && p.hi != null);
 }
 
 export function minMax(series: TrendSeries) {

@@ -170,6 +170,35 @@ function parsePeriodEnd(c) {
   return null;
 }
 
+// Read an official revision flag straight from a source cell/label, so the UI
+// can mark provisional/revised observations from the publisher's own marker
+// rather than a fixed convention. Handles the common spreadsheet forms:
+// "Mar 2026 (P)", "2025 (provisional)", "[r]", "(revised)". Returns a
+// RawPoint.status string or null.
+function revisionMarker(cell) {
+  const t = String(cell ?? "").toLowerCase();
+  if (/\(p\)|\[p\]|\bprovisional\b/.test(t)) return "provisional";
+  if (/\(r\)|\[r\]|\brevised\b/.test(t)) return "revised";
+  return null;
+}
+
+// Capture a published confidence interval for a row from explicitly-labelled
+// lower/upper (or "95% CI") columns, when the table provides them. `header` is
+// the (lower-cased) header row; `row` the data row. Returns { lo, hi } or null —
+// so a parser can attach a real CI where one exists and silently omit it where
+// the source publishes none (e.g. administrative counts). Never invents a band.
+function ciFromRow(header, row) {
+  if (!Array.isArray(header) || !Array.isArray(row)) return null;
+  const find = (re) => header.findIndex((h) => re.test(String(h ?? "").toLowerCase()));
+  let loCol = find(/lower\b.*(ci|confidence|limit|bound)|(ci|confidence).*lower|^lower$|lcl/);
+  let hiCol = find(/upper\b.*(ci|confidence|limit|bound)|(ci|confidence).*upper|^upper$|ucl/);
+  if (loCol < 0 || hiCol < 0) return null;
+  const lo = parseFloat(String(row[loCol] ?? "").replace(/[,%£]/g, ""));
+  const hi = parseFloat(String(row[hiCol] ?? "").replace(/[,%£]/g, ""));
+  if (!Number.isFinite(lo) || !Number.isFinite(hi) || lo > hi) return null;
+  return { lo, hi };
+}
+
 // Extract a national time series from a gov.uk ODS that is an AREA × YEAR table,
 // handling both common layouts: (A) years across a header row with area rows
 // below, and (B) years down a column with the value in another column. Picks the
@@ -4037,8 +4066,8 @@ const SOURCES = [
 
   // NHS England RTT: incomplete waiting list (raw count → millions via scale) and
   // % within 18 weeks. Both share one fetch+parse of the overview timeseries.
-  { id: "waiting-list", min: 1, max: 12, scale: 1 / 1_000_000, get: async () => (await rttData()).totalPts },
-  { id: "rtt-18-week", min: 40, max: 100, get: async () => (await rttData()).pctPts },
+  { id: "waiting-list", min: 1, max: 12, scale: 1 / 1_000_000, provisional: 1, get: async () => (await rttData()).totalPts },
+  { id: "rtt-18-week", min: 40, max: 100, provisional: 1, get: async () => (await rttData()).pctPts },
 
   // NHS England A&E 4-hour performance (Monthly A&E Time Series XLS; URL scraped
   // from the current-year stats page).
@@ -4046,6 +4075,7 @@ const SOURCES = [
     id: "ae-performance",
     min: 50,
     max: 100,
+    provisional: 1,
     get: async () => {
       const now = new Date();
       const fy = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
@@ -4104,6 +4134,7 @@ const SOURCES = [
         if (typeof raw === "number" && raw > 30000 && raw < 60000) { const d = new Date(Math.round((raw - 25569) * 86400000)); return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-01`; }
         return null;
       };
+      const headerLower = (rows[headerIdx] || []).map((c) => String(c ?? "").toLowerCase());
       const points = [], seen = new Set();
       for (const r of rows.slice(headerIdx + 1)) {
         if (!Array.isArray(r)) continue;
@@ -4112,7 +4143,18 @@ const SOURCES = [
         if (!Number.isFinite(v)) continue;
         if (v <= 1.5) v *= 100;
         if (v < 50 || v > 100) continue;
-        seen.add(date); points.push({ date, value: +v.toFixed(2) });
+        seen.add(date);
+        const point = { date, value: +v.toFixed(2) };
+        // Read a provisional/revised marker from the period cell if NHS flags one
+        // (e.g. "Mar 2026 (P)"); else the `provisional: 1` fallback applies.
+        const st = revisionMarker(r[dateCol]);
+        if (st) point.status = st;
+        // Attach a published CI if the table exposes lower/upper columns (A&E is
+        // an administrative count with none, so this is a no-op here; the helper
+        // is the reusable hook for survey-based series that do publish a band).
+        const ci = ciFromRow(headerLower, r);
+        if (ci && ci.lo <= point.value && point.value <= ci.hi) { point.lo = ci.lo; point.hi = ci.hi; }
+        points.push(point);
       }
       if (points.length < 12) {
         console.log(`ae-performance: only ${points.length} pts; sheet="${sheetName}" headerIdx=${headerIdx} dateCol=${dateCol} pctCol=${pctCol}`);
@@ -4131,6 +4173,7 @@ const SOURCES = [
     id: "dhsc-ambulance-c2",
     min: 5,
     max: 120, // minutes
+    provisional: 1,
     get: async () => {
       const now = new Date();
       const fy = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
@@ -4743,6 +4786,20 @@ for (const s of selectedSources) {
       console.warn(`warn ${tag}  dropping ${bad.length} point(s) outside [${s.min ?? "-∞"},${s.max ?? "∞"}], e.g. ${bad[0].value} at ${bad[0].date}`);
       points = points.filter((p) => !oob(p.value));
     }
+    // Revision honesty: mark not-yet-final point(s) so the UI can shade them and
+    // caption "subject to revision". A read on a provisional figure should be
+    // visibly hedged. Preference order: (1) a status the fetcher read straight
+    // from the source (e.g. a workbook "(p)" marker via `revisionMarker`) is
+    // authoritative and kept as-is; (2) otherwise the per-source `provisional: N`
+    // manifest fallback marks the trailing N points, for sources that publish
+    // recent periods as provisional by convention but carry no in-file flag.
+    const fetcherSetStatus = points.some((p) => p && p.status);
+    if (!fetcherSetStatus && s.provisional && Number.isFinite(s.provisional) && points.length) {
+      const n = Math.min(s.provisional, points.length);
+      points = points.map((p, i) =>
+        i >= points.length - n ? { ...p, status: "provisional" } : p,
+      );
+    }
     out[s.id] ??= {};
     if (s.line) (out[s.id].lines ??= []).push({ id: s.line, points });
     else out[s.id].points = points;
@@ -4784,7 +4841,7 @@ for (const [id, series] of Object.entries(out)) {
 
 const file =
   `// AUTO-GENERATED by scripts/build-data.mjs — do not edit or commit populated data.\n` +
-  `export type RawPoint = { date: string; value: number; lo?: number; hi?: number };\n` +
+  `export type RawPoint = { date: string; value: number; lo?: number; hi?: number; status?: "provisional" | "revised" | "final" };\n` +
   `export type RawSeries = { points?: RawPoint[]; lines?: { id: string; points: RawPoint[] }[]; asOf?: string; srcUrl?: string; guard?: { min: number; max: number }; srcHash?: string; srcBytesHash?: string };\n` +
   `export const SERIES_DATA: Record<string, RawSeries> = ${JSON.stringify(out, null, 2)};\n`;
 mkdirSync(dirname(OUT), { recursive: true });

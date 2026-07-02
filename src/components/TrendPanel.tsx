@@ -5,6 +5,7 @@ import {
   CartesianGrid,
   ComposedChart,
   Line,
+  ReferenceArea,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -14,8 +15,11 @@ import {
 import {
   deltaVs,
   formatMonth,
+  hasUncertainty,
   latest,
+  latestCI,
   minMax,
+  provisionalFrom,
   realAsOf,
   realGuard,
   realHash,
@@ -25,11 +29,17 @@ import {
   SHOW_ILLUSTRATIVE,
   slicePoints,
   stalenessOf,
+  type Point,
   type SeriesLine,
   type SeriesUnit,
   type TrendSeries,
 } from "./data";
 import { SourceFeedbackLink } from "./SourceFeedbackLink";
+import {
+  spcAssuranceLabel,
+  spcVariationLabel,
+  spcVerdict,
+} from "./overview";
 
 type Range = 5 | 10 | 20 | "max";
 
@@ -133,6 +143,18 @@ export function TrendPanel({
   const yoySig = deltaSignificance(series, 12);
   const decSig = deltaSignificance(series, 120);
   const { min, max } = minMax(series);
+  // XmR (statistical process control) verdict — signal-vs-noise, the NHS "Making
+  // Data Count" alternative to RAG-against-the-latest-point. Single-line series
+  // only (a multi-line comparison has no single process). Limits are a property
+  // of the whole series, so they're drawn as constant lines across any zoom.
+  const spc = !multi ? spcVerdict(series) : null;
+  const spcVar = spc ? spcVariationLabel(spc.variation) : null;
+  const spcAssure = spc ? spcAssuranceLabel(spc.assurance) : null;
+  // Revision honesty: the trailing run of provisional (not-yet-final) points,
+  // and the latest published confidence interval (false-precision guard).
+  const provisional = provisionalFrom(series);
+  const latestInterval = latestCI(series);
+  const anyCI = hasUncertainty(series);
 
   const yFmt = (v: number) => {
     if (series.yFormat) return series.yFormat(v);
@@ -164,10 +186,17 @@ export function TrendPanel({
   const yMax = values.length ? Math.max(...values) : 1;
   const pad = (yMax - yMin) * 0.15 || 1;
   // Anchor positive-only series at/above 0, but allow negatives (e.g. surplus).
-  const lower = yMin >= 0 ? Math.max(0, yMin - pad) : yMin - pad;
+  // Control limits can sit just outside the data range, so include them in the
+  // domain when SPC is shown (kept ≥ 0 for positive-only series).
+  const spcLo = spc ? Math.min(spc.lcl, yMin) : yMin;
+  const spcHi = spc ? Math.max(spc.ucl, yMax) : yMax;
+  const lowerRaw = spcLo - pad;
+  const lower = yMin >= 0 ? Math.max(0, lowerRaw) : lowerRaw;
   const yDomain: [number, number] = [
     lower,
-    series.target ? Math.max(yMax + pad, series.target.value + pad / 2) : yMax + pad,
+    series.target
+      ? Math.max(spcHi + pad, series.target.value + pad / 2)
+      : spcHi + pad,
   ];
 
   // Size the Y axis to its widest tick label. A fixed width + negative left
@@ -317,7 +346,24 @@ export function TrendPanel({
               >
                 {series.format(current.value)}
               </span>
+              {latestInterval && (
+                <span
+                  className="text-xs text-muted-foreground"
+                  title="Published 95% confidence interval for the latest figure — the estimate is not an exact count"
+                >
+                  95% CI {series.shortFormat(latestInterval.lo)}–{series.shortFormat(latestInterval.hi)}
+                </span>
+              )}
               <span className="text-xs text-muted-foreground">{formatMonth(current.date)}</span>
+              {current.status === "provisional" && (
+                <span
+                  className="rounded-full border px-1.5 py-px text-[10px]"
+                  style={{ color: "#f6c451", borderColor: "#f6c45155", background: "#f6c45118" }}
+                  title="The latest figure is provisional and is expected to be revised in a later edition"
+                >
+                  provisional
+                </span>
+              )}
             </div>
           )}
         </div>
@@ -356,6 +402,29 @@ export function TrendPanel({
               {series.target.kind === "reference"
                 ? `Ref: ${series.target.label}`
                 : `Target ${series.format(series.target.value)}`}
+            </span>
+          )}
+          {spcVar && (
+            <span
+              className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium"
+              style={
+                spc!.variation === "concern"
+                  ? { color: "var(--destructive)", borderColor: "color-mix(in oklab, var(--destructive) 25%, transparent)", background: "color-mix(in oklab, var(--destructive) 10%, transparent)" }
+                  : spc!.variation === "improvement"
+                    ? { color: "var(--primary)", borderColor: "color-mix(in oklab, var(--primary) 25%, transparent)", background: "color-mix(in oklab, var(--primary) 10%, transparent)" }
+                    : { color: "var(--muted-foreground)", borderColor: "var(--border)", background: "var(--surface)" }
+              }
+              title={`Statistical process control (XmR): ${spcVar.label}${spc!.rule ? ` (${spc!.rule})` : ""}.`}
+            >
+              <span aria-hidden="true">{spcVar.glyph}</span> {spcVar.short}
+            </span>
+          )}
+          {spcAssure && (
+            <span
+              className="inline-flex items-center gap-1 rounded-full border border-border bg-surface px-2 py-0.5 text-[11px] text-muted-foreground"
+              title={`SPC assurance — ${spcAssure.label}.`}
+            >
+              <span aria-hidden="true">{spcAssure.glyph}</span> {spcAssure.short}
             </span>
           )}
         </div>
@@ -431,6 +500,77 @@ export function TrendPanel({
                   position: "insideTopRight",
                   fill: "var(--primary)",
                   fontSize: 10,
+                }}
+              />
+            )}
+            {/* XmR control limits + centre line (single-line series). Drawn
+                behind the data line so the process bounds are visible without
+                obscuring the series. */}
+            {spc && !multi && (
+              <ReferenceLine
+                y={spc.mean}
+                stroke="var(--muted-foreground)"
+                strokeOpacity={0.5}
+                ifOverflow="extendDomain"
+                label={{
+                  value: "mean",
+                  position: "insideBottomRight",
+                  fill: "var(--muted-foreground)",
+                  fontSize: 9,
+                }}
+              />
+            )}
+            {spc && !multi && (
+              <ReferenceLine
+                y={spc.ucl}
+                stroke="var(--muted-foreground)"
+                strokeOpacity={0.32}
+                strokeDasharray="2 3"
+                ifOverflow="extendDomain"
+                label={{
+                  value: "upper limit",
+                  position: "insideTopRight",
+                  fill: "var(--muted-foreground)",
+                  fontSize: 9,
+                }}
+              />
+            )}
+            {spc && !multi && (
+              <ReferenceLine
+                y={spc.lcl}
+                stroke="var(--muted-foreground)"
+                strokeOpacity={0.32}
+                strokeDasharray="2 3"
+                ifOverflow="extendDomain"
+                label={{
+                  value: "lower limit",
+                  position: "insideBottomRight",
+                  fill: "var(--muted-foreground)",
+                  fontSize: 9,
+                }}
+              />
+            )}
+            {/* Provisional (not-yet-final) region: the trailing points the
+                source still expects to revise, shaded so a reader doesn't treat
+                the very latest movement as settled. */}
+            {provisional && !multi && data.length > 0 && (
+              <ReferenceArea
+                x1={
+                  (provisional.date >= (data[0].date as string)
+                    ? provisional.date
+                    : (data[0].date as string)) as string
+                }
+                x2={data[data.length - 1].date as string}
+                fill="#f6c451"
+                fillOpacity={0.06}
+                stroke="#f6c451"
+                strokeOpacity={0.25}
+                strokeDasharray="2 3"
+                label={{
+                  value: "provisional",
+                  position: "insideTopRight",
+                  fill: "#f6c451",
+                  fontSize: 9,
                 }}
               />
             )}
@@ -548,11 +688,52 @@ export function TrendPanel({
           {series.shortFormat(guard.max)}
         </p>
       )}
-      {hasBand && (
+      {real &&
+        (hasBand || anyCI ? (
+          <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+            <span className="font-medium text-foreground/70">Uncertainty: </span>
+            the shaded band shows the source&rsquo;s published confidence interval
+            — the line is an estimate, not an exact count, so small movements
+            inside the band are not necessarily real change.
+          </p>
+        ) : (
+          <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+            <span className="font-medium text-foreground/70">Uncertainty: </span>
+            the source does not publish a confidence interval for this series, so
+            no error band is shown — read small movements with corresponding
+            caution rather than as exact change.
+          </p>
+        ))}
+      {provisional && (
         <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
-          <span className="font-medium text-foreground/70">Uncertainty: </span>
-          the shaded band shows the source&rsquo;s published confidence interval —
-          the line is an estimate, not an exact count.
+          <span className="font-medium" style={{ color: "#f6c451" }}>Provisional: </span>
+          the {provisional.count === 1 ? "most recent point is" : `most recent ${provisional.count} points are`}{" "}
+          provisional and expected to be revised in a later edition (shaded). A
+          performance or value-for-money read on a provisional figure is not yet
+          settled.
+        </p>
+      )}
+      {spc && (
+        <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+          <span className="font-medium text-foreground/70">Process control: </span>
+          the faint centre line is the mean and the dashed lines are XmR control
+          limits (mean&nbsp;&plusmn;&nbsp;2.66&nbsp;&times;&nbsp;mean moving range).
+          A point inside the limits with no run is{" "}
+          <em>common-cause</em> variation — natural noise, not a change to react
+          to; a point beyond a limit, or a run of {7} one side of the mean or
+          rising/falling, is a <em>special-cause</em> signal. This follows NHS
+          England&rsquo;s &ldquo;Making Data Count&rdquo; method rather than
+          reading the latest point against the target alone.
+          {spc.baselineFrom && (
+            <>
+              {" "}
+              Limits are re-baselined on the current process — the data since{" "}
+              {spc.baselineLabel ? `${spc.baselineLabel} (` : ""}
+              {formatMonth(spc.baselineFrom)}
+              {spc.baselineLabel ? ")" : ""} — so the earlier step change does not
+              widen them.
+            </>
+          )}
         </p>
       )}
 
@@ -696,6 +877,12 @@ function DataTable({
   visible: boolean;
 }) {
   const multi = lines.length > 1;
+  // Single-line series can carry a published CI and/or a revision status; expose
+  // them as their own columns (by date) so the table is a faithful alternative.
+  const byDate = new Map<string, Point>();
+  if (!multi) for (const p of series.points) byDate.set(p.date, p);
+  const ciCols = !multi && series.points.some((p) => p.lo != null && p.hi != null);
+  const statusCol = !multi && series.points.some((p) => p.status);
   return (
     <div className={visible ? "max-h-80 overflow-auto rounded-lg border border-border" : undefined}>
       <table className="w-full border-collapse text-left text-[12px] tabular-nums">
@@ -719,24 +906,57 @@ function DataTable({
                 {series.title}
               </th>
             )}
+            {ciCols && (
+              <>
+                <th scope="col" className="px-3 py-1.5 text-right font-medium">
+                  95% CI lower
+                </th>
+                <th scope="col" className="px-3 py-1.5 text-right font-medium">
+                  95% CI upper
+                </th>
+              </>
+            )}
+            {statusCol && (
+              <th scope="col" className="px-3 py-1.5 text-left font-medium">
+                Status
+              </th>
+            )}
           </tr>
         </thead>
         <tbody>
-          {data.map((row) => (
-            <tr key={row.date as string} className="border-b border-border/40 last:border-0">
-              <th scope="row" className="px-3 py-1 font-normal text-muted-foreground">
-                {formatMonth(row.date as string)}
-              </th>
-              {lines.map((_, i) => {
-                const v = row[`l${i}`];
-                return (
-                  <td key={i} className="px-3 py-1 text-right text-foreground">
-                    {typeof v === "number" ? series.format(v) : "—"}
+          {data.map((row) => {
+            const p = byDate.get(row.date as string);
+            return (
+              <tr key={row.date as string} className="border-b border-border/40 last:border-0">
+                <th scope="row" className="px-3 py-1 font-normal text-muted-foreground">
+                  {formatMonth(row.date as string)}
+                </th>
+                {lines.map((_, i) => {
+                  const v = row[`l${i}`];
+                  return (
+                    <td key={i} className="px-3 py-1 text-right text-foreground">
+                      {typeof v === "number" ? series.format(v) : "—"}
+                    </td>
+                  );
+                })}
+                {ciCols && (
+                  <>
+                    <td className="px-3 py-1 text-right text-muted-foreground">
+                      {p?.lo != null ? series.format(p.lo) : "—"}
+                    </td>
+                    <td className="px-3 py-1 text-right text-muted-foreground">
+                      {p?.hi != null ? series.format(p.hi) : "—"}
+                    </td>
+                  </>
+                )}
+                {statusCol && (
+                  <td className="px-3 py-1 text-left text-muted-foreground">
+                    {p?.status ?? "final"}
                   </td>
-                );
-              })}
-            </tr>
-          ))}
+                )}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

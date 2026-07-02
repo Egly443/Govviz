@@ -29,6 +29,7 @@ export interface IndicatorCell {
   targeted: boolean; // RAG anchored to a published target (vs own-range fallback)
   uncertain: boolean; // latest CI straddles the target — pass/fail indeterminate
   momentum: Momentum; // recent direction of travel
+  spc: SpcVerdict | null; // XmR signal-vs-noise verdict (null = too few points)
   current: number; // latest value
   real: boolean; // backed by an official source (derived-series aware)
 }
@@ -129,6 +130,267 @@ export function momentum(series: TrendSeries): Momentum {
   const glyph = rising ? (steep ? "▲" : "▴") : steep ? "▼" : "▾";
   const label = `${rising ? "rising" : "falling"}${steep ? " fast" : ""} — ${good ? "improving" : "worsening"}`;
   return { dir: rising ? "up" : "down", good, steep, glyph, label };
+}
+
+// ============================================================
+// Statistical process control (XmR / NHS "Making Data Count")
+// ============================================================
+//
+// Colouring a tile by comparing the single latest point to a target can't tell
+// a real signal from common-cause noise — exactly the practice NHS England's
+// "Making Data Count" programme and the OSR advise against. An individuals &
+// moving-range (XmR) chart fixes this: process limits sit at mean ± 2.66·(mean
+// moving range) (= 3σ via the n=2 d2 constant 1.128), and the latest *state* is
+// then classified as common-cause variation or a special cause, plus — where a
+// target exists — whether the process is *capable* of consistently meeting it
+// (the MDC "variation" and "assurance" verdicts). This is signal-vs-noise, not
+// last-dot-vs-line.
+
+/** Special-cause direction, oriented by goodDirection. */
+export type SpcVariation = "improvement" | "concern" | "neutral";
+/** Process capability against a published target. */
+export type SpcAssurance = "pass" | "fail" | "inconsistent" | "none";
+
+export interface SpcVerdict {
+  mean: number;
+  ucl: number; // upper control limit (mean + 2.66·MRbar)
+  lcl: number; // lower control limit (mean − 2.66·MRbar)
+  mrBar: number; // mean moving range
+  n: number; // points used for the limits (current segment length)
+  variation: SpcVariation;
+  assurance: SpcAssurance;
+  /** Which side of the mean the current special cause sits on (null = common cause). */
+  signalSide: "high" | "low" | null;
+  /** Plain-language reason for the variation verdict, if any. */
+  rule: string | null;
+  /** Date the current baseline starts (the re-baselining break), or null if the
+   *  limits use the full series. */
+  baselineFrom: string | null;
+  /** Label of the break the baseline starts after (e.g. "Covid-19"), or null. */
+  baselineLabel: string | null;
+}
+
+// Minimum points for a usable XmR baseline; below this, limits aren't meaningful.
+const SPC_MIN_POINTS = 8;
+// Run length for the shift (points one side of the mean) and trend (monotonic) rules.
+const SPC_RUN = 7;
+// 3σ expressed via the d2 constant for n=2 moving ranges (3 / 1.128 = 2.66).
+const SPC_LIMIT_K = 2.66;
+
+/**
+ * XmR control-chart verdict for a series, oriented by `goodDirection`. Limits
+ * describe the *current* process: they are re-baselined at structural breaks
+ * (annotations flagged `break`, e.g. Covid) so a step change is not pooled into
+ * the limits, where it would widen them and mask a later signal. The baseline is
+ * the most recent break that still leaves a usable run of points (≥ SPC_MIN_POINTS
+ * after it); if no break qualifies the full series is used. Run rules (shift /
+ * trend) are confined to the current segment so a run can't span a break.
+ *
+ * The latest point's state is classified with the three standard run rules
+ * (point beyond a limit; a run of `SPC_RUN` one side of the mean; a run of
+ * `SPC_RUN` monotonic steps). Returns null when there are too few points overall.
+ */
+export function spcVerdict(series: TrendSeries): SpcVerdict | null {
+  const finite = series.points.filter((p) => Number.isFinite(p.value));
+  if (finite.length < SPC_MIN_POINTS) return null;
+
+  // Re-baseline: pick the most recent break that leaves ≥ SPC_MIN_POINTS after
+  // it (so the current process has a usable baseline); else use the full series.
+  const breaks = (series.annotations ?? [])
+    .filter((a) => a.break && a.date)
+    .map((a) => ({ date: a.date, label: a.label }))
+    .sort((a, b) => (a.date < b.date ? -1 : 1));
+  let startIdx = 0;
+  let baselineFrom: string | null = null;
+  let baselineLabel: string | null = null;
+  for (let bi = breaks.length - 1; bi >= 0; bi--) {
+    const idx = finite.findIndex((p) => p.date >= breaks[bi].date);
+    if (idx >= 0 && finite.length - idx >= SPC_MIN_POINTS) {
+      startIdx = idx;
+      baselineFrom = finite[idx].date;
+      baselineLabel = breaks[bi].label;
+      break;
+    }
+  }
+
+  const seg = finite.slice(startIdx);
+  const vals = seg.map((p) => p.value);
+  const n = vals.length;
+
+  const mean = vals.reduce((a, b) => a + b, 0) / n;
+  let mrSum = 0;
+  for (let i = 1; i < n; i++) mrSum += Math.abs(vals[i] - vals[i - 1]);
+  const mrBar = mrSum / (n - 1);
+  const half = SPC_LIMIT_K * mrBar;
+  const ucl = mean + half;
+  const lcl = mean - half;
+
+  // Classify the current special-cause state from the most recent points.
+  let signalSide: "high" | "low" | null = null;
+  let rule: string | null = null;
+  const lastVal = vals[n - 1];
+  if (mrBar > 0) {
+    if (lastVal > ucl) {
+      signalSide = "high";
+      rule = "latest point beyond the upper control limit";
+    } else if (lastVal < lcl) {
+      signalSide = "low";
+      rule = "latest point beyond the lower control limit";
+    } else {
+      // Shift: SPC_RUN consecutive points the same side of the mean, ending now.
+      let above = 0;
+      let below = 0;
+      for (let i = n - 1; i >= 0; i--) {
+        if (vals[i] > mean) {
+          if (below) break;
+          above++;
+        } else if (vals[i] < mean) {
+          if (above) break;
+          below++;
+        } else break;
+      }
+      if (above >= SPC_RUN) {
+        signalSide = "high";
+        rule = `${above} consecutive points above the centre line`;
+      } else if (below >= SPC_RUN) {
+        signalSide = "low";
+        rule = `${below} consecutive points below the centre line`;
+      } else {
+        // Trend: SPC_RUN consecutive monotonic steps ending now.
+        let rising = 1;
+        let falling = 1;
+        for (let i = n - 1; i > 0; i--) {
+          if (vals[i] > vals[i - 1]) rising++;
+          else break;
+        }
+        for (let i = n - 1; i > 0; i--) {
+          if (vals[i] < vals[i - 1]) falling++;
+          else break;
+        }
+        if (rising >= SPC_RUN) {
+          signalSide = "high";
+          rule = `${rising} consecutive rising points`;
+        } else if (falling >= SPC_RUN) {
+          signalSide = "low";
+          rule = `${falling} consecutive falling points`;
+        }
+      }
+    }
+  }
+
+  let variation: SpcVariation = "neutral";
+  if (signalSide) {
+    const good = (signalSide === "high") === (series.goodDirection === "up");
+    variation = good ? "improvement" : "concern";
+  }
+
+  // Assurance: can the process consistently meet the target? Only for a real
+  // statutory/standard target (a `reference` baseline is not a pass/fail line).
+  let assurance: SpcAssurance = "none";
+  if (series.target && series.target.kind !== "reference") {
+    const t = series.target.value;
+    if (series.goodDirection === "up") {
+      // Target is a floor: the whole process must sit above it to "consistently meet".
+      assurance = lcl >= t ? "pass" : ucl <= t ? "fail" : "inconsistent";
+    } else {
+      // Target is a ceiling: the whole process must sit below it.
+      assurance = ucl <= t ? "pass" : lcl >= t ? "fail" : "inconsistent";
+    }
+  }
+
+  return { mean, ucl, lcl, mrBar, n, variation, assurance, signalSide, rule, baselineFrom, baselineLabel };
+}
+
+/** Glyph + label for an SPC variation verdict (redundant, colour-independent). */
+export function spcVariationLabel(v: SpcVariation): {
+  glyph: string;
+  short: string;
+  label: string;
+} {
+  switch (v) {
+    case "improvement":
+      return {
+        glyph: "✦",
+        short: "Improving (signal)",
+        label: "special-cause variation — a signal in the improving direction",
+      };
+    case "concern":
+      return {
+        glyph: "▲",
+        short: "Concern (signal)",
+        label: "special-cause variation — a signal in the concerning direction",
+      };
+    default:
+      return {
+        glyph: "~",
+        short: "Common cause",
+        label: "common-cause variation — no signal; change is within natural limits",
+      };
+  }
+}
+
+/** Glyph + label for an SPC assurance (capability-vs-target) verdict, or null. */
+export function spcAssuranceLabel(a: SpcAssurance): {
+  glyph: string;
+  short: string;
+  label: string;
+} | null {
+  switch (a) {
+    case "pass":
+      return {
+        glyph: "✓",
+        short: "Consistently meets",
+        label:
+          "the whole process sits on the meeting-target side of the control limits — consistently meets the target",
+      };
+    case "fail":
+      return {
+        glyph: "✗",
+        short: "Consistently misses",
+        label:
+          "the whole process sits on the failing side of the control limits — consistently misses the target",
+      };
+    case "inconsistent":
+      return {
+        glyph: "?",
+        short: "Inconsistent vs target",
+        label:
+          "the target lies inside the control limits — the process sometimes meets and sometimes misses it",
+      };
+    default:
+      return null;
+  }
+}
+
+/**
+ * The single "movement" glyph to show on a compact surface (treemap tile, RAG
+ * strip). An SPC special-cause signal supersedes the cruder OLS momentum glyph:
+ * a control-chart signal is a stronger, more defensible statement than a slope,
+ * so when SPC flags a special cause we show that (and say so); otherwise we fall
+ * back to the momentum direction; a flat, signal-free series shows nothing.
+ */
+export function displayMovement(x: {
+  spc: SpcVerdict | null;
+  momentum: Momentum;
+}): { glyph: string; label: string; kind: "good" | "bad" | "neutral"; signal: boolean } | null {
+  if (x.spc && x.spc.variation !== "neutral") {
+    const v = spcVariationLabel(x.spc.variation);
+    return {
+      glyph: v.glyph,
+      label: `SPC signal — ${v.label}${x.spc.rule ? ` (${x.spc.rule})` : ""}`,
+      kind: x.spc.variation === "improvement" ? "good" : "bad",
+      signal: true,
+    };
+  }
+  if (x.momentum.dir !== "flat") {
+    return {
+      glyph: x.momentum.glyph,
+      label: x.momentum.label,
+      kind: x.momentum.good ? "good" : "bad",
+      signal: false,
+    };
+  }
+  return null;
 }
 
 /**
@@ -246,6 +508,8 @@ export interface ScoredIndicator {
   uncertain: boolean;
   /** Recent direction of travel. */
   momentum: Momentum;
+  /** XmR signal-vs-noise verdict (null = too few points for control limits). */
+  spc: SpcVerdict | null;
 }
 
 /**
@@ -269,6 +533,7 @@ export function departmentIndicators(dept: Department): ScoredIndicator[] {
         targeted: !!s.target,
         uncertain: isUncertain(s),
         momentum: momentum(s),
+        spc: spcVerdict(s),
       });
     }
   }
@@ -386,6 +651,7 @@ export function buildOverview(): DeptBlock[] {
       targeted: !!r.series.target,
       uncertain: isUncertain(r.series),
       momentum: momentum(r.series),
+      spc: spcVerdict(r.series),
       current: latest(r.series).value,
       real: seriesIsReal(r.series),
     }));

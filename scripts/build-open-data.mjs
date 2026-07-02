@@ -281,7 +281,7 @@ function buildSeries(s, dept) {
   const geo = geographyOf(s.coverage);
   const asOf = realAsOf(s.id) || (s.derivedFrom?.map(realAsOf).filter(Boolean).sort()[0]);
   const guard = realGuard(s.id) || (s.target ? undefined : undefined);
-  const revisionStatus = /provisional|interim|revised|forecast/i.test(s.caveat || "") ? "provisional" : "final";
+  const caveatProvisional = /provisional|interim|revised|forecast/i.test(s.caveat || "");
 
   // Observations (already baked into series.points / series.lines).
   const multi = Array.isArray(s.lines) && s.lines.filter((l) => l.points?.length).length > 1;
@@ -298,6 +298,14 @@ function buildSeries(s, dept) {
   const hasBand = rows.some((r) => r.lo != null && r.hi != null);
   const latestObservedPeriod = rows.map((r) => r.period).filter(Boolean).sort().at(-1) || null;
   const freshness = freshnessOf({ latestObservedPeriod, cadence: s.cadence, fetchedAt: asOf });
+  // Per-row status: an observation's own baked status wins (e.g. a provisional
+  // trailing point), else the series default derived from its caveat. Encoded,
+  // not erased — so a downstream consumer can drop/keep provisional rows itself.
+  const rowStatus = (r) => r.status || (caveatProvisional ? "provisional" : "final");
+  // The series-level status is provisional if it is caveated as such OR any
+  // individual observation is provisional.
+  const revisionStatus =
+    caveatProvisional || rows.some((r) => r.status === "provisional") ? "provisional" : "final";
 
   // CSV (long-format, one observation per row, typed; suppression-ready `status`).
   const cols = ["period"];
@@ -308,7 +316,7 @@ function buildSeries(s, dept) {
   const lines = rows.map((r) => {
     const cells = [csvCell(r.period)];
     if (multi) cells.push(csvCell(r.ref_area));
-    cells.push(csvCell(r.value), csvCell(unit.unit), csvCell(unit.unitMultiplier), csvCell(revisionStatus));
+    cells.push(csvCell(r.value), csvCell(unit.unit), csvCell(unit.unitMultiplier), csvCell(rowStatus(r)));
     if (hasBand) cells.push(csvCell(r.lo ?? ""), csvCell(r.hi ?? ""));
     return cells.join(",");
   });

@@ -6,6 +6,7 @@ import { DepartmentTabs } from "./DepartmentTabs";
 import { realAsOf } from "./data";
 import {
   departmentIndicators,
+  displayMovement,
   ragColor,
   ragLabel,
   ragTextColor,
@@ -145,7 +146,10 @@ function SynthesisCard({ dept }: { dept: Department }) {
               const rag = ragLabel(i.score, i.targeted, i.uncertain);
               const bg = i.uncertain ? ragUncertainColor() : ragColor(i.score, i.targeted);
               const fg = i.uncertain ? UNCERTAIN_TEXT : ragTextColor(i.score, i.targeted);
-              const trend = i.momentum.dir !== "flat" ? ` · ${i.momentum.label}` : "";
+              // SPC-aware movement: a control-chart special-cause signal supersedes
+              // the momentum slope glyph (shown bolder, and named in the tooltip).
+              const move = displayMovement(i);
+              const trend = move ? ` · ${move.label}` : "";
               return (
                 <li
                   key={i.series.id}
@@ -155,8 +159,14 @@ function SynthesisCard({ dept }: { dept: Department }) {
                   aria-label={`${i.series.title}: ${rag.label}${trend}`}
                 >
                   <span aria-hidden="true">{rag.letter}</span>
-                  {i.momentum.dir !== "flat" && (
-                    <span aria-hidden="true" className="opacity-80">{i.momentum.glyph}</span>
+                  {move && (
+                    <span
+                      aria-hidden="true"
+                      className="opacity-80"
+                      style={{ fontWeight: move.signal ? 800 : 600 }}
+                    >
+                      {move.glyph}
+                    </span>
                   )}
                 </li>
               );
@@ -164,11 +174,14 @@ function SynthesisCard({ dept }: { dept: Department }) {
           </ul>
           <p className="mt-2 text-[11px] text-muted-foreground">
             Per-indicator RAG (G&nbsp;green · A&nbsp;amber · R&nbsp;red) against
-            each measure&rsquo;s published target where one exists, with a trend
-            glyph (&#9650;/&#9660; rising/falling, oriented so it tracks the value).
-            &ldquo;&asymp;&rdquo; means the latest value is within the margin of
-            error of the target; &ldquo;&ndash;&rdquo; means no external benchmark
-            (scored vs own history). Deliberately not reduced to a single grade.
+            each measure&rsquo;s published target where one exists, with a movement
+            glyph. Where statistical process control finds a special-cause signal
+            it is shown (&#10022; improving · &#9650; concerning, in bold) in
+            preference to the plainer momentum arrow (&#9650;/&#9660;
+            rising/falling). &ldquo;&asymp;&rdquo; means the latest value is within
+            the margin of error of the target; &ldquo;&ndash;&rdquo; means no
+            external benchmark (scored vs own history). Deliberately not reduced to
+            a single grade.
           </p>
         </>
       )}

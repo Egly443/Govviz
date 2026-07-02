@@ -345,7 +345,7 @@ const mojCompletionDays: TrendSeries = {
   cadence: "quarterly",
   points: realPoints("moj-completion-days"),
   annotations: [
-    { date: "2020-03-01", label: "Covid-19" },
+    { date: "2020-03-01", label: "Covid-19", break: true },
   ],
 };
 
@@ -606,7 +606,7 @@ const hmtGdpPerCapita: TrendSeries = {
   points: realPoints("hmt-gdp-per-capita"),
   annotations: [
     { date: "2008-01-01", label: "Financial crisis" },
-    { date: "2020-01-01", label: "Covid-19" },
+    { date: "2020-01-01", label: "Covid-19", break: true },
   ],
 };
 
@@ -684,7 +684,7 @@ const hmtDebt: TrendSeries = {
   points: realPoints("hmt-psnd"),
   annotations: [
     { date: "2008-01-01", label: "Bank bailouts" },
-    { date: "2020-01-01", label: "Covid-19" },
+    { date: "2020-01-01", label: "Covid-19", break: true },
   ],
 };
 
@@ -708,7 +708,7 @@ const hmtDebtCash: TrendSeries = {
   points: realPoints("hmt-psnd-cash"),
   annotations: [
     { date: "2008-01-01", label: "Financial crisis" },
-    { date: "2020-01-01", label: "Covid-19" },
+    { date: "2020-01-01", label: "Covid-19", break: true },
   ],
 };
 
@@ -728,7 +728,7 @@ const hmtUnemployment: TrendSeries = {
   annotations: [
     { date: "1984-01-01", label: "Deindustrialisation" },
     { date: "2008-01-01", label: "Financial crisis" },
-    { date: "2020-01-01", label: "Covid-19" },
+    { date: "2020-01-01", label: "Covid-19", break: true },
   ],
 };
 
@@ -800,7 +800,7 @@ const hmtDeficit: TrendSeries = {
   points: realPoints("hmt-deficit"),
   annotations: [
     { date: "2009-01-01", label: "Deficit peak" },
-    { date: "2020-01-01", label: "Covid-19" },
+    { date: "2020-01-01", label: "Covid-19", break: true },
   ],
 };
 
@@ -955,7 +955,7 @@ function wbS(o: {
 }
 
 // Treasury / economy
-const hmtGdpGrowth = wbS({ id: "hmt-gdp-growth", title: "GDP growth", subtitle: "Real GDP, annual % change", good: "up", unit: "percent", format: fmtPct, source: "World Bank", code: "NY.GDP.MKTP.KD.ZG", anchors: [[1990, 0.7], [2000, 3.2], [2009, -4.6], [2010, 2.2], [2020, -10.3], [2021, 8.6], [2023, 0.3]], start: 1990, end: 2023, seed: 331, amp: 0.3, annotations: [{ date: "2009-01-01", label: "Financial crisis" }, { date: "2020-01-01", label: "Covid-19" }] });
+const hmtGdpGrowth = wbS({ id: "hmt-gdp-growth", title: "GDP growth", subtitle: "Real GDP, annual % change", good: "up", unit: "percent", format: fmtPct, source: "World Bank", code: "NY.GDP.MKTP.KD.ZG", anchors: [[1990, 0.7], [2000, 3.2], [2009, -4.6], [2010, 2.2], [2020, -10.3], [2021, 8.6], [2023, 0.3]], start: 1990, end: 2023, seed: 331, amp: 0.3, annotations: [{ date: "2009-01-01", label: "Financial crisis" }, { date: "2020-01-01", label: "Covid-19", break: true }] });
 const hmtInvestment = wbS({ id: "hmt-investment-gdp", title: "Investment", subtitle: "Gross capital formation, % of GDP", good: "up", unit: "percent", format: fmtPct, source: "World Bank", code: "NE.GDI.TOTL.ZS", anchors: [[1990, 22], [2000, 18], [2010, 16], [2019, 17.5], [2022, 18]], start: 1990, end: 2022, seed: 332, amp: 0.3 });
 const hmtCurrentAccount = wbS({ id: "hmt-current-account", title: "Current account balance", subtitle: "% of GDP", good: "up", unit: "percent", format: fmtPct, source: "World Bank", code: "BN.CAB.XOKA.GD.ZS", anchors: [[1990, -3.4], [2000, -2.2], [2010, -2.7], [2016, -5.2], [2022, -3.1]], start: 1990, end: 2022, seed: 333, amp: 0.3 });
 const hmtEmployment = wbS({ id: "hmt-employment-rate", title: "Employment rate", subtitle: "Employment-to-population, 15+ (%)", good: "up", unit: "percent", format: fmtPct, source: "World Bank (ILO)", code: "SL.EMP.TOTL.SP.ZS", anchors: [[1991, 57], [2000, 58], [2010, 57], [2019, 60], [2022, 59]], start: 1991, end: 2022, seed: 334, amp: 0.3 });
@@ -1021,7 +1021,7 @@ const mhclgTempAccom: TrendSeries = {
   sourceUrl: "https://www.gov.uk/government/statistical-data-sets/live-tables-on-homelessness",
   cadence: "quarterly",
   points: realPoints("mhclg-temp-accommodation"),
-  annotations: [{ date: "2020-01-01", label: "Covid-19" }],
+  annotations: [{ date: "2020-01-01", label: "Covid-19", break: true }],
 };
 
 const mhclgNetDwellings: TrendSeries = {
