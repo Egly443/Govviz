@@ -355,15 +355,22 @@ export function buildOverview(): DeptBlock[] {
       ["supporting", dept.supporting ?? []],
     ];
 
-    const raw: { series: TrendSeries; role: IndicatorRole }[] = [];
+    const rawAll: { series: TrendSeries; role: IndicatorRole }[] = [];
     const seen = new Set<string>();
     for (const [role, list] of roleLists) {
       for (const series of list) {
         if (seen.has(series.id)) continue;
         seen.add(series.id);
-        raw.push({ series, role });
+        rawAll.push({ series, role });
       }
     }
+    const rawLive = rawAll.filter(
+      ({ series }) => seriesIsReal(series) || SHOW_ILLUSTRATIVE,
+    );
+    // Production should not spend dashboard area on black placeholder tiles.
+    // If a local build has no baked data at all, keep placeholders visible so
+    // the layout still communicates what the dashboard tracks.
+    const raw = rawLive.length ? rawLive : rawAll;
 
     // Option C: tile area encodes DEPARTMENT BUDGET only. Every indicator in a
     // department gets an equal share, so the block area is proportional to spend
