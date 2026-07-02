@@ -1,45 +1,17 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Grid2X2, Radar } from "lucide-react";
 import { Footer } from "./Footer";
 import { TopNav } from "./TopNav";
 import { DepartmentTabs } from "./DepartmentTabs";
 import { GovTreemap } from "./GovTreemap";
-import { GovSpatialCommand } from "./GovAltVisualizations";
 import { Modal } from "./Modal";
 import { TrendPanel } from "./TrendPanel";
 import { DataHealthStrip } from "./DataHealthStrip";
 import { ragColor, ragUncertainColor, type IndicatorCell } from "./overview";
 import { SPEND_BASIS } from "./departments";
 
-type OverviewViz = "treemap" | "spatial";
-
-const VIEWS: {
-  id: OverviewViz;
-  label: string;
-  description: string;
-  icon: typeof Grid2X2;
-}[] = [
-  {
-    id: "treemap",
-    label: "Treemap",
-    icon: Grid2X2,
-    description:
-      "Budget-weighted departmental blocks; colour shows performance against target, and glyphs show recent trend.",
-  },
-  {
-    id: "spatial",
-    label: "Spatial",
-    icon: Radar,
-    description:
-      "A projected command surface for rapidly moving between departments and opening lead charts.",
-  },
-];
-
 export function OverviewPage() {
   const [selected, setSelected] = useState<IndicatorCell | null>(null);
-  const [viz, setViz] = useState<OverviewViz>("treemap");
-  const activeView = VIEWS.find((view) => view.id === viz) ?? VIEWS[0];
 
   return (
     <div className="relative min-h-screen bg-background text-foreground">
@@ -66,9 +38,8 @@ export function OverviewPage() {
               Whole of government
             </h1>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-              Every tracked indicator at a glance. Keep the original budget
-              treemap or switch into a projected command surface for moving
-              quickly between departments and charts.
+              Every tracked indicator at a glance. Budget-weighted departmental
+              blocks show performance against target and recent direction.
             </p>
           </div>
           <Legend />
@@ -76,44 +47,8 @@ export function OverviewPage() {
 
         <DataHealthStrip />
 
-        <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-sm font-semibold">{activeView.label}</h2>
-            <p className="mt-1 max-w-3xl text-xs text-muted-foreground">
-              {activeView.description}
-            </p>
-          </div>
-          <div
-            className="flex flex-wrap gap-1 rounded-lg border border-border bg-card/55 p-1"
-            aria-label="Choose overview visualisation"
-          >
-            {VIEWS.map((view) => {
-              const Icon = view.icon;
-              const active = view.id === viz;
-              return (
-                <button
-                  key={view.id}
-                  type="button"
-                  onClick={() => setViz(view.id)}
-                  title={view.description}
-                  className={`inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition ${
-                    active
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-surface-elevated hover:text-foreground"
-                  }`}
-                  aria-pressed={active}
-                >
-                  <Icon className="h-3.5 w-3.5" aria-hidden />
-                  {view.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
         <section className="mt-8 rounded-xl border border-border bg-card/40 p-2 sm:p-3">
-          {viz === "treemap" && <GovTreemap onSelect={setSelected} />}
-          {viz === "spatial" && <GovSpatialCommand onSelect={setSelected} />}
+          <GovTreemap onSelect={setSelected} />
         </section>
 
         <p className="mt-3 text-[11px] text-muted-foreground">

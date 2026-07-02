@@ -3518,22 +3518,34 @@ const SOURCES = [
     min: 50,
     max: 100,
     get: async () => {
-      // HMPO publishes per-quarter transparency-data publications on gov.uk. The
-      // generic search ranks junk first, so filter by organisation = hm-passport-office.
-      try {
-        const s = await fetch("https://www.gov.uk/api/search.json?filter_organisations%5B%5D=hm-passport-office&order=-public_timestamp&count=30", fetchOpts({ accept: "application/json" }));
-        if (s.ok) {
-          const j = await s.json();
-          const hits = j.results || [];
-          const trans = hits.filter((h) => /transparency|data|performance|processing|turnaround/i.test(`${h.title || ""} ${h.link || ""}`));
-          console.log(`  passport-times HMPO pubs(${hits.length}) data-like(${trans.length}): ${trans.slice(0, 12).map((h) => h.link).join(" | ")}`);
-          for (const h of trans.slice(0, 4)) {
-            try { const atts = await govukAttachments(String(h.link).replace(/^\//, "")); console.log(`  passport-times ${h.link} atts(${atts.length}): ${atts.map((a) => `${a.title}|${(a.url || "").split("/").pop()}`).slice(0, 8).join(" ; ")}`); }
-            catch (e) { console.log(`  passport-times ${h.link} att-err ${e.message}`); }
-          }
-        } else console.log(`  passport-times search HTTP ${s.status}`);
-      } catch (e) { console.log(`  passport-times err ${e.message}`); }
-      throw new Error("passport-times: probing gov.uk HMPO transparency publications");
+      const atts = await govukAttachments("government/statistical-data-sets/migration-transparency-data");
+      const sheet = atts.find((a) => /passports.*citizenship/i.test(`${a.title || ""} ${a.url || ""}`) && /\.(ods|xlsx?)(\?|$)/i.test(a.url || ""));
+      if (!sheet) throw new Error("passport-times: no passports and citizenship workbook");
+      const book = await xlsxBook(sheet.url);
+      const rows = await sheetRows(book, "PCCR_03");
+      const headerIdx = rows.findIndex((r) => r.some((c) => /^quarter$/i.test(String(c ?? "").trim())) && r.some((c) => /service standard/i.test(String(c ?? ""))));
+      if (headerIdx < 0) throw new Error("passport-times: PCCR_03 header not found");
+      const header = rows[headerIdx];
+      const qCol = header.findIndex((c) => /^quarter$/i.test(String(c ?? "").trim()));
+      const fromCol = header.findIndex((c) => /applying from/i.test(String(c ?? "")));
+      const routeCol = header.findIndex((c) => /^route$/i.test(String(c ?? "").trim()));
+      const pctCol = header.findIndex((c) => /percentage processed within service standard/i.test(String(c ?? "")));
+      if (qCol < 0 || fromCol < 0 || routeCol < 0 || pctCol < 0) throw new Error(`passport-times: cols q=${qCol} from=${fromCol} route=${routeCol} pct=${pctCol}`);
+      const qEnd = { 1: "03-31", 2: "06-30", 3: "09-30", 4: "12-31" };
+      const points = [];
+      for (const r of rows.slice(headerIdx + 1)) {
+        const qm = String(r[qCol] ?? "").match(/(20\d{2})\s*Q([1-4])/i);
+        if (!qm) continue;
+        if (!/^uk$/i.test(String(r[fromCol] ?? "").trim())) continue;
+        if (!/^standard$/i.test(String(r[routeCol] ?? "").trim())) continue;
+        let v = typeof r[pctCol] === "number" ? r[pctCol] : parseFloat(String(r[pctCol] ?? ""));
+        if (!Number.isFinite(v)) continue;
+        if (v > 0 && v <= 1.5) v *= 100;
+        if (v < 50 || v > 100) continue;
+        points.push({ date: `${qm[1]}-${qEnd[+qm[2]]}`, value: +v.toFixed(1) });
+      }
+      if (points.length < 4) throw new Error(`passport-times: only ${points.length} points`);
+      return points.sort((a, b) => (a.date < b.date ? -1 : 1));
     },
   },
 
@@ -3653,6 +3665,47 @@ const SOURCES = [
         .sort((a, b) => (a.date < b.date ? -1 : 1));
       if (points.length < 5) throw new Error(`only ${points.length} usable points`);
       return points;
+    },
+  },
+  // DWP PIP end-to-end clearance time: official PIP clearance/outstanding times
+  // workbook, table 1A, normal-rules new claims, registration to DWP decision.
+  {
+    id: "dwp-pip-clearance",
+    min: 20,
+    max: 350,
+    get: async () => {
+      const path = await govukCollectionLatest(
+        "personal-independence-payment-statistics",
+        (d) => /personal independence payment statistics to/i.test(d.title || ""),
+      );
+      const atts = await govukAttachments(path);
+      const sheet = atts.find((a) => /clearance.*outstanding.*times/i.test(`${a.title || ""} ${a.url || ""}`) && /\.(xlsx?|ods)(\?|$)/i.test(a.url || ""))
+        ?? atts.find((a) => /\.(xlsx?|ods)(\?|$)/i.test(a.url || ""));
+      if (!sheet) throw new Error(`pip-clearance: no workbook in ${path}`);
+      const book = await xlsxBook(sheet.url);
+      const rows = await sheetRows(book, "1A");
+      const headerIdx = rows.findIndex((r) => r.some((c) => /^month$/i.test(String(c ?? "").trim())) && r.some((c) => /registration to dwp decision/i.test(String(c ?? "").replace(/\s+/g, " "))));
+      if (headerIdx < 0) throw new Error("pip-clearance: table 1A header not found");
+      const header = rows[headerIdx];
+      const monthCol = header.findIndex((c) => /^month$/i.test(String(c ?? "").trim()));
+      const valCol = header.findIndex((c) => /registration to dwp decision/i.test(String(c ?? "").replace(/\s+/g, " ")));
+      if (monthCol < 0 || valCol < 0) throw new Error(`pip-clearance: cols month=${monthCol} val=${valCol}`);
+      const excelDate = (n) => {
+        const d = new Date((n - 25569) * 86400000);
+        return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-01`;
+      };
+      const points = [];
+      for (const r of rows.slice(headerIdx + 1)) {
+        const rawDate = r[monthCol];
+        const date = typeof rawDate === "number" && rawDate > 30000 && rawDate < 60000 ? excelDate(rawDate) : null;
+        if (!date) continue;
+        const weeks = typeof r[valCol] === "number" ? r[valCol] : parseFloat(String(r[valCol] ?? ""));
+        if (!Number.isFinite(weeks) || weeks <= 0) continue;
+        const days = weeks * 7;
+        if (days >= 20 && days <= 350) points.push({ date, value: Math.round(days) });
+      }
+      if (points.length < 24) throw new Error(`pip-clearance: only ${points.length} points`);
+      return points.sort((a, b) => (a.date < b.date ? -1 : 1));
     },
   },
 
