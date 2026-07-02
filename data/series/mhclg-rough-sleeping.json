@@ -1,0 +1,98 @@
+{
+  "@context": "https://egly443.github.io/Govviz/data/profile.json",
+  "id": "https://egly443.github.io/Govviz/data/series/mhclg-rough-sleeping.json",
+  "title": "Rough sleeping",
+  "description": "People estimated sleeping rough on a single night, England",
+  "producer": "MHCLG, Rough sleeping snapshot in England",
+  "statisticType": "Official Statistic",
+  "measure": "People estimated sleeping rough on a single night, England",
+  "unit": "number",
+  "unitMultiplier": 0,
+  "unitLabel": "number",
+  "geography": null,
+  "geographyLabel": null,
+  "periodicity": "P1Y",
+  "validRange": {
+    "min": 500,
+    "max": 12000
+  },
+  "suppressionScheme": "https://egly443.github.io/Govviz/data/suppression/v1",
+  "revisionStatus": "final",
+  "licence": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+  "provenance": {
+    "source": "MHCLG, Rough sleeping snapshot in England",
+    "methodology": "https://www.gov.uk/government/statistical-data-sets/tables-on-rough-sleeping",
+    "derivation": "Direct from source; latest value validated against validRange",
+    "upstreamUrl": "https://assets.publishing.service.gov.uk/media/699daac73e672177d0bc759b/Rough_sleeping_snapshot_in_England__autumn_2025.ods",
+    "fetchedAt": "2026-07-02",
+    "contentHash": "ae116db150",
+    "sourceBytesHash": "7b5838ec8f38",
+    "compiledBy": "Govviz"
+  },
+  "semanticTags": [
+    "mhclg",
+    "housing, communities & local government",
+    "homelessness",
+    "supply",
+    "affordability",
+    "experience",
+    "annual",
+    "number"
+  ],
+  "subjectUris": [
+    "https://www.gov.uk/government/organisations/ministry-of-housing-communities-local-government",
+    "https://www.gov.uk/government/statistical-data-sets/tables-on-rough-sleeping"
+  ],
+  "qualityDimensions": {
+    "accuracy": "Not asserted by Govviz; upstream producer methodology remains authoritative.",
+    "completeness": "16 observations emitted in the tidy data file.",
+    "uniqueness": "One observation per period/ref_area key in the emitted tidy table.",
+    "consistency": "Compiled by the same source-specific parser and emitted through one CSVW schema.",
+    "timeliness": "Latest observed period 2025 is within the expected annual cadence; latest source fetch recorded 2026-07-02.",
+    "validity": "Latest source values passed the published validRange 500 to 12000."
+  },
+  "compiler": {
+    "name": "Govviz",
+    "url": "https://egly443.github.io/Govviz",
+    "conformanceVersion": "ai-ready-series-profile-v0.2",
+    "compiledAt": "2026-07-02T16:51:32.943Z",
+    "pipelineCommit": "90aea5d6665231b8497666afb12794279c7826d6",
+    "sourceBytesHash": "7b5838ec8f38"
+  },
+  "upstreamConformance": "not-asserted-by-primary-publisher",
+  "publisherClaim": "not-asserted-by-primary-publisher",
+  "nextRelease": null,
+  "nextReleaseEstimated": false,
+  "expectedCadence": "annual",
+  "latestObservedPeriod": "2025",
+  "latestFetchedAt": "2026-07-02",
+  "estimatedNextPeriod": "2026-12-31",
+  "freshnessStatus": "current",
+  "freshnessReason": "Latest observed period 2025 is within the expected annual cadence; latest source fetch recorded 2026-07-02.",
+  "conformanceLevel": "M5-reference-rendering",
+  "limitations": [
+    "Govviz is a downstream compiler, not the primary publisher.",
+    "The primary producer may not publish the same tidy structure, stable id, CSVW metadata, or validation range upstream.",
+    "Freshness metadata is inferred from observed periods and fetch timestamps; it is not an official release calendar.",
+    "The contact and accountability route remains the primary producer's published route, not a Govviz official statistics contact.",
+    "No upstream policy-as-code conformance assertion has been made by the primary producer."
+  ],
+  "latest": "https://egly443.github.io/Govviz/data/series/mhclg-rough-sleeping/data.csv",
+  "distribution": [
+    "https://egly443.github.io/Govviz/data/series/mhclg-rough-sleeping/data.csv",
+    "https://egly443.github.io/Govviz/data/series/mhclg-rough-sleeping/data-7992a4ac9645.csv",
+    "https://egly443.github.io/Govviz/data/series/mhclg-rough-sleeping/data.csv-metadata.json",
+    "https://egly443.github.io/Govviz/data/series/mhclg-rough-sleeping.json"
+  ],
+  "csvw": "https://egly443.github.io/Govviz/data/series/mhclg-rough-sleeping/data.csv-metadata.json",
+  "agent": "https://egly443.github.io/Govviz/data/mcp.json",
+  "basis": null,
+  "caveat": null,
+  "lens": "experience",
+  "goodDirection": "down",
+  "department": {
+    "code": "mhclg",
+    "name": "Housing, Communities & Local Government"
+  },
+  "observationCount": 16
+}

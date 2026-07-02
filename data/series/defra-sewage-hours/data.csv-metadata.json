@@ -1,0 +1,62 @@
+{
+  "@context": [
+    "http://www.w3.org/ns/csvw",
+    {
+      "@language": "en"
+    }
+  ],
+  "url": "data-fb785635ed73.csv",
+  "dc:title": "Sewage spill hours",
+  "dc:description": "Storm overflow spill duration, England, million hours/yr",
+  "dc:publisher": {
+    "schema:name": "Environment Agency storm overflow EDM annual returns"
+  },
+  "dc:license": {
+    "@id": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/"
+  },
+  "dc:source": {
+    "@id": "https://environment.data.gov.uk/api/file/download?fileDataSetId=c55e170e-3c75-49a5-8026-a961ff94c8e0&fileName=EDM_2025_Storm_Overflow_Annual_Return.zip"
+  },
+  "tableSchema": {
+    "columns": [
+      {
+        "name": "period",
+        "titles": "period",
+        "datatype": "string",
+        "dc:description": "Observation period (year, or ISO date)",
+        "propertyUrl": "http://purl.org/linked-data/sdmx/2009/dimension#timePeriod"
+      },
+      {
+        "name": "value",
+        "titles": "value",
+        "datatype": "number",
+        "dc:description": "Observation value in hours",
+        "propertyUrl": "http://purl.org/linked-data/sdmx/2009/measure#obsValue"
+      },
+      {
+        "name": "unit",
+        "titles": "unit",
+        "datatype": "string",
+        "dc:description": "Unit of measure",
+        "propertyUrl": "http://purl.org/linked-data/sdmx/2009/attribute#unitMeasure"
+      },
+      {
+        "name": "unit_multiplier",
+        "titles": "unit_multiplier",
+        "datatype": "integer",
+        "dc:description": "Power-of-ten multiplier: base value = value × 10^unit_multiplier",
+        "propertyUrl": "http://purl.org/linked-data/sdmx/2009/attribute#unitMult"
+      },
+      {
+        "name": "status",
+        "titles": "status",
+        "datatype": "string",
+        "dc:description": "Observation status / suppression code",
+        "propertyUrl": "http://purl.org/linked-data/sdmx/2009/attribute#obsStatus"
+      }
+    ],
+    "primaryKey": [
+      "period"
+    ]
+  }
+}

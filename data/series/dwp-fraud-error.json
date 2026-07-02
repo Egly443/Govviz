@@ -1,0 +1,105 @@
+{
+  "@context": "https://egly443.github.io/Govviz/data/profile.json",
+  "id": "https://egly443.github.io/Govviz/data/series/dwp-fraud-error.json",
+  "title": "Fraud & error in benefit spend",
+  "description": "Overpayments as % of total benefit expenditure",
+  "producer": "DWP fraud and error in the benefit system",
+  "statisticType": "Official Statistic",
+  "measure": "Overpayments as % of total benefit expenditure",
+  "unit": "percent",
+  "unitMultiplier": 0,
+  "unitLabel": "percent (%)",
+  "geography": null,
+  "geographyLabel": null,
+  "periodicity": "P1Y",
+  "validRange": {
+    "min": 0.5,
+    "max": 6
+  },
+  "suppressionScheme": "https://egly443.github.io/Govviz/data/suppression/v1",
+  "revisionStatus": "final",
+  "licence": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+  "provenance": {
+    "source": "DWP fraud and error in the benefit system",
+    "methodology": "https://www.gov.uk/government/collections/fraud-and-error-in-the-benefit-system",
+    "derivation": "Direct from source; latest value validated against validRange",
+    "upstreamUrl": "https://assets.publishing.service.gov.uk/media/6a0472d0ee62840dba48a1e7/financial-year-ending-2026-estimates.xlsx",
+    "fetchedAt": "2026-07-02",
+    "contentHash": "ff5b94a967",
+    "sourceBytesHash": "b67a3f7b501d",
+    "compiledBy": "Govviz"
+  },
+  "semanticTags": [
+    "dwp",
+    "work & pensions",
+    "speed",
+    "capacity",
+    "integrity",
+    "backlog",
+    "annual",
+    "percent",
+    "productivity",
+    "public finance"
+  ],
+  "subjectUris": [
+    "https://www.gov.uk/government/organisations/department-for-work-pensions",
+    "https://www.gov.uk/government/collections/fraud-and-error-in-the-benefit-system"
+  ],
+  "qualityDimensions": {
+    "accuracy": "Not asserted by Govviz; upstream producer methodology remains authoritative.",
+    "completeness": "21 observations emitted in the tidy data file.",
+    "uniqueness": "One observation per period/ref_area key in the emitted tidy table.",
+    "consistency": "Compiled by the same source-specific parser and emitted through one CSVW schema.",
+    "timeliness": "Latest observed period 2026 is within the expected annual cadence; latest source fetch recorded 2026-07-02.",
+    "validity": "Latest source values passed the published validRange 0.5 to 6."
+  },
+  "compiler": {
+    "name": "Govviz",
+    "url": "https://egly443.github.io/Govviz",
+    "conformanceVersion": "ai-ready-series-profile-v0.2",
+    "compiledAt": "2026-07-02T16:51:32.898Z",
+    "pipelineCommit": "90aea5d6665231b8497666afb12794279c7826d6",
+    "sourceBytesHash": "b67a3f7b501d"
+  },
+  "upstreamConformance": "not-asserted-by-primary-publisher",
+  "publisherClaim": "not-asserted-by-primary-publisher",
+  "nextRelease": null,
+  "nextReleaseEstimated": false,
+  "expectedCadence": "annual",
+  "latestObservedPeriod": "2026",
+  "latestFetchedAt": "2026-07-02",
+  "estimatedNextPeriod": "2027-12-31",
+  "freshnessStatus": "current",
+  "freshnessReason": "Latest observed period 2026 is within the expected annual cadence; latest source fetch recorded 2026-07-02.",
+  "conformanceLevel": "M5-reference-rendering",
+  "limitations": [
+    "Govviz is a downstream compiler, not the primary publisher.",
+    "The primary producer may not publish the same tidy structure, stable id, CSVW metadata, or validation range upstream.",
+    "Freshness metadata is inferred from observed periods and fetch timestamps; it is not an official release calendar.",
+    "The contact and accountability route remains the primary producer's published route, not a Govviz official statistics contact.",
+    "No upstream policy-as-code conformance assertion has been made by the primary producer."
+  ],
+  "latest": "https://egly443.github.io/Govviz/data/series/dwp-fraud-error/data.csv",
+  "distribution": [
+    "https://egly443.github.io/Govviz/data/series/dwp-fraud-error/data.csv",
+    "https://egly443.github.io/Govviz/data/series/dwp-fraud-error/data-28a2558a2da5.csv",
+    "https://egly443.github.io/Govviz/data/series/dwp-fraud-error/data.csv-metadata.json",
+    "https://egly443.github.io/Govviz/data/series/dwp-fraud-error.json"
+  ],
+  "csvw": "https://egly443.github.io/Govviz/data/series/dwp-fraud-error/data.csv-metadata.json",
+  "agent": "https://egly443.github.io/Govviz/data/mcp.json",
+  "basis": null,
+  "caveat": null,
+  "lens": null,
+  "goodDirection": "down",
+  "target": {
+    "value": 1.9,
+    "label": "2017-18 level",
+    "kind": "reference"
+  },
+  "department": {
+    "code": "dwp",
+    "name": "Work & Pensions"
+  },
+  "observationCount": 21
+}

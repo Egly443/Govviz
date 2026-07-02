@@ -1,0 +1,100 @@
+{
+  "@context": "https://egly443.github.io/Govviz/data/profile.json",
+  "id": "https://egly443.github.io/Govviz/data/series/dft-rail-fares.json",
+  "title": "Rail fares",
+  "description": "CPI rail fares index — passenger transport by railway (2015 = 100)",
+  "producer": "ONS Consumer Prices Index — passenger transport by railway (D7EF)",
+  "statisticType": "Official Statistic",
+  "measure": "CPI rail fares index — passenger transport by railway (2015 = 100)",
+  "unit": "index",
+  "unitMultiplier": 0,
+  "unitLabel": "index (rebased)",
+  "geography": null,
+  "geographyLabel": null,
+  "periodicity": "P1M",
+  "validRange": {
+    "min": 30,
+    "max": 250
+  },
+  "suppressionScheme": "https://egly443.github.io/Govviz/data/suppression/v1",
+  "revisionStatus": "final",
+  "licence": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+  "provenance": {
+    "source": "ONS Consumer Prices Index — passenger transport by railway (D7EF)",
+    "methodology": "https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/d7ef/mm23",
+    "derivation": "Direct from source; latest value validated against validRange",
+    "upstreamUrl": "https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/d7ef/mm23/data",
+    "fetchedAt": "2026-07-02",
+    "contentHash": "0ab1556c70",
+    "sourceBytesHash": "423b125ffe1d",
+    "compiledBy": "Govviz"
+  },
+  "semanticTags": [
+    "dft",
+    "transport",
+    "reliability",
+    "service",
+    "delivery",
+    "assets",
+    "experience",
+    "monthly",
+    "index",
+    "infrastructure"
+  ],
+  "subjectUris": [
+    "https://www.gov.uk/government/organisations/department-for-transport",
+    "https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/d7ef/mm23"
+  ],
+  "qualityDimensions": {
+    "accuracy": "Not asserted by Govviz; upstream producer methodology remains authoritative.",
+    "completeness": "449 observations emitted in the tidy data file.",
+    "uniqueness": "One observation per period/ref_area key in the emitted tidy table.",
+    "consistency": "Compiled by the same source-specific parser and emitted through one CSVW schema.",
+    "timeliness": "Latest observed period 2026-05 is older than the expected monthly cadence projection 2026-06-01; latest source fetch recorded 2026-07-02.",
+    "validity": "Latest source values passed the published validRange 30 to 250."
+  },
+  "compiler": {
+    "name": "Govviz",
+    "url": "https://egly443.github.io/Govviz",
+    "conformanceVersion": "ai-ready-series-profile-v0.2",
+    "compiledAt": "2026-07-02T16:51:32.907Z",
+    "pipelineCommit": "90aea5d6665231b8497666afb12794279c7826d6",
+    "sourceBytesHash": "423b125ffe1d"
+  },
+  "upstreamConformance": "not-asserted-by-primary-publisher",
+  "publisherClaim": "not-asserted-by-primary-publisher",
+  "nextRelease": null,
+  "nextReleaseEstimated": false,
+  "expectedCadence": "monthly",
+  "latestObservedPeriod": "2026-05",
+  "latestFetchedAt": "2026-07-02",
+  "estimatedNextPeriod": "2026-06-01",
+  "freshnessStatus": "aged",
+  "freshnessReason": "Latest observed period 2026-05 is older than the expected monthly cadence projection 2026-06-01; latest source fetch recorded 2026-07-02.",
+  "conformanceLevel": "M5-reference-rendering",
+  "limitations": [
+    "Govviz is a downstream compiler, not the primary publisher.",
+    "The primary producer may not publish the same tidy structure, stable id, CSVW metadata, or validation range upstream.",
+    "Freshness metadata is inferred from observed periods and fetch timestamps; it is not an official release calendar.",
+    "The contact and accountability route remains the primary producer's published route, not a Govviz official statistics contact.",
+    "No upstream policy-as-code conformance assertion has been made by the primary producer."
+  ],
+  "latest": "https://egly443.github.io/Govviz/data/series/dft-rail-fares/data.csv",
+  "distribution": [
+    "https://egly443.github.io/Govviz/data/series/dft-rail-fares/data.csv",
+    "https://egly443.github.io/Govviz/data/series/dft-rail-fares/data-f8ff71bb5c7e.csv",
+    "https://egly443.github.io/Govviz/data/series/dft-rail-fares/data.csv-metadata.json",
+    "https://egly443.github.io/Govviz/data/series/dft-rail-fares.json"
+  ],
+  "csvw": "https://egly443.github.io/Govviz/data/series/dft-rail-fares/data.csv-metadata.json",
+  "agent": "https://egly443.github.io/Govviz/data/mcp.json",
+  "basis": null,
+  "caveat": null,
+  "lens": "experience",
+  "goodDirection": "down",
+  "department": {
+    "code": "dft",
+    "name": "Transport"
+  },
+  "observationCount": 449
+}

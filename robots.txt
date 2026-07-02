@@ -1,0 +1,12 @@
+# We *want* this content found, indexed and cited — including by AI search and
+# LLM crawlers (GPTBot, OAI-SearchBot, ClaudeBot, PerplexityBot, Google-Extended,
+# Applebot-Extended, CCBot, Bytespider, Amazonbot, Meta-ExternalAgent, etc.).
+User-agent: *
+Allow: /
+
+Sitemap: https://egly443.github.io/Govviz/sitemap.xml
+
+# Note: GitHub Pages project sites are served under a subpath, so the
+# authoritative robots.txt is at the domain root (egly443.github.io/robots.txt).
+# This file is a best-effort signal; submit the sitemap via Search Console for
+# reliable indexing, and use a custom domain to control the root robots.txt.

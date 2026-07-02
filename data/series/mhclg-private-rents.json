@@ -1,0 +1,100 @@
+{
+  "@context": "https://egly443.github.io/Govviz/data/profile.json",
+  "id": "https://egly443.github.io/Govviz/data/series/mhclg-private-rents.json",
+  "title": "Private rents",
+  "description": "Price Index of Private Rents, UK (rebased index)",
+  "producer": "ONS Price Index of Private Rents (PIPR), historical series",
+  "statisticType": "Official Statistic",
+  "measure": "Price Index of Private Rents, UK (rebased index)",
+  "unit": "index",
+  "unitMultiplier": 0,
+  "unitLabel": "index (rebased)",
+  "geography": null,
+  "geographyLabel": null,
+  "periodicity": "P1M",
+  "validRange": {
+    "min": 40,
+    "max": 250
+  },
+  "suppressionScheme": "https://egly443.github.io/Govviz/data/suppression/v1",
+  "revisionStatus": "final",
+  "licence": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+  "provenance": {
+    "source": "ONS Price Index of Private Rents (PIPR), historical series",
+    "methodology": "https://www.ons.gov.uk/economy/inflationandpriceindices/datasets/priceindexofprivaterentsukhistoricalseries",
+    "derivation": "Direct from source; latest value validated against validRange",
+    "upstreamUrl": "https://www.ons.gov.uk/file?uri=/economy/inflationandpriceindices/datasets/priceindexofprivaterentsukhistoricalseries/26march2025/priceindexofprivaterentsukhistoricalseries.xlsx",
+    "fetchedAt": "2026-07-02",
+    "contentHash": "eaac84b8c0",
+    "sourceBytesHash": "3aba59c0e970",
+    "compiledBy": "Govviz"
+  },
+  "semanticTags": [
+    "mhclg",
+    "housing, communities & local government",
+    "homelessness",
+    "supply",
+    "affordability",
+    "experience",
+    "monthly",
+    "index",
+    "housing",
+    "housing supply"
+  ],
+  "subjectUris": [
+    "https://www.gov.uk/government/organisations/ministry-of-housing-communities-local-government",
+    "https://www.ons.gov.uk/economy/inflationandpriceindices/datasets/priceindexofprivaterentsukhistoricalseries"
+  ],
+  "qualityDimensions": {
+    "accuracy": "Not asserted by Govviz; upstream producer methodology remains authoritative.",
+    "completeness": "122 observations emitted in the tidy data file.",
+    "uniqueness": "One observation per period/ref_area key in the emitted tidy table.",
+    "consistency": "Compiled by the same source-specific parser and emitted through one CSVW schema.",
+    "timeliness": "Latest observed period 2025-02 is older than the expected monthly cadence projection 2025-03-01; latest source fetch recorded 2026-07-02.",
+    "validity": "Latest source values passed the published validRange 40 to 250."
+  },
+  "compiler": {
+    "name": "Govviz",
+    "url": "https://egly443.github.io/Govviz",
+    "conformanceVersion": "ai-ready-series-profile-v0.2",
+    "compiledAt": "2026-07-02T16:51:32.941Z",
+    "pipelineCommit": "90aea5d6665231b8497666afb12794279c7826d6",
+    "sourceBytesHash": "3aba59c0e970"
+  },
+  "upstreamConformance": "not-asserted-by-primary-publisher",
+  "publisherClaim": "not-asserted-by-primary-publisher",
+  "nextRelease": null,
+  "nextReleaseEstimated": false,
+  "expectedCadence": "monthly",
+  "latestObservedPeriod": "2025-02",
+  "latestFetchedAt": "2026-07-02",
+  "estimatedNextPeriod": "2025-03-01",
+  "freshnessStatus": "aged",
+  "freshnessReason": "Latest observed period 2025-02 is older than the expected monthly cadence projection 2025-03-01; latest source fetch recorded 2026-07-02.",
+  "conformanceLevel": "M5-reference-rendering",
+  "limitations": [
+    "Govviz is a downstream compiler, not the primary publisher.",
+    "The primary producer may not publish the same tidy structure, stable id, CSVW metadata, or validation range upstream.",
+    "Freshness metadata is inferred from observed periods and fetch timestamps; it is not an official release calendar.",
+    "The contact and accountability route remains the primary producer's published route, not a Govviz official statistics contact.",
+    "No upstream policy-as-code conformance assertion has been made by the primary producer."
+  ],
+  "latest": "https://egly443.github.io/Govviz/data/series/mhclg-private-rents/data.csv",
+  "distribution": [
+    "https://egly443.github.io/Govviz/data/series/mhclg-private-rents/data.csv",
+    "https://egly443.github.io/Govviz/data/series/mhclg-private-rents/data-859aa616202f.csv",
+    "https://egly443.github.io/Govviz/data/series/mhclg-private-rents/data.csv-metadata.json",
+    "https://egly443.github.io/Govviz/data/series/mhclg-private-rents.json"
+  ],
+  "csvw": "https://egly443.github.io/Govviz/data/series/mhclg-private-rents/data.csv-metadata.json",
+  "agent": "https://egly443.github.io/Govviz/data/mcp.json",
+  "basis": null,
+  "caveat": null,
+  "lens": "experience",
+  "goodDirection": "down",
+  "department": {
+    "code": "mhclg",
+    "name": "Housing, Communities & Local Government"
+  },
+  "observationCount": 122
+}

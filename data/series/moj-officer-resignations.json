@@ -1,0 +1,99 @@
+{
+  "@context": "https://egly443.github.io/Govviz/data/profile.json",
+  "id": "https://egly443.github.io/Govviz/data/series/moj-officer-resignations.json",
+  "title": "Prison officer resignation rate",
+  "description": "Band 3-5 voluntary resignations, annualised",
+  "producer": "HMPPS workforce statistics",
+  "statisticType": "Official Statistic",
+  "measure": "Band 3-5 voluntary resignations, annualised",
+  "unit": "percent",
+  "unitMultiplier": 0,
+  "unitLabel": "percent (%)",
+  "geography": null,
+  "geographyLabel": null,
+  "periodicity": "P1M",
+  "validRange": {
+    "min": 2,
+    "max": 20
+  },
+  "suppressionScheme": "https://egly443.github.io/Govviz/data/suppression/v1",
+  "revisionStatus": "final",
+  "licence": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+  "provenance": {
+    "source": "HMPPS workforce statistics",
+    "methodology": "https://www.gov.uk/government/collections/her-majestys-prison-and-probation-service-workforce-quarterly",
+    "derivation": "Direct from source; latest value validated against validRange",
+    "upstreamUrl": "https://assets.publishing.service.gov.uk/media/6a0d90f1faac4bc0b0e90635/hmpps-workforce-statistics-tables-mar-2026_final.ods",
+    "fetchedAt": "2026-07-02",
+    "contentHash": "90c013daeb",
+    "sourceBytesHash": "173d2b5d306c",
+    "compiledBy": "Govviz"
+  },
+  "semanticTags": [
+    "moj",
+    "justice",
+    "backlog",
+    "cost",
+    "workforce",
+    "speed",
+    "monthly",
+    "percent",
+    "courts backlog"
+  ],
+  "subjectUris": [
+    "https://www.gov.uk/government/organisations/ministry-of-justice",
+    "https://www.gov.uk/government/collections/her-majestys-prison-and-probation-service-workforce-quarterly"
+  ],
+  "qualityDimensions": {
+    "accuracy": "Not asserted by Govviz; upstream producer methodology remains authoritative.",
+    "completeness": "7 observations emitted in the tidy data file.",
+    "uniqueness": "One observation per period/ref_area key in the emitted tidy table.",
+    "consistency": "Compiled by the same source-specific parser and emitted through one CSVW schema.",
+    "timeliness": "Latest observed period 2026-03 is older than the expected monthly cadence projection 2026-04-01; latest source fetch recorded 2026-07-02.",
+    "validity": "Latest source values passed the published validRange 2 to 20."
+  },
+  "compiler": {
+    "name": "Govviz",
+    "url": "https://egly443.github.io/Govviz",
+    "conformanceVersion": "ai-ready-series-profile-v0.2",
+    "compiledAt": "2026-07-02T16:51:32.887Z",
+    "pipelineCommit": "90aea5d6665231b8497666afb12794279c7826d6",
+    "sourceBytesHash": "173d2b5d306c"
+  },
+  "upstreamConformance": "not-asserted-by-primary-publisher",
+  "publisherClaim": "not-asserted-by-primary-publisher",
+  "nextRelease": null,
+  "nextReleaseEstimated": false,
+  "expectedCadence": "monthly",
+  "latestObservedPeriod": "2026-03",
+  "latestFetchedAt": "2026-07-02",
+  "estimatedNextPeriod": "2026-04-01",
+  "freshnessStatus": "aged",
+  "freshnessReason": "Latest observed period 2026-03 is older than the expected monthly cadence projection 2026-04-01; latest source fetch recorded 2026-07-02.",
+  "conformanceLevel": "M5-reference-rendering",
+  "limitations": [
+    "Govviz is a downstream compiler, not the primary publisher.",
+    "The primary producer may not publish the same tidy structure, stable id, CSVW metadata, or validation range upstream.",
+    "Freshness metadata is inferred from observed periods and fetch timestamps; it is not an official release calendar.",
+    "The contact and accountability route remains the primary producer's published route, not a Govviz official statistics contact.",
+    "No upstream policy-as-code conformance assertion has been made by the primary producer."
+  ],
+  "latest": "https://egly443.github.io/Govviz/data/series/moj-officer-resignations/data.csv",
+  "distribution": [
+    "https://egly443.github.io/Govviz/data/series/moj-officer-resignations/data.csv",
+    "https://egly443.github.io/Govviz/data/series/moj-officer-resignations/data-6a8e1ce6110f.csv",
+    "https://egly443.github.io/Govviz/data/series/moj-officer-resignations/data.csv-metadata.json",
+    "https://egly443.github.io/Govviz/data/series/moj-officer-resignations.json"
+  ],
+  "csvw": "https://egly443.github.io/Govviz/data/series/moj-officer-resignations/data.csv-metadata.json",
+  "agent": "https://egly443.github.io/Govviz/data/mcp.json",
+  "basis": null,
+  "caveat": null,
+  "lens": null,
+  "goodDirection": "down",
+  "department": {
+    "code": "moj",
+    "name": "Justice"
+  },
+  "observationCount": 7
+}

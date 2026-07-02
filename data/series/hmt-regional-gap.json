@@ -1,0 +1,97 @@
+{
+  "@context": "https://egly443.github.io/Govviz/data/profile.json",
+  "id": "https://egly443.github.io/Govviz/data/series/hmt-regional-gap.json",
+  "title": "Regional divide",
+  "description": "London GVA per head as a multiple of the UK average",
+  "producer": "ONS, Regional gross value added (balanced) per head",
+  "statisticType": "Official Statistic",
+  "measure": "London GVA per head as a multiple of the UK average",
+  "unit": "ratio",
+  "unitMultiplier": 0,
+  "unitLabel": "ratio (dimensionless)",
+  "geography": null,
+  "geographyLabel": null,
+  "periodicity": "P1Y",
+  "validRange": {
+    "min": 1.2,
+    "max": 3
+  },
+  "suppressionScheme": "https://egly443.github.io/Govviz/data/suppression/v1",
+  "revisionStatus": "final",
+  "licence": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+  "provenance": {
+    "source": "ONS, Regional gross value added (balanced) per head",
+    "methodology": "Ratio of London GVA per head to the UK average (London ÷ UK), per year. Higher = wider regional gap.",
+    "derivation": "Ratio of London GVA per head to the UK average (London ÷ UK), per year. Higher = wider regional gap.",
+    "upstreamUrl": "https://www.ons.gov.uk/file?uri=/economy/grossvalueaddedgva/datasets/nominalregionalgrossvalueaddedbalancedperheadandincomecomponents/current/regionalgrossvalueaddedbalancedperheadandincomecomponents.xlsx",
+    "fetchedAt": "2026-07-02",
+    "contentHash": "36e9e468e0",
+    "sourceBytesHash": "9102b1411aaa",
+    "compiledBy": "Govviz"
+  },
+  "semanticTags": [
+    "treasury",
+    "living standards",
+    "debt",
+    "tax",
+    "cost of living",
+    "annual",
+    "ratio"
+  ],
+  "subjectUris": [
+    "https://www.gov.uk/government/organisations/hm-treasury",
+    "https://www.ons.gov.uk/economy/grossvalueaddedgva/datasets/nominalregionalgrossvalueaddedbalancedperheadandincomecomponents"
+  ],
+  "qualityDimensions": {
+    "accuracy": "Not asserted by Govviz; upstream producer methodology remains authoritative.",
+    "completeness": "26 observations emitted in the tidy data file.",
+    "uniqueness": "One observation per period/ref_area key in the emitted tidy table.",
+    "consistency": "Compiled by the same source-specific parser and emitted through one CSVW schema.",
+    "timeliness": "Latest observed period 2023 is older than the expected annual cadence projection 2024-12-31; latest source fetch recorded 2026-07-02.",
+    "validity": "Latest source values passed the published validRange 1.2 to 3."
+  },
+  "compiler": {
+    "name": "Govviz",
+    "url": "https://egly443.github.io/Govviz",
+    "conformanceVersion": "ai-ready-series-profile-v0.2",
+    "compiledAt": "2026-07-02T16:51:32.924Z",
+    "pipelineCommit": "90aea5d6665231b8497666afb12794279c7826d6",
+    "sourceBytesHash": "9102b1411aaa"
+  },
+  "upstreamConformance": "not-asserted-by-primary-publisher",
+  "publisherClaim": "not-asserted-by-primary-publisher",
+  "nextRelease": null,
+  "nextReleaseEstimated": false,
+  "expectedCadence": "annual",
+  "latestObservedPeriod": "2023",
+  "latestFetchedAt": "2026-07-02",
+  "estimatedNextPeriod": "2024-12-31",
+  "freshnessStatus": "aged",
+  "freshnessReason": "Latest observed period 2023 is older than the expected annual cadence projection 2024-12-31; latest source fetch recorded 2026-07-02.",
+  "conformanceLevel": "M5-reference-rendering",
+  "limitations": [
+    "Govviz is a downstream compiler, not the primary publisher.",
+    "The primary producer may not publish the same tidy structure, stable id, CSVW metadata, or validation range upstream.",
+    "Freshness metadata is inferred from observed periods and fetch timestamps; it is not an official release calendar.",
+    "The contact and accountability route remains the primary producer's published route, not a Govviz official statistics contact.",
+    "No upstream policy-as-code conformance assertion has been made by the primary producer."
+  ],
+  "latest": "https://egly443.github.io/Govviz/data/series/hmt-regional-gap/data.csv",
+  "distribution": [
+    "https://egly443.github.io/Govviz/data/series/hmt-regional-gap/data.csv",
+    "https://egly443.github.io/Govviz/data/series/hmt-regional-gap/data-3b67a4807a15.csv",
+    "https://egly443.github.io/Govviz/data/series/hmt-regional-gap/data.csv-metadata.json",
+    "https://egly443.github.io/Govviz/data/series/hmt-regional-gap.json"
+  ],
+  "csvw": "https://egly443.github.io/Govviz/data/series/hmt-regional-gap/data.csv-metadata.json",
+  "agent": "https://egly443.github.io/Govviz/data/mcp.json",
+  "basis": null,
+  "caveat": null,
+  "lens": null,
+  "goodDirection": "down",
+  "department": {
+    "code": "treasury",
+    "name": "Treasury"
+  },
+  "observationCount": 26
+}

@@ -1,0 +1,101 @@
+{
+  "@context": "https://egly443.github.io/Govviz/data/profile.json",
+  "id": "https://egly443.github.io/Govviz/data/series/dfe-attainment-gap.json",
+  "title": "Disadvantaged attainment gap",
+  "description": "KS4 disadvantage gap index (higher = wider gap)",
+  "producer": "DfE, Explore Education Statistics (KS4 performance)",
+  "statisticType": "Official Statistic",
+  "measure": "KS4 disadvantage gap index (higher = wider gap)",
+  "unit": "index",
+  "unitMultiplier": 0,
+  "unitLabel": "index (rebased)",
+  "geography": "E92000001",
+  "geographyLabel": "England",
+  "periodicity": "P1Y",
+  "validRange": {
+    "min": 2,
+    "max": 6
+  },
+  "suppressionScheme": "https://egly443.github.io/Govviz/data/suppression/v1",
+  "revisionStatus": "final",
+  "licence": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+  "provenance": {
+    "source": "DfE, Explore Education Statistics (KS4 performance)",
+    "methodology": "https://explore-education-statistics.service.gov.uk/find-statistics/key-stage-4-performance",
+    "derivation": "Direct from source; latest value validated against validRange",
+    "upstreamUrl": "https://explore-education-statistics.service.gov.uk/data-catalogue/data-set/dbff4e55-5b10-44bc-be2b-23d9d68e0f98",
+    "fetchedAt": "2026-07-02",
+    "contentHash": "73bfa306d6",
+    "sourceBytesHash": "62265328da4c",
+    "compiledBy": "Govviz"
+  },
+  "semanticTags": [
+    "dfe",
+    "education",
+    "attainment",
+    "workforce",
+    "funding",
+    "pipeline",
+    "annual",
+    "england",
+    "index",
+    "schools"
+  ],
+  "subjectUris": [
+    "https://www.gov.uk/government/organisations/department-for-education",
+    "https://statistics.data.gov.uk/id/statistical-geography/E92000001",
+    "https://explore-education-statistics.service.gov.uk/find-statistics/key-stage-4-performance"
+  ],
+  "qualityDimensions": {
+    "accuracy": "Not asserted by Govviz; upstream producer methodology remains authoritative.",
+    "completeness": "15 observations emitted in the tidy data file.",
+    "uniqueness": "One observation per period/ref_area key in the emitted tidy table.",
+    "consistency": "Compiled by the same source-specific parser and emitted through one CSVW schema.",
+    "timeliness": "Latest observed period 2024 is older than the expected annual cadence projection 2025-12-31; latest source fetch recorded 2026-07-02.",
+    "validity": "Latest source values passed the published validRange 2 to 6."
+  },
+  "compiler": {
+    "name": "Govviz",
+    "url": "https://egly443.github.io/Govviz",
+    "conformanceVersion": "ai-ready-series-profile-v0.2",
+    "compiledAt": "2026-07-02T16:51:32.868Z",
+    "pipelineCommit": "90aea5d6665231b8497666afb12794279c7826d6",
+    "sourceBytesHash": "62265328da4c"
+  },
+  "upstreamConformance": "not-asserted-by-primary-publisher",
+  "publisherClaim": "not-asserted-by-primary-publisher",
+  "nextRelease": null,
+  "nextReleaseEstimated": false,
+  "expectedCadence": "annual",
+  "latestObservedPeriod": "2024",
+  "latestFetchedAt": "2026-07-02",
+  "estimatedNextPeriod": "2025-12-31",
+  "freshnessStatus": "aged",
+  "freshnessReason": "Latest observed period 2024 is older than the expected annual cadence projection 2025-12-31; latest source fetch recorded 2026-07-02.",
+  "conformanceLevel": "M5-reference-rendering",
+  "limitations": [
+    "Govviz is a downstream compiler, not the primary publisher.",
+    "The primary producer may not publish the same tidy structure, stable id, CSVW metadata, or validation range upstream.",
+    "Freshness metadata is inferred from observed periods and fetch timestamps; it is not an official release calendar.",
+    "The contact and accountability route remains the primary producer's published route, not a Govviz official statistics contact.",
+    "No upstream policy-as-code conformance assertion has been made by the primary producer."
+  ],
+  "latest": "https://egly443.github.io/Govviz/data/series/dfe-attainment-gap/data.csv",
+  "distribution": [
+    "https://egly443.github.io/Govviz/data/series/dfe-attainment-gap/data.csv",
+    "https://egly443.github.io/Govviz/data/series/dfe-attainment-gap/data-cd5d319d6fa5.csv",
+    "https://egly443.github.io/Govviz/data/series/dfe-attainment-gap/data.csv-metadata.json",
+    "https://egly443.github.io/Govviz/data/series/dfe-attainment-gap.json"
+  ],
+  "csvw": "https://egly443.github.io/Govviz/data/series/dfe-attainment-gap/data.csv-metadata.json",
+  "agent": "https://egly443.github.io/Govviz/data/mcp.json",
+  "basis": null,
+  "caveat": null,
+  "lens": null,
+  "goodDirection": "down",
+  "department": {
+    "code": "dfe",
+    "name": "Education"
+  },
+  "observationCount": 15
+}

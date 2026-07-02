@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/Govviz/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="How Govviz sources, validates and republishes UK government performance data as AI-ready open data." />
+    <meta
+      name="keywords"
+      content="UK government performance data, open data, AI-ready data, agentic open data, government statistics, machine-readable data, LLM, AI agents"
+    />
+    <meta name="robots" content="index,follow,max-snippet:-1" />
+    <link rel="canonical" href="https://egly443.github.io/Govviz/about" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Govviz" />
+    <meta property="og:title" content="How Govviz is built - Govviz" />
+    <meta property="og:description" content="How Govviz sources, validates and republishes UK government performance data as AI-ready open data." />
+    <meta property="og:url" content="https://egly443.github.io/Govviz/about" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Govviz",
+        "url": "https://egly443.github.io/Govviz/",
+        "inLanguage": "en-GB",
+        "description": "Long-run UK government performance data, in context, with real sourced data — and a blueprint for making public statistics AI-readable."
+      }
+    </script>
+    <title>How Govviz is built - Govviz</title>
+    <script type="module" crossorigin src="/Govviz/assets/index.js"></script>
+    <link rel="modulepreload" crossorigin href="/Govviz/assets/vendor.js">
+    <link rel="stylesheet" crossorigin href="/Govviz/assets/index.css">
+  <script type="application/ld+json">[{"@context":"https://schema.org","@type":"TechArticle","headline":"How Govviz is built","name":"How Govviz is built","description":"How Govviz sources, validates and republishes UK government performance data as AI-ready open data.","url":"https://egly443.github.io/Govviz/about","inLanguage":"en-GB","dateModified":"2026-07-02","author":{"@type":"Organization","name":"Govviz","url":"https://egly443.github.io/Govviz"},"about":[{"@type":"Thing","name":"AI-ready data"},{"@type":"Thing","name":"Open data"},{"@type":"Thing","name":"UK government statistics"},{"@type":"Thing","name":"CSVW"},{"@type":"Thing","name":"Model Context Protocol"}]},{"@context":"https://schema.org","@type":"Dataset","name":"Govviz AI-ready open data","description":"Stable JSON records, tidy CSV, CSVW metadata, DCAT catalogue and MCP descriptor for Govviz performance indicators.","url":"https://egly443.github.io/Govviz/data/","distribution":[{"@type":"DataDownload","contentUrl":"https://egly443.github.io/Govviz/data/catalog.json","encodingFormat":"application/ld+json"},{"@type":"DataDownload","contentUrl":"https://egly443.github.io/Govviz/data/series/index.json","encodingFormat":"application/json"},{"@type":"DataDownload","contentUrl":"https://egly443.github.io/Govviz/data/profile.json","encodingFormat":"application/json"},{"@type":"DataDownload","contentUrl":"https://egly443.github.io/Govviz/data/mcp.json","encodingFormat":"application/json"}]}]</script>
+</head>
+  <body>
+    <div id="root"><main style="max-width:62rem;margin:0 auto;padding:2rem 1.25rem 4rem;font:16px/1.65 Inter,system-ui,sans-serif;color:#e7e9ee">
+<nav style="font-size:.8rem;color:#9aa3b2"><a href="https://egly443.github.io/Govviz/" style="color:#8ab4ff">Govviz</a> / About</nav>
+<h1 style="font-size:2rem;font-weight:650;margin:.5rem 0">How Govviz is built</h1>
+<p style="color:#9aa3b2;max-width:46rem">Govviz is a static dashboard of long-run UK government performance indicators. Its production build is designed around real official data, visible provenance, guard-range validation and explicit freshness limits.</p>
+<section>
+  <h2 style="font-size:1.15rem;margin:1.6rem 0 .4rem">Methodology in brief</h2>
+  <ul>
+    <li>Every charted series is fetched from a public source such as ONS, NHS England, gov.uk, DfE or the World Bank.</li>
+    <li>Each series records provenance, coverage, measurement basis, caveats and the source file used by the build.</li>
+    <li>Guard ranges reject wrong-but-plausible values before they can ship.</li>
+    <li>Stale or missing evidence is labelled instead of replaced with invented data.</li>
+  </ul>
+</section>
+<section>
+  <h2 style="font-size:1.15rem;margin:1.6rem 0 .4rem">AI-ready publication</h2>
+  <p style="color:#9aa3b2;max-width:46rem">Govviz republishes each indicator as a stable JSON record pointing at tidy long-format CSV, CSVW schema metadata, a DCAT catalogue and an open MCP descriptor.</p>
+  <ul>
+    <li><a href="https://egly443.github.io/Govviz/data/" style="color:#8ab4ff">Human data portal</a></li>
+    <li><a href="https://egly443.github.io/Govviz/data/catalog.json" style="color:#8ab4ff">JSON-LD/DCAT catalogue</a></li>
+    <li><a href="https://egly443.github.io/Govviz/data/series/waiting-list.json" style="color:#8ab4ff">Example series JSON</a></li>
+    <li><a href="https://egly443.github.io/Govviz/data/series/waiting-list/data.csv" style="color:#8ab4ff">Example tidy CSV</a></li>
+    <li><a href="https://egly443.github.io/Govviz/data/series/waiting-list/data.csv-metadata.json" style="color:#8ab4ff">Example CSVW metadata</a></li>
+    <li><a href="https://egly443.github.io/Govviz/data/profile.json" style="color:#8ab4ff">AI-ready series profile</a></li>
+    <li><a href="https://egly443.github.io/Govviz/data/mcp.json" style="color:#8ab4ff">MCP descriptor</a></li>
+    <li><a href="https://github.com/Egly443/Govviz/blob/main/docs/conformance/test-cases.json" style="color:#8ab4ff">Conformance test cases</a></li>
+  </ul>
+</section>
+<p style="font-size:.85rem;color:#9aa3b2">This static page hydrates into the full React route for browsers with JavaScript enabled.</p>
+</main></div>
+  </body>
+</html>

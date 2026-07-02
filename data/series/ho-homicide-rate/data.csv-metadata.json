@@ -1,0 +1,70 @@
+{
+  "@context": [
+    "http://www.w3.org/ns/csvw",
+    {
+      "@language": "en"
+    }
+  ],
+  "url": "data-6c747d662fdd.csv",
+  "dc:title": "Homicide rate",
+  "dc:description": "Intentional homicides per 100,000 people — UK vs Germany & France",
+  "dc:publisher": {
+    "schema:name": "World Bank (UNODC)"
+  },
+  "dc:license": {
+    "@id": "https://creativecommons.org/licenses/by/4.0/"
+  },
+  "dc:source": {
+    "@id": "https://api.worldbank.org/v2/country/GBR/indicator/VC.IHR.PSRC.P5?format=json&per_page=20000"
+  },
+  "tableSchema": {
+    "columns": [
+      {
+        "name": "period",
+        "titles": "period",
+        "datatype": "string",
+        "dc:description": "Observation period (year, or ISO date)",
+        "propertyUrl": "http://purl.org/linked-data/sdmx/2009/dimension#timePeriod"
+      },
+      {
+        "name": "ref_area",
+        "titles": "ref_area",
+        "datatype": "string",
+        "dc:description": "Reference area (ISO-3166 alpha-3 where a country)",
+        "propertyUrl": "http://purl.org/linked-data/sdmx/2009/dimension#refArea"
+      },
+      {
+        "name": "value",
+        "titles": "value",
+        "datatype": "number",
+        "dc:description": "Observation value in number",
+        "propertyUrl": "http://purl.org/linked-data/sdmx/2009/measure#obsValue"
+      },
+      {
+        "name": "unit",
+        "titles": "unit",
+        "datatype": "string",
+        "dc:description": "Unit of measure",
+        "propertyUrl": "http://purl.org/linked-data/sdmx/2009/attribute#unitMeasure"
+      },
+      {
+        "name": "unit_multiplier",
+        "titles": "unit_multiplier",
+        "datatype": "integer",
+        "dc:description": "Power-of-ten multiplier: base value = value × 10^unit_multiplier",
+        "propertyUrl": "http://purl.org/linked-data/sdmx/2009/attribute#unitMult"
+      },
+      {
+        "name": "status",
+        "titles": "status",
+        "datatype": "string",
+        "dc:description": "Observation status / suppression code",
+        "propertyUrl": "http://purl.org/linked-data/sdmx/2009/attribute#obsStatus"
+      }
+    ],
+    "primaryKey": [
+      "period",
+      "ref_area"
+    ]
+  }
+}

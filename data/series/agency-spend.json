@@ -1,0 +1,110 @@
+{
+  "@context": "https://egly443.github.io/Govviz/data/profile.json",
+  "id": "https://egly443.github.io/Govviz/data/series/agency-spend.json",
+  "title": "NHS temporary agency staff spend",
+  "description": "Rolling 12-month, £ billion",
+  "producer": "NHS England board papers / NAO",
+  "statisticType": "Official Statistic",
+  "measure": "Rolling 12-month, £ billion",
+  "unit": "GBP",
+  "unitMultiplier": 9,
+  "unitLabel": "£ billion",
+  "geography": "E92000001",
+  "geographyLabel": "England",
+  "periodicity": "P1M",
+  "validRange": {
+    "min": 0.5,
+    "max": 6
+  },
+  "suppressionScheme": "https://egly443.github.io/Govviz/data/suppression/v1",
+  "revisionStatus": "final",
+  "licence": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+  "provenance": {
+    "source": "NHS England board papers / NAO",
+    "methodology": "https://www.nao.org.uk/reports/nhs-financial-management-and-sustainability/",
+    "derivation": "Direct from source; latest value validated against validRange",
+    "upstreamUrl": "https://www.nao.org.uk/reports/nhs-financial-management-and-sustainability/",
+    "fetchedAt": "2026-07-02",
+    "contentHash": "d1cd18ace2",
+    "sourceBytesHash": "219e3463af16",
+    "compiledBy": "Govviz"
+  },
+  "semanticTags": [
+    "dhsc",
+    "health & social care",
+    "waiting list",
+    "urgent care",
+    "workforce",
+    "capital",
+    "process",
+    "monthly",
+    "england",
+    "gbp",
+    "energy bills",
+    "cost of living",
+    "productivity",
+    "public finance"
+  ],
+  "subjectUris": [
+    "https://www.gov.uk/government/organisations/department-of-health-and-social-care",
+    "https://statistics.data.gov.uk/id/statistical-geography/E92000001",
+    "https://www.nao.org.uk/reports/nhs-financial-management-and-sustainability/"
+  ],
+  "qualityDimensions": {
+    "accuracy": "Not asserted by Govviz; upstream producer methodology remains authoritative.",
+    "completeness": "12 observations emitted in the tidy data file.",
+    "uniqueness": "One observation per period/ref_area key in the emitted tidy table.",
+    "consistency": "Compiled by the same source-specific parser and emitted through one CSVW schema.",
+    "timeliness": "Latest observed period 2025-04 is older than the expected monthly cadence projection 2025-05-01; latest source fetch recorded 2026-07-02.",
+    "validity": "Latest source values passed the published validRange 0.5 to 6."
+  },
+  "compiler": {
+    "name": "Govviz",
+    "url": "https://egly443.github.io/Govviz",
+    "conformanceVersion": "ai-ready-series-profile-v0.2",
+    "compiledAt": "2026-07-02T16:51:32.838Z",
+    "pipelineCommit": "90aea5d6665231b8497666afb12794279c7826d6",
+    "sourceBytesHash": "219e3463af16"
+  },
+  "upstreamConformance": "not-asserted-by-primary-publisher",
+  "publisherClaim": "not-asserted-by-primary-publisher",
+  "nextRelease": null,
+  "nextReleaseEstimated": false,
+  "expectedCadence": "monthly",
+  "latestObservedPeriod": "2025-04",
+  "latestFetchedAt": "2026-07-02",
+  "estimatedNextPeriod": "2025-05-01",
+  "freshnessStatus": "aged",
+  "freshnessReason": "Latest observed period 2025-04 is older than the expected monthly cadence projection 2025-05-01; latest source fetch recorded 2026-07-02.",
+  "conformanceLevel": "M5-reference-rendering",
+  "limitations": [
+    "Govviz is a downstream compiler, not the primary publisher.",
+    "The primary producer may not publish the same tidy structure, stable id, CSVW metadata, or validation range upstream.",
+    "Freshness metadata is inferred from observed periods and fetch timestamps; it is not an official release calendar.",
+    "The contact and accountability route remains the primary producer's published route, not a Govviz official statistics contact.",
+    "No upstream policy-as-code conformance assertion has been made by the primary producer."
+  ],
+  "latest": "https://egly443.github.io/Govviz/data/series/agency-spend/data.csv",
+  "distribution": [
+    "https://egly443.github.io/Govviz/data/series/agency-spend/data.csv",
+    "https://egly443.github.io/Govviz/data/series/agency-spend/data-d6fcb14d01af.csv",
+    "https://egly443.github.io/Govviz/data/series/agency-spend/data.csv-metadata.json",
+    "https://egly443.github.io/Govviz/data/series/agency-spend.json"
+  ],
+  "csvw": "https://egly443.github.io/Govviz/data/series/agency-spend/data.csv-metadata.json",
+  "agent": "https://egly443.github.io/Govviz/data/mcp.json",
+  "basis": "nominal (cash terms)",
+  "caveat": null,
+  "lens": "process",
+  "goodDirection": "down",
+  "target": {
+    "value": 2.4,
+    "label": "NHSE ambition",
+    "kind": "reference"
+  },
+  "department": {
+    "code": "dhsc",
+    "name": "Health & Social Care"
+  },
+  "observationCount": 12
+}

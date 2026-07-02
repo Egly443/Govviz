@@ -1,0 +1,100 @@
+{
+  "@context": "https://egly443.github.io/Govviz/data/profile.json",
+  "id": "https://egly443.github.io/Govviz/data/series/ho-migrant-stock.json",
+  "title": "Foreign-born population",
+  "description": "International migrant stock, % of population",
+  "producer": "World Bank (UN)",
+  "statisticType": "Aggregated international statistic",
+  "measure": "International migrant stock, % of population",
+  "unit": "percent",
+  "unitMultiplier": 0,
+  "unitLabel": "percent (%)",
+  "geography": "K02000001",
+  "geographyLabel": "UK",
+  "periodicity": "P1Y",
+  "validRange": {
+    "min": 0,
+    "max": 30
+  },
+  "suppressionScheme": "https://egly443.github.io/Govviz/data/suppression/v1",
+  "revisionStatus": "final",
+  "licence": "https://creativecommons.org/licenses/by/4.0/",
+  "provenance": {
+    "source": "World Bank (UN)",
+    "methodology": "https://data.worldbank.org/indicator/SM.POP.TOTL.ZS?locations=GB",
+    "derivation": "Direct from source; latest value validated against validRange",
+    "upstreamUrl": "https://api.worldbank.org/v2/country/GBR/indicator/SM.POP.TOTL.ZS?format=json&per_page=20000",
+    "fetchedAt": "2026-07-02",
+    "contentHash": "e9b8b3945f",
+    "sourceBytesHash": "d84fb772cb3c",
+    "compiledBy": "Govviz"
+  },
+  "semanticTags": [
+    "home-office",
+    "home office",
+    "throughput",
+    "workforce",
+    "value for money",
+    "service standard",
+    "annual",
+    "uk",
+    "percent"
+  ],
+  "subjectUris": [
+    "https://www.gov.uk/government/organisations/home-office",
+    "https://statistics.data.gov.uk/id/statistical-geography/K02000001",
+    "https://data.worldbank.org/indicator/SM.POP.TOTL.ZS?locations=GB"
+  ],
+  "qualityDimensions": {
+    "accuracy": "Not asserted by Govviz; upstream producer methodology remains authoritative.",
+    "completeness": "8 observations emitted in the tidy data file.",
+    "uniqueness": "One observation per period/ref_area key in the emitted tidy table.",
+    "consistency": "Compiled by the same source-specific parser and emitted through one CSVW schema.",
+    "timeliness": "Latest observed period 2024 is older than the expected annual cadence projection 2025-12-31; latest source fetch recorded 2026-07-02.",
+    "validity": "Latest source values passed the published validRange 0 to 30."
+  },
+  "compiler": {
+    "name": "Govviz",
+    "url": "https://egly443.github.io/Govviz",
+    "conformanceVersion": "ai-ready-series-profile-v0.2",
+    "compiledAt": "2026-07-02T16:51:32.885Z",
+    "pipelineCommit": "90aea5d6665231b8497666afb12794279c7826d6",
+    "sourceBytesHash": "d84fb772cb3c"
+  },
+  "upstreamConformance": "not-asserted-by-primary-publisher",
+  "publisherClaim": "not-asserted-by-primary-publisher",
+  "nextRelease": null,
+  "nextReleaseEstimated": false,
+  "expectedCadence": "annual",
+  "latestObservedPeriod": "2024",
+  "latestFetchedAt": "2026-07-02",
+  "estimatedNextPeriod": "2025-12-31",
+  "freshnessStatus": "aged",
+  "freshnessReason": "Latest observed period 2024 is older than the expected annual cadence projection 2025-12-31; latest source fetch recorded 2026-07-02.",
+  "conformanceLevel": "M5-reference-rendering",
+  "limitations": [
+    "Govviz is a downstream compiler, not the primary publisher.",
+    "The primary producer may not publish the same tidy structure, stable id, CSVW metadata, or validation range upstream.",
+    "Freshness metadata is inferred from observed periods and fetch timestamps; it is not an official release calendar.",
+    "The contact and accountability route remains the primary producer's published route, not a Govviz official statistics contact.",
+    "No upstream policy-as-code conformance assertion has been made by the primary producer."
+  ],
+  "latest": "https://egly443.github.io/Govviz/data/series/ho-migrant-stock/data.csv",
+  "distribution": [
+    "https://egly443.github.io/Govviz/data/series/ho-migrant-stock/data.csv",
+    "https://egly443.github.io/Govviz/data/series/ho-migrant-stock/data-61c11099b1bb.csv",
+    "https://egly443.github.io/Govviz/data/series/ho-migrant-stock/data.csv-metadata.json",
+    "https://egly443.github.io/Govviz/data/series/ho-migrant-stock.json"
+  ],
+  "csvw": "https://egly443.github.io/Govviz/data/series/ho-migrant-stock/data.csv-metadata.json",
+  "agent": "https://egly443.github.io/Govviz/data/mcp.json",
+  "basis": null,
+  "caveat": null,
+  "lens": null,
+  "goodDirection": "up",
+  "department": {
+    "code": "home-office",
+    "name": "Home Office"
+  },
+  "observationCount": 8
+}

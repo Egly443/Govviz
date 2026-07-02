@@ -1,0 +1,103 @@
+{
+  "@context": "https://egly443.github.io/Govviz/data/profile.json",
+  "id": "https://egly443.github.io/Govviz/data/series/discharge-delays.json",
+  "title": "Hospital discharge bottleneck",
+  "description": "Beds/day occupied by patients medically fit for discharge",
+  "producer": "NHS England discharge delays, daily SitRep",
+  "statisticType": "Official Statistic",
+  "measure": "Beds/day occupied by patients medically fit for discharge",
+  "unit": "beds",
+  "unitMultiplier": 0,
+  "unitLabel": "beds (daily)",
+  "geography": "E92000001",
+  "geographyLabel": "England",
+  "periodicity": "P1M",
+  "validRange": {
+    "min": 2000,
+    "max": 30000
+  },
+  "suppressionScheme": "https://egly443.github.io/Govviz/data/suppression/v1",
+  "revisionStatus": "final",
+  "licence": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+  "provenance": {
+    "source": "NHS England discharge delays, daily SitRep",
+    "methodology": "https://www.england.nhs.uk/statistics/statistical-work-areas/discharge-delays-acute-data/",
+    "derivation": "Direct from source; latest value validated against validRange",
+    "upstreamUrl": "https://www.england.nhs.uk/statistics/statistical-work-areas/discharge-delays-acute-data/",
+    "fetchedAt": "2026-07-02",
+    "contentHash": "cdb98f09a8",
+    "sourceBytesHash": "9d65894300ff",
+    "compiledBy": "Govviz"
+  },
+  "semanticTags": [
+    "dhsc",
+    "health & social care",
+    "waiting list",
+    "urgent care",
+    "workforce",
+    "capital",
+    "monthly",
+    "england",
+    "beds",
+    "health",
+    "waiting lists",
+    "nhs performance"
+  ],
+  "subjectUris": [
+    "https://www.gov.uk/government/organisations/department-of-health-and-social-care",
+    "https://statistics.data.gov.uk/id/statistical-geography/E92000001",
+    "https://www.england.nhs.uk/statistics/statistical-work-areas/discharge-delays-acute-data/"
+  ],
+  "qualityDimensions": {
+    "accuracy": "Not asserted by Govviz; upstream producer methodology remains authoritative.",
+    "completeness": "25 observations emitted in the tidy data file.",
+    "uniqueness": "One observation per period/ref_area key in the emitted tidy table.",
+    "consistency": "Compiled by the same source-specific parser and emitted through one CSVW schema.",
+    "timeliness": "Latest observed period 2026-04 is older than the expected monthly cadence projection 2026-05-01; latest source fetch recorded 2026-07-02.",
+    "validity": "Latest source values passed the published validRange 2000 to 30000."
+  },
+  "compiler": {
+    "name": "Govviz",
+    "url": "https://egly443.github.io/Govviz",
+    "conformanceVersion": "ai-ready-series-profile-v0.2",
+    "compiledAt": "2026-07-02T16:51:32.837Z",
+    "pipelineCommit": "90aea5d6665231b8497666afb12794279c7826d6",
+    "sourceBytesHash": "9d65894300ff"
+  },
+  "upstreamConformance": "not-asserted-by-primary-publisher",
+  "publisherClaim": "not-asserted-by-primary-publisher",
+  "nextRelease": null,
+  "nextReleaseEstimated": false,
+  "expectedCadence": "monthly",
+  "latestObservedPeriod": "2026-04",
+  "latestFetchedAt": "2026-07-02",
+  "estimatedNextPeriod": "2026-05-01",
+  "freshnessStatus": "aged",
+  "freshnessReason": "Latest observed period 2026-04 is older than the expected monthly cadence projection 2026-05-01; latest source fetch recorded 2026-07-02.",
+  "conformanceLevel": "M5-reference-rendering",
+  "limitations": [
+    "Govviz is a downstream compiler, not the primary publisher.",
+    "The primary producer may not publish the same tidy structure, stable id, CSVW metadata, or validation range upstream.",
+    "Freshness metadata is inferred from observed periods and fetch timestamps; it is not an official release calendar.",
+    "The contact and accountability route remains the primary producer's published route, not a Govviz official statistics contact.",
+    "No upstream policy-as-code conformance assertion has been made by the primary producer."
+  ],
+  "latest": "https://egly443.github.io/Govviz/data/series/discharge-delays/data.csv",
+  "distribution": [
+    "https://egly443.github.io/Govviz/data/series/discharge-delays/data.csv",
+    "https://egly443.github.io/Govviz/data/series/discharge-delays/data-3efa3c774115.csv",
+    "https://egly443.github.io/Govviz/data/series/discharge-delays/data.csv-metadata.json",
+    "https://egly443.github.io/Govviz/data/series/discharge-delays.json"
+  ],
+  "csvw": "https://egly443.github.io/Govviz/data/series/discharge-delays/data.csv-metadata.json",
+  "agent": "https://egly443.github.io/Govviz/data/mcp.json",
+  "basis": null,
+  "caveat": null,
+  "lens": null,
+  "goodDirection": "down",
+  "department": {
+    "code": "dhsc",
+    "name": "Health & Social Care"
+  },
+  "observationCount": 25
+}

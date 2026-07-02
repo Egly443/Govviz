@@ -1,0 +1,100 @@
+{
+  "@context": "https://egly443.github.io/Govviz/data/profile.json",
+  "id": "https://egly443.github.io/Govviz/data/series/desnz-ghg-emissions.json",
+  "title": "Greenhouse gas emissions",
+  "description": "UK territorial emissions, million tonnes CO₂e (net zero by 2050)",
+  "producer": "DESNZ, Final UK greenhouse gas emissions national statistics",
+  "statisticType": "Official Statistic",
+  "measure": "UK territorial emissions, million tonnes CO₂e (net zero by 2050)",
+  "unit": "number",
+  "unitMultiplier": 0,
+  "unitLabel": "number",
+  "geography": null,
+  "geographyLabel": null,
+  "periodicity": "P1Y",
+  "validRange": {
+    "min": 200,
+    "max": 900
+  },
+  "suppressionScheme": "https://egly443.github.io/Govviz/data/suppression/v1",
+  "revisionStatus": "final",
+  "licence": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+  "provenance": {
+    "source": "DESNZ, Final UK greenhouse gas emissions national statistics",
+    "methodology": "https://www.gov.uk/government/collections/final-uk-greenhouse-gas-emissions-national-statistics",
+    "derivation": "Direct from source; latest value validated against validRange",
+    "upstreamUrl": "https://assets.publishing.service.gov.uk/media/65ff116e65ca2ffef17da7a7/final-greenhouse-gas-emissions-tables-2022.ods",
+    "fetchedAt": "2026-07-02",
+    "contentHash": "13f9d4ea09",
+    "sourceBytesHash": "a621242f7614",
+    "compiledBy": "Govviz"
+  },
+  "semanticTags": [
+    "desnz",
+    "energy security & net zero",
+    "emissions",
+    "renewables",
+    "affordability",
+    "annual",
+    "number",
+    "environment",
+    "sewage",
+    "climate"
+  ],
+  "subjectUris": [
+    "https://www.gov.uk/government/organisations/department-for-energy-security-and-net-zero",
+    "https://www.gov.uk/government/collections/final-uk-greenhouse-gas-emissions-national-statistics"
+  ],
+  "qualityDimensions": {
+    "accuracy": "Not asserted by Govviz; upstream producer methodology remains authoritative.",
+    "completeness": "33 observations emitted in the tidy data file.",
+    "uniqueness": "One observation per period/ref_area key in the emitted tidy table.",
+    "consistency": "Compiled by the same source-specific parser and emitted through one CSVW schema.",
+    "timeliness": "Latest observed period 2022 is older than the expected annual cadence projection 2023-12-31; latest source fetch recorded 2026-07-02.",
+    "validity": "Latest source values passed the published validRange 200 to 900."
+  },
+  "compiler": {
+    "name": "Govviz",
+    "url": "https://egly443.github.io/Govviz",
+    "conformanceVersion": "ai-ready-series-profile-v0.2",
+    "compiledAt": "2026-07-02T16:51:32.953Z",
+    "pipelineCommit": "90aea5d6665231b8497666afb12794279c7826d6",
+    "sourceBytesHash": "a621242f7614"
+  },
+  "upstreamConformance": "not-asserted-by-primary-publisher",
+  "publisherClaim": "not-asserted-by-primary-publisher",
+  "nextRelease": null,
+  "nextReleaseEstimated": false,
+  "expectedCadence": "annual",
+  "latestObservedPeriod": "2022",
+  "latestFetchedAt": "2026-07-02",
+  "estimatedNextPeriod": "2023-12-31",
+  "freshnessStatus": "aged",
+  "freshnessReason": "Latest observed period 2022 is older than the expected annual cadence projection 2023-12-31; latest source fetch recorded 2026-07-02.",
+  "conformanceLevel": "M5-reference-rendering",
+  "limitations": [
+    "Govviz is a downstream compiler, not the primary publisher.",
+    "The primary producer may not publish the same tidy structure, stable id, CSVW metadata, or validation range upstream.",
+    "Freshness metadata is inferred from observed periods and fetch timestamps; it is not an official release calendar.",
+    "The contact and accountability route remains the primary producer's published route, not a Govviz official statistics contact.",
+    "No upstream policy-as-code conformance assertion has been made by the primary producer."
+  ],
+  "latest": "https://egly443.github.io/Govviz/data/series/desnz-ghg-emissions/data.csv",
+  "distribution": [
+    "https://egly443.github.io/Govviz/data/series/desnz-ghg-emissions/data.csv",
+    "https://egly443.github.io/Govviz/data/series/desnz-ghg-emissions/data-18626f2302cf.csv",
+    "https://egly443.github.io/Govviz/data/series/desnz-ghg-emissions/data.csv-metadata.json",
+    "https://egly443.github.io/Govviz/data/series/desnz-ghg-emissions.json"
+  ],
+  "csvw": "https://egly443.github.io/Govviz/data/series/desnz-ghg-emissions/data.csv-metadata.json",
+  "agent": "https://egly443.github.io/Govviz/data/mcp.json",
+  "basis": null,
+  "caveat": null,
+  "lens": null,
+  "goodDirection": "down",
+  "department": {
+    "code": "desnz",
+    "name": "Energy Security & Net Zero"
+  },
+  "observationCount": 33
+}

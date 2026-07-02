@@ -1,0 +1,528 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agentic Open Data: getting public statistics to the point where the machine just works</title>
+<meta name="description" content="Trust and governance (T0-T3):">
+<meta name="keywords" content="agentic open data, AI-ready data, machine-readable government data, open data, UK government statistics, LLM, AI agents, FAIR data, CSVW, SDMX, DCAT, MCP, Model Context Protocol, National Data Library, ODI, GDS, DSIT, open government data, statistical disclosure control, conformance suite, generative engine optimization">
+<meta name="author" content="VbirdAI">
+<meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1">
+<link rel="canonical" href="https://egly443.github.io/Govviz/blog">
+<link rel="alternate" type="text/markdown" href="https://egly443.github.io/Govviz/blog.md" title="Machine-readable Markdown">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Govviz">
+<meta property="og:title" content="Agentic Open Data: getting public statistics to the point where the machine just works">
+<meta property="og:description" content="Trust and governance (T0-T3):">
+<meta property="og:url" content="https://egly443.github.io/Govviz/blog">
+<meta property="article:published_time" content="2026-06-21">
+<meta property="article:modified_time" content="2026-07-02">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Agentic Open Data: getting public statistics to the point where the machine just works">
+<meta name="twitter:description" content="Trust and governance (T0-T3):">
+<script type="application/ld+json">[{"@context":"https://schema.org","@type":"TechArticle","headline":"Agentic Open Data: getting public statistics to the point where the machine just works","name":"Agentic Open Data: getting public statistics to the point where the machine just works","description":"Trust and governance (T0-T3):","inLanguage":"en-GB","datePublished":"2026-06-21","dateModified":"2026-07-02","keywords":"agentic open data, AI-ready data, machine-readable government data, open data, UK government statistics, LLM, AI agents, FAIR data, CSVW, SDMX, DCAT, MCP, Model Context Protocol, National Data Library, ODI, GDS, DSIT, open government data, statistical disclosure control, conformance suite, generative engine optimization","url":"https://egly443.github.io/Govviz/blog","mainEntityOfPage":"https://egly443.github.io/Govviz/blog","author":{"@type":"Person","name":"VbirdAI","url":"https://github.com/Egly443"},"publisher":{"@type":"Organization","name":"Govviz","url":"https://egly443.github.io/Govviz"},"about":[{"@type":"Thing","name":"Open data"},{"@type":"Thing","name":"Artificial intelligence"},{"@type":"Thing","name":"Government data"},{"@type":"Thing","name":"Machine-readable data"},{"@type":"Thing","name":"FAIR data principles"},{"@type":"Thing","name":"Large language models"}]},{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What does \"agentic open data\" mean?","acceptedAnswer":{"@type":"Answer","text":"It means publishing public data so that AI agents acting for people can find, read, validate and cite it safely. In practice that means stable identifiers, tidy data, machine-readable metadata, provenance, licence, suppression status, freshness, access policy and an open agent interface."}},{"@type":"Question","name":"How is this different from existing open data work?","acceptedAnswer":{"@type":"Answer","text":"It builds on existing open data standards rather than replacing them. The difference is the test: can an ordinary script or agent complete the user task without private reverse engineering, and without silently choosing a plausible wrong value?"}},{"@type":"Question","name":"Does this conflict with accessibility?","acceptedAnswer":{"@type":"Answer","text":"It should do the opposite. If the canonical machine-readable source is well structured, the accessible workbook and human page can be generated from the same source. That gives screen-reader users and agents a shared, governed foundation."}},{"@type":"Question","name":"Does this weaken statistical disclosure control?","acceptedAnswer":{"@type":"Answer","text":"No. Suppression should be encoded, not bypassed. If a value is suppressed, the machine-readable output should carry the suppression code and meaning rather than inventing or exposing a value."}},{"@type":"Question","name":"What is the conformance suite for?","acceptedAnswer":{"@type":"Answer","text":"It turns AI-readiness into an executable check. Each case defines the current problem, the desired target shape and a probe. A producer, NDL service or downstream compiler can run the test and see exactly what remains to fix."}},{"@type":"Question","name":"How does this relate to the National Data Library?","acceptedAnswer":{"@type":"Answer","text":"The National Data Library is the natural place for discovery, resolution and harmonisation. The Govviz contribution is narrower: a set of awkward-tail cases, a thin series profile and a reference implementation that can help define what \"works\" means for individual public performance series."}}]}]</script>
+<style>:root{color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:#0b0d12;color:#e7e9ee;font:16px/1.7 Inter,ui-sans-serif,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:760px;margin:0 auto;padding:2.5rem 1.25rem 5rem}
+.bar{display:flex;flex-wrap:wrap;gap:1rem;align-items:center;font-size:.8rem;color:#9aa3b2;margin-bottom:1.5rem}
+.bar a{color:#9aa3b2;text-decoration:none}.bar a:hover{color:#e7e9ee}
+.note{margin:0 0 2rem;padding:.7rem 1rem;border:1px solid #232838;background:#11141c;border-radius:.6rem;font-size:.85rem;color:#9aa3b2}
+.note a{color:#8ab4ff}
+article h1{font-size:1.95rem;font-weight:600;letter-spacing:-.02em;line-height:1.2;margin:0 0 .6rem}
+article h2{font-size:1.35rem;font-weight:600;margin:2.2rem 0 .75rem;padding-top:1.4rem;border-top:1px solid #232838}
+article h3{font-size:1.1rem;font-weight:600;margin:1.6rem 0 .5rem}
+article p{margin:.85rem 0}
+article a{color:#8ab4ff;text-underline-offset:2px}
+article ul,article ol{margin:.85rem 0;padding-left:1.4rem}article li{margin:.3rem 0}
+article blockquote{margin:1.1rem 0;padding:.6rem 1rem;border-left:3px solid #8ab4ff;background:#11141c;border-radius:0 .4rem .4rem 0;color:#9aa3b2}
+article hr{border:0;border-top:1px solid #232838;margin:2rem 0}
+article code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.85em;background:#11141c;border:1px solid #232838;border-radius:.3rem;padding:.05rem .35rem}
+article pre{margin:1.1rem 0;padding:.9rem 1rem;overflow-x:auto;background:#11141c;border:1px solid #232838;border-radius:.6rem;font-size:.82rem;line-height:1.5}
+article pre code{background:none;border:0;padding:0}
+article table{width:100%;margin:1.2rem 0;border-collapse:collapse;font-size:.875rem;display:block;overflow-x:auto}
+article th,article td{border:1px solid #232838;padding:.45rem .65rem;text-align:left;vertical-align:top}
+article th{background:#11141c;font-weight:600}
+article strong{color:#e7e9ee;font-weight:600}article em{color:#9aa3b2}</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="bar">
+    <a href="https://egly443.github.io/Govviz/">&larr; Govviz dashboard</a>
+    <a href="https://egly443.github.io/Govviz/blog.md">Machine-readable Markdown</a>
+    <a href="https://github.com/Egly443/Govviz/blob/main/docs/blog-open-data-for-ai.md">Source on GitHub</a>
+  </nav>
+  <p class="note">Static, no-JavaScript version of the essay &mdash; directly
+  readable by people and by AI agents. Canonical machine artifact:
+  <a href="https://egly443.github.io/Govviz/blog.md">blog.md</a>. Published 2026-06-21, updated 2026-07-02.</p>
+  <article>
+<h1>Agentic Open Data: getting public statistics to the point where the machine just works</h1>
+<p>Most people will soon meet government data through an AI agent acting on their
+behalf. Many already do. They ask a general-purpose assistant a question about
+waiting lists, sewage spills, house prices, migration, tax, court backlogs, or
+homelessness, and the assistant decides where to look.</p>
+<p>If the official source is easy to find, easy to read, and safe to interpret, the
+official figure can remain the figure of record. If it is buried in a PDF, a
+transposed workbook, a zip of workbooks, a JavaScript-only page, a URL that
+changes every month, or a public endpoint that blocks scripts, the assistant
+will often fall back to whatever is easier: news articles, commercial
+aggregators, stale copies, or its own training data.</p>
+<p>That is the core public-interest problem. UK public statistics are often
+excellent on trust, methodology and professional governance, but poor on the
+last mile to a machine. The fix is not to collect more data. It is to publish a
+thin, standard, machine-first layer over the outputs government already
+produces: stable identifiers, tidy data, machine-readable metadata, provenance,
+suppression codes, access policy, conformance tests, and an open agent interface.</p>
+<p>This essay is paired with a working reference implementation:</p>
+<ul>
+<li>the live dashboard: <a href="https://egly443.github.io/Govviz/overview">Govviz</a></li>
+<li>the open data portal: <a href="https://egly443.github.io/Govviz/data/">egly443.github.io/Govviz/data/</a></li>
+<li>the AI-ready series profile: <a href="https://github.com/Egly443/Govviz/blob/main/docs/conformance/ai-ready-series-profile.md">docs/conformance/ai-ready-series-profile.md</a></li>
+<li>the executable conformance suite: <a href="https://github.com/Egly443/Govviz/tree/main/docs/conformance">docs/conformance/</a></li>
+<li>the MCP agent interface: <a href="https://github.com/Egly443/Govviz/tree/main/tools/mcp">tools/mcp/</a></li>
+</ul>
+<p>The point is not that Govviz is the national answer. It is a small downstream
+compiler and proof surface. Its purpose is to make the next step testable:
+whether a public series can be resolved, fetched, understood, validated and
+used by a normal script or agent without private archaeology.</p>
+<h2>The current policy moment</h2>
+<p>This is no longer a speculative argument from one dashboard.</p>
+<p>GDS and DSIT&#39;s guidance on making government datasets ready for AI sets out a
+four-pillar frame: technical optimisation, data and metadata quality,
+organisation and infrastructure context, and legal, security and ethical
+compliance. DSIT&#39;s National Data Library progress update makes clear that a
+domestic data access and discovery layer is now a live institutional priority.
+The ODI&#39;s prototype AI-ready National Data Library showed, at scale, that agents
+often ignore official data when it is badly labelled, stale, invisible, or hard
+to access. The ODI&#39;s enterprise AI-ready data framework widens the question
+again: AI-readiness is not just a file-format question, but a data product,
+metadata, infrastructure, governance, monitoring and feedback-loop question.</p>
+<p>That is exactly the right direction. The remaining practical question is how to
+turn guidance, prototypes and institutional intent into a repeatable assurance
+method. In other words: how do we know whether a dataset is actually usable by
+an agent today?</p>
+<p>Govviz offers one answer: use an accountability-tail test suite, not an average
+case. Take the public series where scrutiny matters and where current
+publication is awkward: storm-overflow spill hours, NHS waiting times, bathing
+water, homelessness, house-price affordability, HMRC call-waiting times. Define
+the target shape. Publish a reference rendering. Run a probe. Track whether the
+producer or a National Data Library layer can pass.</p>
+<p>This makes &quot;AI-ready&quot; something more than a self-assessment. It becomes a
+question a release can answer:</p>
+<blockquote>
+<p>Can a fifteen-line script or ordinary agent find the series, fetch the data,
+identify the unit, geography, licence, provenance, freshness and suppression
+status, reject a plausible wrong value, and cite the source?</p>
+</blockquote>
+<p>If yes, the area has moved forward. If no, the failure is specific enough to
+fix.</p>
+<h2>What the fieldwork showed</h2>
+<p>I built Govviz to test this against real UK public performance data: more than a
+hundred indicators across seventeen departments, with the dashboard, open-data
+artefacts and conformance tests generated from the same underlying series
+registry.</p>
+<p>The data was not absent. In most cases it was public, quality-assured and
+published by serious producers. The difficulty was the route from public release
+to safe machine consumption.</p>
+<table>
+<thead>
+<tr>
+<th>Case</th>
+<th>Current shape</th>
+<th>Why it matters</th>
+<th>Target shape</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>ONS time series</td>
+<td>Stable JSON endpoint keyed by CDID</td>
+<td>Shows the good version already exists inside the UK system</td>
+<td>Keep as positive control</td>
+</tr>
+<tr>
+<td>Net additional dwellings</td>
+<td>Accessible ODS workbook, transposed, with the useful row easy to miss</td>
+<td>The same release can be awkward for screen readers and machines when there is no canonical source underneath</td>
+<td>Stable series id plus tidy CSV/CSVW generated from the canonical source</td>
+</tr>
+<tr>
+<td>Temporary accommodation</td>
+<td>Quarterly workbook with year carried forward across rows</td>
+<td>Needs bespoke stateful parsing for a simple national series</td>
+<td>One observation per period with explicit geography and unit</td>
+</tr>
+<tr>
+<td>House-price-to-earnings ratio</td>
+<td>Multi-sheet workbook where median and lower-quartile ratios both look plausible</td>
+<td>The risk is semantic safety, not just parsing</td>
+<td>Human-readable measure description plus machine-readable disambiguation and validation range</td>
+</tr>
+<tr>
+<td>Storm-overflow spill hours</td>
+<td>Annual zip files, one workbook per water company, no published national total</td>
+<td>A headline accountability number is public but not directly published as a series</td>
+<td>One national series record plus tidy annual observations and provenance</td>
+</tr>
+<tr>
+<td>Bathing-water classifications</td>
+<td>Headline collection points elsewhere; underlying counts are in per-year ODS files with shifting layouts</td>
+<td>Discoverability and layout drift make the official data less likely to be used</td>
+<td>Stable identifier, clear source relation, standard table shape</td>
+</tr>
+<tr>
+<td>NHS RTT waiting times</td>
+<td>National series must be reconstructed from per-provider workbooks</td>
+<td>A figure that used to be easy becomes merely derivable</td>
+<td>National series published alongside provider detail</td>
+</tr>
+<tr>
+<td>HMRC average speed of answer</td>
+<td>&quot;mm:ss&quot; values stored across editions as Excel time, mistyped time, string or decimal</td>
+<td>A naive parser can produce wildly wrong but plausible values</td>
+<td>Explicit unit, duration encoding and validation range</td>
+</tr>
+<tr>
+<td>Public endpoints blocking scripts</td>
+<td>Some otherwise public data rejects automated clients or behaves unpredictably under load</td>
+<td>A citizen&#39;s agent is not the same thing as abuse traffic</td>
+<td>Automation-friendly access policy with sensible rate limits</td>
+</tr>
+</tbody></table>
+<p>The lesson is not that publishers are careless. They work under real
+constraints: accessibility regulations, disclosure control, professional
+independence, operational cost, legacy systems, release timetables and abuse
+management. The lesson is that those obligations are not best met by making
+every consumer reverse-engineer the same release.</p>
+<p>A canonical machine-readable artefact helps everyone. The accessible workbook,
+the web table, the PDF, the chart and the agent endpoint should be renderings of
+the same governed source, not competing hand-crafted outputs.</p>
+<h2>The diagnosis</h2>
+<p>The UK has world-class primary statistics, but it does not yet have a consistent
+machine-first publication standard for individual public series, nor a
+production domestic harmonisation layer that resolves those series for agents
+and scripts.</p>
+<p>As a result, every consumer privately rebuilds the same plumbing: discovery,
+identity, link following, normalisation, unit inference, semantics, provenance,
+freshness and error handling. That cost is invisible to each producer, but it is
+real across the economy. It falls on journalists, researchers, civic
+technologists, regulators, local groups, analysts and citizens. It is heaviest
+in the accountability tail, where public scrutiny is most valuable.</p>
+<p>There is an equity point here as well. Data that is technically public but
+requires a specialist parser, a browser session, and days of checking is not
+meaningfully open to most people. In the agent era, &quot;open&quot; should mean open to a
+normal script, an assistive technology workflow, and an everyday AI assistant.</p>
+<h2>Machine-first, human-rendered</h2>
+<p>The doctrine change is simple:</p>
+<blockquote>
+<p>Publish the canonical machine artefact first. Render the human page,
+accessible workbook, PDF and agent interface from it.</p>
+</blockquote>
+<p>For a statistical series, the minimum useful shape is small:</p>
+<pre><code class="language-json">{
+  &quot;id&quot;: &quot;https://example.gov.uk/series/defra/storm-overflow-spill-hours&quot;,
+  &quot;title&quot;: &quot;Storm overflow spill duration, England&quot;,
+  &quot;description&quot;: &quot;Total annual duration of spills from EDM-monitored storm overflows.&quot;,
+  &quot;producer&quot;: &quot;Environment Agency&quot;,
+  &quot;statisticType&quot;: &quot;Official Statistic&quot;,
+  &quot;unit&quot;: &quot;hours&quot;,
+  &quot;geography&quot;: &quot;E92000001&quot;,
+  &quot;periodicity&quot;: &quot;P1Y&quot;,
+  &quot;validRange&quot;: { &quot;min&quot;: 500000, &quot;max&quot;: 6000000 },
+  &quot;suppressionScheme&quot;: &quot;https://example.gov.uk/def/sdc/v1&quot;,
+  &quot;revisionStatus&quot;: &quot;final&quot;,
+  &quot;licence&quot;: &quot;OGL-v3&quot;,
+  &quot;provenance&quot;: {
+    &quot;source&quot;: &quot;EA EDM annual returns&quot;,
+    &quot;derivation&quot;: &quot;sum of per-asset Total Duration (hours)&quot;
+  },
+  &quot;latest&quot;: &quot;https://example.gov.uk/series/defra/storm-overflow-spill-hours/data.csv&quot;
+}
+</code></pre>
+<pre><code class="language-csv">period,value,unit,status
+2023,3610000,hours,final
+2024,3614000,hours,final
+</code></pre>
+<p>Govviz implements this pattern as a downstream reference rendering. Each record
+separates the primary <code>producer</code> from the downstream <code>compiler</code>, marks
+<code>upstreamConformance</code> as not asserted by the primary publisher, carries
+freshness metadata without inventing official release dates, and publishes
+limitations so the claim is not overstated.</p>
+<p>The important part is not Govviz&#39;s exact schema. It is the design discipline:
+stable identity, tidy observations, in-band semantics, provenance, licence,
+suppression, freshness, access policy, validation range, and a formal contract
+beside the data. That discipline maps directly onto the GDS/DSIT pillars and
+ODI enterprise criteria.</p>
+<h2>Trust and machine-readability are different axes</h2>
+<p>Convenience is not quality. A clean CSV with no methodology is not better than
+a well-governed National Statistic in a poor format. The right model scores two
+things separately.</p>
+<p><strong>Trust and governance (T0-T3):</strong></p>
+<ul>
+<li>T0: unclear source or status</li>
+<li>T1: named producer and basic provenance</li>
+<li>T2: methodology, revision status and licence</li>
+<li>T3: official or National Statistic quality, disclosure control and clear
+accountability</li>
+</ul>
+<p><strong>Machine-readability (M0-M5):</strong></p>
+<ul>
+<li>M0: human-only publication, such as PDF or HTML table</li>
+<li>M1: scrape-only, with unstable links or browser-dependent discovery</li>
+<li>M2: machine file exists, but bespoke layout or semantic ambiguity remains</li>
+<li>M3: clean endpoint, with semantics partly out of band</li>
+<li>M4: stable id, tidy data, CSVW or equivalent metadata, suppression and
+provenance in-band</li>
+<li>M5: M4 plus cataloguing, automation-friendly serving, monitoring and an open
+agent interface</li>
+</ul>
+<p>Many of the most important UK statistics are high-T and low-M. That is the
+opportunity. The aim is to lift M without weakening T.</p>
+<p>This also makes accessibility easier to reason about. Accessibility and
+machine-readability should not be treated as rival audiences. If the accessible
+workbook is generated from the same canonical source as the tidy data, both the
+screen-reader user and the citizen&#39;s agent benefit from the same governance.</p>
+<h2>The conformance suite is the lever</h2>
+<p>The most useful contribution Govviz can make is not another opinion about open
+data. It is a set of tests.</p>
+<p>The conformance suite in <code>docs/conformance/</code> takes hard public cases and gives
+each one:</p>
+<ul>
+<li>a current Trust x Machine-readability score</li>
+<li>the observed failure mode</li>
+<li>pass criteria for the producer or harmonisation layer</li>
+<li>a target JSON and CSV shape</li>
+<li>evidence notes and source-code pointers</li>
+<li>a runnable probe against Govviz&#39;s reference rendering</li>
+</ul>
+<p>That matters because it changes the conversation from &quot;is this dataset
+AI-ready?&quot; to &quot;which check fails?&quot;</p>
+<p>Used well, the suite can help several groups at once:</p>
+<ul>
+<li>For a primary publisher, it gives a concrete acceptance test for one series:
+publish the target shape and the parser disappears.</li>
+<li>For the National Data Library, it gives awkward-tail onboarding cases for
+priority public series, rather than only tractable sources.</li>
+<li>For GDS and the Data Standards Authority, it gives executable examples for a
+thin AI-ready series profile.</li>
+<li>For ODI, it gives cases that can be mapped against the enterprise framework:
+metadata, infrastructure, governance, monitoring and feedback.</li>
+<li>For OSR and UKSA, it gives an auditable way to discuss machine-readability as
+part of value and quality without disturbing statistical independence.</li>
+<li>For civic technologists and journalists, it gives a repeatable benchmark:
+time-to-first-chart, semantic safety, provenance, freshness and automation
+access.</li>
+</ul>
+<p>The tests are deliberately adversarial. They include sewage spills, NHS waiting
+times, bathing-water quality, temporary accommodation, house-price
+affordability and HMRC call-waiting times precisely because these are not the
+easy average. If the tail improves, the rest of the estate becomes much easier.</p>
+<h2>What Govviz now demonstrates</h2>
+<p>Govviz is a downstream compiler, not an official publisher. That boundary is
+important. It does not certify the upstream source, replace producer
+methodology, centralise primary data, publish restricted microdata, or bypass
+disclosure control.</p>
+<p>What it does demonstrate is a working shape:</p>
+<ul>
+<li><code>catalog.json</code>: a DCAT-style catalogue of every series</li>
+<li><code>series/{id}.json</code>: stable AI-ready metadata records</li>
+<li><code>series/{id}/data.csv</code>: tidy observations</li>
+<li><code>data.csv-metadata.json</code>: CSVW metadata</li>
+<li><code>graph.jsonld</code>: semantic interlinkage between series, departments, producers,
+geographies and source concepts</li>
+<li><code>openapi.json</code>: a static REST contract</li>
+<li><code>mcp.json</code> and <code>tools/mcp/</code>: an open agent interface with schemas</li>
+<li><code>conformance-report.html</code>: a generated public conformance report</li>
+<li><code>health-history.json</code>: rolling build-time health snapshots</li>
+<li><code>access-policy.json</code>: policy-as-code for the open public aggregate product</li>
+<li>source stewards, feedback routes, benchmark cases and producer guidance</li>
+</ul>
+<p>This matters for the essay&#39;s claim. The argument is not just &quot;government should
+do better&quot;. It is &quot;here is a small, inspectable implementation of the shape we
+are asking for, including its limitations&quot;.</p>
+<p>The implementation is intentionally static. A folder of files on GitHub Pages
+can provide stable ids, data downloads, metadata, JSON-LD, conformance reports,
+health history and API contracts. That is useful because it lowers the perceived
+cost. A department does not need to start with a grand platform programme to
+make one high-value series AI-ready.</p>
+<h2>A cheapest-useful sequence</h2>
+<p>The programme should be sequenced so value appears before heavy spending.</p>
+<p><strong>1. Stable identity and latest aliases.</strong> Give each priority series a
+persistent identifier and a stable pointer to the latest versioned asset. Keep
+cache-busting versioned files as well. This alone removes a large amount of
+integration rot.</p>
+<p><strong>2. Canonical tidy data for priority series.</strong> Start with the top public
+interest and high-use series: waiting lists, storm overflows, homelessness,
+courts, migration, HMRC service performance, major projects, housing
+affordability, public finance and local government finance.</p>
+<p><strong>3. In-band metadata and validation.</strong> Publish unit, geography, periodicity,
+revision status, licence, provenance, suppression codes and a plausible value
+range. The validation range is not a statistical claim; it is a safety rail
+against a wrong-tab or wrong-unit read.</p>
+<p><strong>4. Automation-friendly access.</strong> Public aggregate statistics should be served
+with documented rate limits and a policy that distinguishes normal automated
+reuse from abuse. Where registration is needed, a single simple route across
+the estate would be much easier than one-off credentials.</p>
+<p><strong>5. Conformance and monitoring.</strong> Run the accountability-tail tests on every
+release. Publish the report. Track freshness, failures, source hashes and
+agent-consumption issues over time.</p>
+<p><strong>6. Open agent interface on top.</strong> MCP or any future agent protocol should sit
+above open data standards, not replace them. The data must remain usable by a
+curl command if the agent layer changes.</p>
+<h2>Areas for consideration</h2>
+<p>Different institutions own different parts of the answer. The following are
+offered as practical areas for consideration rather than demands.</p>
+<table>
+<thead>
+<tr>
+<th>Organisation</th>
+<th>Possible next step</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>GDS / Data Standards Authority</td>
+<td>Consider adopting or forking the AI-ready series profile as a thin publishing profile over DCAT, CSVW and SDMX, with executable examples.</td>
+</tr>
+<tr>
+<td>DSIT / National Data Library team</td>
+<td>Consider using accountability-tail cases as acceptance tests for priority NDL onboarding, alongside broader discovery work.</td>
+</tr>
+<tr>
+<td>ODI</td>
+<td>Consider mapping the Govviz cases against the enterprise AI-ready data framework and adding criteria where the reference implementation is still thin.</td>
+</tr>
+<tr>
+<td>OSR / UKSA</td>
+<td>Consider making machine-readability more explicit within value and quality discussions, while preserving the independence and trust framework of official statistics.</td>
+</tr>
+<tr>
+<td>Departments and arm&#39;s-length bodies</td>
+<td>For high-value series, consider stable ids, tidy data, provenance, release calendars, suppression vocabularies, contact routes and validation ranges as publish-time artefacts.</td>
+</tr>
+<tr>
+<td>Civic tech and media organisations</td>
+<td>Consider using the conformance suite as a benchmark when choosing which official sources are safe enough for automated reuse.</td>
+</tr>
+</tbody></table>
+<p>The tone matters. Producers are not starting from zero, and many awkward formats
+exist for defensible historical reasons. The practical question is how to give
+those producers a cheap, incremental path to a better release shape.</p>
+<h2>How we would know it is working</h2>
+<p>This should be measured in public.</p>
+<ul>
+<li><strong>Tail conformance:</strong> percentage of priority accountability-tail series at
+M4 or M5.</li>
+<li><strong>Time to first chart:</strong> how long a standard script or agent takes to go from
+a series name to a correct sourced value and chart.</li>
+<li><strong>Semantic safety:</strong> number of plausible wrong-value incidents, such as wrong
+tab, wrong unit, wrong geography or stale edition.</li>
+<li><strong>Official-source fallback:</strong> how often agents answer from news, commercial
+data or model memory when an official series exists.</li>
+<li><strong>Freshness and reliability:</strong> source fetch success, point count, content
+hash, source byte hash and staleness by build.</li>
+<li><strong>Feedback closure:</strong> number of data-quality or agent-consumption issues
+opened, verified, fixed and converted into reusable tests.</li>
+<li><strong>Cost avoided:</strong> sampled cost saved for repeated consumers who no longer need
+bespoke parsers for the same public series.</li>
+</ul>
+<p>These are useful because they make progress visible. A publisher can improve
+one series and see the M score move. The NDL can onboard a hard case and show
+the probe passing. A framework owner can see whether guidance is changing the
+actual user journey.</p>
+<h2>Risks worth handling up front</h2>
+<p>There are several ways to do this badly.</p>
+<p><strong>Overclaiming.</strong> A downstream compiler must not imply that a primary producer
+has certified a shape it has not published. Govviz separates compiler metadata
+from producer metadata for this reason.</p>
+<p><strong>Disclosure mistakes.</strong> Statistical disclosure control is not formatting
+noise. Suppression markers must be machine-readable, but the underlying
+protection remains a professional statistical responsibility.</p>
+<p><strong>Clean but untrusted data.</strong> Machine-readability does not replace methodology,
+revisions policy, provenance or statistical status. The two-axis model is there
+to prevent a neat file being mistaken for a trustworthy statistic.</p>
+<p><strong>A prototype mistaken for production.</strong> ODI&#39;s NDL prototype is valuable partly
+because it shows feasibility. The production work is the slower part: coverage,
+refresh, monitoring, governance, user support and awkward sources.</p>
+<p><strong>Agent lock-in.</strong> The agent interface must be optional. DCAT, CSVW, SDMX,
+schema.org, OpenAPI and ordinary static files are the foundation. MCP is a
+useful access layer, not the standard underneath the standard.</p>
+<h2>Why this is worth doing</h2>
+<p>The value-for-money case is straightforward. The larger bill is already being
+paid, but it is paid invisibly and repeatedly by every consumer who has to chase
+links, interpret layouts, infer units, find provenance, handle stale releases
+and guard against plausible wrong values.</p>
+<p>A thin publication profile buys down that repeated cost once. It also improves
+public accountability because the authoritative source becomes the easiest
+source to use. That matters more as agents become the interface through which
+many people ask questions about government performance.</p>
+<p>There is also a public-service dignity to it. A citizen should not need an
+engineering budget to ask whether homelessness is rising, whether waiting lists
+are improving, how much sewage was discharged, or how long people wait for HMRC
+to answer the phone. Nor should an official statistic lose influence merely
+because a less authoritative source is easier for a machine to read.</p>
+<h2>The bottom line</h2>
+<p>UK public statistics are strong on trust. The next task is to make them strong
+on agent-safe usability.</p>
+<p>The practical route is not a giant central data lake. It is a standard and a
+testable publication shape: machine-first, human-rendered, open by default for
+public aggregates, explicit about governance, respectful of disclosure control,
+and measured at the accountability tail.</p>
+<p>Govviz is a small attempt to show the shape in public. It publishes the essay,
+the dashboard, the data product, the conformance suite, the benchmark, the
+health report, the feedback loop and the agent interface together, so the claim
+can be inspected rather than merely agreed with.</p>
+<p>If the official source is the easiest safe source for an agent to use, the
+public wins twice: citizens get better answers, and the authoritative statistic
+stays authoritative.</p>
+<hr>
+<h2>Frequently asked questions</h2>
+<h3>Why can&#39;t AI agents reliably read UK government open data?</h3>
+<p>Some can, sometimes. The problem is reliability. Many releases are published as
+PDFs, transposed spreadsheets, zip files, unstable URLs, browser-dependent
+pages, or workbooks whose semantics are obvious to a human but ambiguous to a
+machine. Agents then fall back to easier but less authoritative sources.</p>
+<h3>What does &quot;agentic open data&quot; mean?</h3>
+<p>It means publishing public data so that AI agents acting for people can find,
+read, validate and cite it safely. In practice that means stable identifiers,
+tidy data, machine-readable metadata, provenance, licence, suppression status,
+freshness, access policy and an open agent interface.</p>
+<h3>How is this different from existing open data work?</h3>
+<p>It builds on existing open data standards rather than replacing them. The
+difference is the test: can an ordinary script or agent complete the user task
+without private reverse engineering, and without silently choosing a plausible
+wrong value?</p>
+<h3>Does this conflict with accessibility?</h3>
+<p>It should do the opposite. If the canonical machine-readable source is well
+structured, the accessible workbook and human page can be generated from the
+same source. That gives screen-reader users and agents a shared, governed
+foundation.</p>
+<h3>Does this weaken statistical disclosure control?</h3>
+<p>No. Suppression should be encoded, not bypassed. If a value is suppressed, the
+machine-readable output should carry the suppression code and meaning rather
+than inventing or exposing a value.</p>
+<h3>What is the conformance suite for?</h3>
+<p>It turns AI-readiness into an executable check. Each case defines the current
+problem, the desired target shape and a probe. A producer, NDL service or
+downstream compiler can run the test and see exactly what remains to fix.</p>
+<h3>How does this relate to the National Data Library?</h3>
+<p>The National Data Library is the natural place for discovery, resolution and
+harmonisation. The Govviz contribution is narrower: a set of awkward-tail cases,
+a thin series profile and a reference implementation that can help define what
+&quot;works&quot; means for individual public performance series.</p>
+<hr>
+<h2>References</h2>
+<ul>
+<li>Govviz live reference implementation: <a href="https://egly443.github.io/Govviz/overview">overview</a>, <a href="https://egly443.github.io/Govviz/data/">open data portal</a>, <a href="https://egly443.github.io/Govviz/data/catalog.json">catalogue</a>, <a href="https://egly443.github.io/Govviz/data/conformance-report.html">conformance report</a>, <a href="https://egly443.github.io/Govviz/data/health-history.json">health history</a>, <a href="https://egly443.github.io/Govviz/data/mcp.json">MCP descriptor</a>.</li>
+<li>Govviz companion artefacts: <a href="https://github.com/Egly443/Govviz/blob/main/docs/conformance/ai-ready-series-profile.md">AI-ready series profile</a>, <a href="https://github.com/Egly443/Govviz/tree/main/docs/conformance">conformance suite</a>, <a href="https://github.com/Egly443/Govviz/tree/main/docs/benchmarks">benchmark cases</a>, <a href="https://github.com/Egly443/Govviz/blob/main/docs/producer-guide.md">producer guide</a>, <a href="https://github.com/Egly443/Govviz/blob/main/docs/feedback-loop.md">feedback loop</a>.</li>
+<li>GDS and DSIT, <em>Guidelines and best practices for making government datasets ready for AI</em> (19 January 2026): <a href="https://www.gov.uk/government/publications/making-government-datasets-ready-for-ai/guidelines-and-best-practices-for-making-government-datasets-ready-for-ai">gov.uk</a>.</li>
+<li>DSIT, <em>National Data Library: progress update, January 2026</em> (26 January 2026): <a href="https://www.gov.uk/government/publications/national-data-library-progress-update-january-2026">gov.uk</a>.</li>
+<li>ODI, <em>Prototyping an AI-ready National Data Library</em> (March 2026): <a href="https://theodi.org/insights/reports/prototyping-an-ai-ready-national-data-library/">theodi.org</a>.</li>
+<li>ODI, <em>A framework for AI-ready enterprise data</em> (June 2026): <a href="https://theodi.hacdn.io/media/documents/A_framework_for_AI-ready_enterprise_data.pdf">PDF</a>.</li>
+<li>UK Government, <em>The Government Data Quality Framework</em>: <a href="https://www.gov.uk/government/publications/the-government-data-quality-framework/the-government-data-quality-framework">gov.uk</a>.</li>
+<li>UK Government, <em>Data Ethics Framework</em>: <a href="https://www.gov.uk/government/publications/data-ethics-framework">gov.uk</a>.</li>
+<li>UK Government, <em>Algorithmic Transparency Recording Standard Hub</em>: <a href="https://www.gov.uk/government/collections/algorithmic-transparency-recording-standard-hub">gov.uk</a>.</li>
+</ul>
+
+  </article>
+</div>
+</body>
+</html>

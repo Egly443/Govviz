@@ -1,0 +1,101 @@
+{
+  "@context": "https://egly443.github.io/Govviz/data/profile.json",
+  "id": "https://egly443.github.io/Govviz/data/series/dbt-business-investment.json",
+  "title": "Business investment",
+  "description": "UK business investment, £bn per quarter (chained volume, seasonally adjusted)",
+  "producer": "ONS, Business investment in the UK (series NPEL)",
+  "statisticType": "Official Statistic",
+  "measure": "UK business investment, £bn per quarter (chained volume, seasonally adjusted)",
+  "unit": "GBP",
+  "unitMultiplier": 9,
+  "unitLabel": "£ billion",
+  "geography": null,
+  "geographyLabel": null,
+  "periodicity": "P3M",
+  "validRange": {
+    "min": 20,
+    "max": 90
+  },
+  "suppressionScheme": "https://egly443.github.io/Govviz/data/suppression/v1",
+  "revisionStatus": "final",
+  "licence": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+  "provenance": {
+    "source": "ONS, Business investment in the UK (series NPEL)",
+    "methodology": "https://www.ons.gov.uk/economy/grossdomesticproductgdp/timeseries/npel/cxnv",
+    "derivation": "Direct from source; latest value validated against validRange",
+    "upstreamUrl": "https://www.ons.gov.uk/economy/grossdomesticproductgdp/timeseries/npel/cxnv/data",
+    "fetchedAt": "2026-07-02",
+    "contentHash": "ad910e8359",
+    "sourceBytesHash": "2e7409bf46ef",
+    "compiledBy": "Govviz"
+  },
+  "semanticTags": [
+    "dbt",
+    "business & trade",
+    "exports",
+    "innovation",
+    "investment",
+    "quarterly",
+    "gbp",
+    "productivity",
+    "public finance",
+    "transport",
+    "infrastructure"
+  ],
+  "subjectUris": [
+    "https://www.gov.uk/government/organisations/department-for-business-and-trade",
+    "https://www.ons.gov.uk/economy/grossdomesticproductgdp/timeseries/npel/cxnv"
+  ],
+  "qualityDimensions": {
+    "accuracy": "Not asserted by Govviz; upstream producer methodology remains authoritative.",
+    "completeness": "117 observations emitted in the tidy data file.",
+    "uniqueness": "One observation per period/ref_area key in the emitted tidy table.",
+    "consistency": "Compiled by the same source-specific parser and emitted through one CSVW schema.",
+    "timeliness": "Latest observed period 2026-01 is older than the expected quarterly cadence projection 2026-04-01; latest source fetch recorded 2026-07-02.",
+    "validity": "Latest source values passed the published validRange 20 to 90."
+  },
+  "compiler": {
+    "name": "Govviz",
+    "url": "https://egly443.github.io/Govviz",
+    "conformanceVersion": "ai-ready-series-profile-v0.2",
+    "compiledAt": "2026-07-02T16:51:32.964Z",
+    "pipelineCommit": "90aea5d6665231b8497666afb12794279c7826d6",
+    "sourceBytesHash": "2e7409bf46ef"
+  },
+  "upstreamConformance": "not-asserted-by-primary-publisher",
+  "publisherClaim": "not-asserted-by-primary-publisher",
+  "nextRelease": null,
+  "nextReleaseEstimated": false,
+  "expectedCadence": "quarterly",
+  "latestObservedPeriod": "2026-01",
+  "latestFetchedAt": "2026-07-02",
+  "estimatedNextPeriod": "2026-04-01",
+  "freshnessStatus": "aged",
+  "freshnessReason": "Latest observed period 2026-01 is older than the expected quarterly cadence projection 2026-04-01; latest source fetch recorded 2026-07-02.",
+  "conformanceLevel": "M5-reference-rendering",
+  "limitations": [
+    "Govviz is a downstream compiler, not the primary publisher.",
+    "The primary producer may not publish the same tidy structure, stable id, CSVW metadata, or validation range upstream.",
+    "Freshness metadata is inferred from observed periods and fetch timestamps; it is not an official release calendar.",
+    "The contact and accountability route remains the primary producer's published route, not a Govviz official statistics contact.",
+    "No upstream policy-as-code conformance assertion has been made by the primary producer."
+  ],
+  "latest": "https://egly443.github.io/Govviz/data/series/dbt-business-investment/data.csv",
+  "distribution": [
+    "https://egly443.github.io/Govviz/data/series/dbt-business-investment/data.csv",
+    "https://egly443.github.io/Govviz/data/series/dbt-business-investment/data-977bfde7dc22.csv",
+    "https://egly443.github.io/Govviz/data/series/dbt-business-investment/data.csv-metadata.json",
+    "https://egly443.github.io/Govviz/data/series/dbt-business-investment.json"
+  ],
+  "csvw": "https://egly443.github.io/Govviz/data/series/dbt-business-investment/data.csv-metadata.json",
+  "agent": "https://egly443.github.io/Govviz/data/mcp.json",
+  "basis": null,
+  "caveat": null,
+  "lens": null,
+  "goodDirection": "up",
+  "department": {
+    "code": "dbt",
+    "name": "Business & Trade"
+  },
+  "observationCount": 117
+}

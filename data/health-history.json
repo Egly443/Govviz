@@ -1,0 +1,3862 @@
+{
+  "id": "https://egly443.github.io/Govviz/data/health-history.json",
+  "title": "Govviz data health history",
+  "description": "Rolling build-time health snapshots for the AI-ready open-data product. CI can seed this from the currently deployed file before appending the new build.",
+  "generatedAt": "2026-07-02T16:51:32.769Z",
+  "sourceHistory": ".cache/govviz/health-history.json",
+  "retention": "Most recent 60 build snapshots.",
+  "entries": [
+    {
+      "builtAt": "2026-07-02T16:51:32.769Z",
+      "built": "2026-07-02",
+      "pipelineCommit": "90aea5d6665231b8497666afb12794279c7826d6",
+      "totalSeries": 124,
+      "withObservations": 116,
+      "withValidRange": 115,
+      "freshness": {
+        "aged": 75,
+        "current": 41,
+        "unknown": 8
+      },
+      "series": [
+        {
+          "id": "waiting-list",
+          "title": "Elective care waiting list",
+          "department": "dhsc",
+          "observationCount": 18,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2026-03",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.england.nhs.uk/statistics/statistical-work-areas/rtt-waiting-times/",
+          "contentHash": "dedb206561",
+          "sourceBytesHash": "174f0df13b7b",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "rtt-18-week",
+          "title": "18-week treatment target compliance",
+          "department": "dhsc",
+          "observationCount": 18,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2026-03",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.england.nhs.uk/statistics/statistical-work-areas/rtt-waiting-times/",
+          "contentHash": "5fc18133ae",
+          "sourceBytesHash": null,
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dhsc-ambulance-c2",
+          "title": "Ambulance response (Category 2)",
+          "department": "dhsc",
+          "observationCount": 106,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2026-05",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.england.nhs.uk/statistics/wp-content/uploads/sites/2/2026/06/AmbSYS-to-May-2026-k58VJ.csv",
+          "contentHash": "776eba2553",
+          "sourceBytesHash": "fa2b03cbcf09",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "discharge-delays",
+          "title": "Hospital discharge bottleneck",
+          "department": "dhsc",
+          "observationCount": 25,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2026-04",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.england.nhs.uk/statistics/statistical-work-areas/discharge-delays-acute-data/",
+          "contentHash": "cdb98f09a8",
+          "sourceBytesHash": "9d65894300ff",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "agency-spend",
+          "title": "NHS temporary agency staff spend",
+          "department": "dhsc",
+          "observationCount": 12,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2025-04",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.nao.org.uk/reports/nhs-financial-management-and-sustainability/",
+          "contentHash": "d1cd18ace2",
+          "sourceBytesHash": "219e3463af16",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "capital-overrun",
+          "title": "Capital programme cost overrun",
+          "department": "dhsc",
+          "observationCount": 4,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.gov.uk/government/publications/government-major-projects-portfolio-data-for-bis-2013",
+          "contentHash": "0468677264",
+          "sourceBytesHash": "6aa78743eeb0",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dhsc-spend-per-life-year",
+          "title": "Health spend per year of life",
+          "department": "dhsc",
+          "observationCount": 25,
+          "hasValidRange": false,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://data.worldbank.org/indicator/SH.XPD.CHEX.PC.CD?locations=GB",
+          "contentHash": "66f4d31bcff9",
+          "sourceBytesHash": null,
+          "warnings": [
+            "no-valid-range",
+            "aged"
+          ]
+        },
+        {
+          "id": "dhsc-gp-access",
+          "title": "GP appointment access",
+          "department": "dhsc",
+          "observationCount": 2,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://gp-patient.co.uk/FileDownload/Download?fileRedirect=2025%2Fsurvey-results%2Fnational-results%2Fnational-results-and-trends%2FGPPS_2025_National_results_and_trends_PUBLIC.xlsx",
+          "contentHash": "f28eca1dab",
+          "sourceBytesHash": "f22bc1d59c33",
+          "warnings": []
+        },
+        {
+          "id": "ae-performance",
+          "title": "A&E 4-hour standard",
+          "department": "dhsc",
+          "observationCount": 187,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2026-05",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.england.nhs.uk/statistics/wp-content/uploads/sites/2/2026/06/Monthly-AE-Time-Series-May-2026-wlgnE2.xls",
+          "contentHash": "b79e5e0ad8",
+          "sourceBytesHash": "a2bf0e8cd323",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dhsc-clinical-per-1000",
+          "title": "Clinical workforce per 1,000 people",
+          "department": "dhsc",
+          "observationCount": 78,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2023",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SH.MED.PHYS.ZS?format=json&per_page=20000",
+          "contentHash": "8ca61b893c",
+          "sourceBytesHash": "564dad8175ee",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dhsc-beds-per-1000",
+          "title": "Hospital beds per 1,000 people",
+          "department": "dhsc",
+          "observationCount": 124,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2023",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SH.MED.BEDS.ZS?format=json&per_page=20000",
+          "contentHash": "929907e0ba",
+          "sourceBytesHash": "25972fbf1795",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dhsc-health-spend-gdp",
+          "title": "Health spending (% of GDP)",
+          "department": "dhsc",
+          "observationCount": 75,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SH.XPD.CHEX.GD.ZS?format=json&per_page=20000",
+          "contentHash": "2af4e88b7e",
+          "sourceBytesHash": "dd8ba835d351",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dhsc-health-spend-pc",
+          "title": "Health spending per person",
+          "department": "dhsc",
+          "observationCount": 75,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SH.XPD.CHEX.PC.CD?format=json&per_page=20000",
+          "contentHash": "b325f85de1",
+          "sourceBytesHash": "b2c203cf8d9b",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dhsc-infant-mortality",
+          "title": "Infant mortality",
+          "department": "dhsc",
+          "observationCount": 65,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SP.DYN.IMRT.IN?format=json&per_page=20000",
+          "contentHash": "2ae2f0e825",
+          "sourceBytesHash": "a4b3bc07880b",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dhsc-suicide",
+          "title": "Suicide rate",
+          "department": "dhsc",
+          "observationCount": 22,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2021",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SH.STA.SUIC.P5?format=json&per_page=20000",
+          "contentHash": "ba4b384dfb",
+          "sourceBytesHash": "254efbc647fd",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dhsc-measles-imm",
+          "title": "Measles immunisation",
+          "department": "dhsc",
+          "observationCount": 45,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SH.IMM.MEAS?format=json&per_page=20000",
+          "contentHash": "9f77a0f305",
+          "sourceBytesHash": "b0243344bf2b",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dhsc-oop",
+          "title": "Out-of-pocket health costs",
+          "department": "dhsc",
+          "observationCount": 25,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SH.XPD.OOPC.CH.ZS?format=json&per_page=20000",
+          "contentHash": "2c72a7e522",
+          "sourceBytesHash": "e47e2afd5f26",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "turnover",
+          "title": "Civil service & NHS workforce turnover",
+          "department": "dhsc",
+          "observationCount": 0,
+          "hasValidRange": false,
+          "freshnessStatus": "unknown",
+          "latestObservedPeriod": null,
+          "latestFetchedAt": null,
+          "source": "https://digital.nhs.uk/data-and-information/publications/statistical/nhs-workforce-statistics",
+          "contentHash": "a82cb24951da",
+          "sourceBytesHash": null,
+          "warnings": [
+            "no-observations",
+            "no-valid-range"
+          ]
+        },
+        {
+          "id": "vacancy",
+          "title": "Health & social care vacancy rate",
+          "department": "dhsc",
+          "observationCount": 300,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2026-04",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/employmentandemployeetypes/timeseries/jpb9/lms/data",
+          "contentHash": "5e5c6d3dc0",
+          "sourceBytesHash": "82d4360a6dbc",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "life-expectancy",
+          "title": "Life expectancy at birth",
+          "department": "dhsc",
+          "observationCount": 65,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SP.DYN.LE00.IN?format=json&per_page=20000",
+          "contentHash": "b825143b8d",
+          "sourceBytesHash": "0e9dc4c17999",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dfe-attainment-gap",
+          "title": "Disadvantaged attainment gap",
+          "department": "dfe",
+          "observationCount": 15,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://explore-education-statistics.service.gov.uk/data-catalogue/data-set/dbff4e55-5b10-44bc-be2b-23d9d68e0f98",
+          "contentHash": "73bfa306d6",
+          "sourceBytesHash": "62265328da4c",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dfe-persistent-absence",
+          "title": "Persistent absence from school",
+          "department": "dfe",
+          "observationCount": 6,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://explore-education-statistics.service.gov.uk/data-catalogue/data-set/e2eb493a-dc95-41f4-96ef-b886c5cd2019",
+          "contentHash": "cfeb4e24ce",
+          "sourceBytesHash": "35ca50c119bd",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dfe-ect-attrition",
+          "title": "Early-career teacher attrition",
+          "department": "dfe",
+          "observationCount": 24,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2019",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://explore-education-statistics.service.gov.uk/data-catalogue/data-set/e0a0988c-41e8-411a-be55-ec990ce97043",
+          "contentHash": "0229300356",
+          "sourceBytesHash": "6aac2219d62e",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dfe-dsg-deficit",
+          "title": "Local Authority DSG deficits",
+          "department": "dfe",
+          "observationCount": 0,
+          "hasValidRange": false,
+          "freshnessStatus": "unknown",
+          "latestObservedPeriod": null,
+          "latestFetchedAt": null,
+          "source": "https://www.local.gov.uk/topics/children-and-young-people/dedicated-schools-grant-deficits",
+          "contentHash": "a82cb24951da",
+          "sourceBytesHash": null,
+          "warnings": [
+            "no-observations",
+            "no-valid-range"
+          ]
+        },
+        {
+          "id": "dfe-teacher-recruitment",
+          "title": "Teacher training recruitment",
+          "department": "dfe",
+          "observationCount": 11,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://explore-education-statistics.service.gov.uk/data-catalogue/data-set/04e0590d-63a9-45d4-b924-98c7a5bc5e76",
+          "contentHash": "e22e9b713a",
+          "sourceBytesHash": "18079fbbe75d",
+          "warnings": []
+        },
+        {
+          "id": "dfe-spend-per-pupil",
+          "title": "Spending per primary pupil",
+          "department": "dfe",
+          "observationCount": 46,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2016",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SE.XPD.PRIM.PC.ZS?format=json&per_page=20000",
+          "contentHash": "cac0e76d74",
+          "sourceBytesHash": "978bb093da0e",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dfe-edu-spend-gdp",
+          "title": "Education spending (% of GDP)",
+          "department": "dfe",
+          "observationCount": 46,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2021",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SE.XPD.TOTL.GD.ZS?format=json&per_page=20000",
+          "contentHash": "ca552df0c5",
+          "sourceBytesHash": "3e2cc8e5e12b",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dfe-pupil-teacher",
+          "title": "Pupil–teacher ratio (primary)",
+          "department": "dfe",
+          "observationCount": 38,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2017",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SE.PRM.ENRL.TC.ZS?format=json&per_page=20000",
+          "contentHash": "7d12a1db1a",
+          "sourceBytesHash": "73528a7dc7f8",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dfe-tertiary-enrol",
+          "title": "University participation",
+          "department": "dfe",
+          "observationCount": 24,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2023",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SE.TER.ENRR?format=json&per_page=20000",
+          "contentHash": "e3a00b96d7",
+          "sourceBytesHash": "4c4051ad4361",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "ho-asylum-backlog",
+          "title": "Pending asylum seekers",
+          "department": "home-office",
+          "observationCount": 75,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.unhcr.org/refugee-statistics/download",
+          "contentHash": "306c8a6bdf",
+          "sourceBytesHash": "12eeb93f49e4",
+          "warnings": []
+        },
+        {
+          "id": "ho-net-migration",
+          "title": "Net migration",
+          "department": "home-office",
+          "observationCount": 55,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.ons.gov.uk/file?uri=/peoplepopulationandcommunity/populationandmigration/internationalmigration/datasets/longterminternationalimmigrationemigrationandnetmigrationflowsprovisional/yearendingdecember2025/may2026publicationspreadsheet.xlsx",
+          "contentHash": "442d699935",
+          "sourceBytesHash": "141361ca53bb",
+          "warnings": []
+        },
+        {
+          "id": "ho-charge-rate",
+          "title": "Crimes resulting in a charge",
+          "department": "home-office",
+          "observationCount": 11,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/6890c7aee8ba9507fc1b09cc/outcomes-mar25-tables-240725.ods",
+          "contentHash": "8323dc17d6",
+          "sourceBytesHash": "ba244ec35952",
+          "warnings": []
+        },
+        {
+          "id": "ho-shoplifting",
+          "title": "Shoplifting offences",
+          "department": "home-office",
+          "observationCount": 25,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.ons.gov.uk/file?uri=/peoplepopulationandcommunity/crimeandjustice/datasets/crimeinenglandandwalesappendixtables/yearendingdecember2025/appendixtablesyedec2025.xlsx",
+          "contentHash": "a349bbb028",
+          "sourceBytesHash": "046f3b5a54bd",
+          "warnings": []
+        },
+        {
+          "id": "ho-caseworker-turnover",
+          "title": "Asylum caseworker turnover",
+          "department": "home-office",
+          "observationCount": 0,
+          "hasValidRange": false,
+          "freshnessStatus": "unknown",
+          "latestObservedPeriod": null,
+          "latestFetchedAt": null,
+          "source": "https://www.nao.org.uk/reports/asylum-and-protection-transformation-programme/",
+          "contentHash": "a82cb24951da",
+          "sourceBytesHash": null,
+          "warnings": [
+            "no-observations",
+            "no-valid-range"
+          ]
+        },
+        {
+          "id": "ho-hotel-spend",
+          "title": "Asylum hotel contingency spend",
+          "department": "home-office",
+          "observationCount": 0,
+          "hasValidRange": false,
+          "freshnessStatus": "unknown",
+          "latestObservedPeriod": null,
+          "latestFetchedAt": null,
+          "source": "https://www.nao.org.uk/reports/investigation-into-asylum-accommodation/",
+          "contentHash": "a82cb24951da",
+          "sourceBytesHash": null,
+          "warnings": [
+            "no-observations",
+            "no-valid-range"
+          ]
+        },
+        {
+          "id": "ho-visa-sla",
+          "title": "Visa processing service standard",
+          "department": "home-office",
+          "observationCount": 17,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2025-12",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/6a0d7c8f04baf6101d4bfdbb/visas-status-and-immigration-data-jan-mar-2026.ods",
+          "contentHash": "2f0f2948a4",
+          "sourceBytesHash": "26e24a44e3b8",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "ho-passport-times",
+          "title": "Passport processing",
+          "department": "home-office",
+          "observationCount": 10,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2026-03",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/6a0d7020c75cc34a8ff8f5a8/passports-and-citizenship-data-jan-mar-2026.ods",
+          "contentHash": "196a39d314",
+          "sourceBytesHash": "32ec499a9af5",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "ho-homicide-rate",
+          "title": "Homicide rate",
+          "department": "home-office",
+          "observationCount": 98,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2023",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/VC.IHR.PSRC.P5?format=json&per_page=20000",
+          "contentHash": "a598280592",
+          "sourceBytesHash": "f8534e45d8b6",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "ho-migrant-stock",
+          "title": "Foreign-born population",
+          "department": "home-office",
+          "observationCount": 8,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SM.POP.TOTL.ZS?format=json&per_page=20000",
+          "contentHash": "e9b8b3945f",
+          "sourceBytesHash": "d84fb772cb3c",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "moj-crown-backlog",
+          "title": "Crown Court outstanding caseload",
+          "department": "moj",
+          "observationCount": 41,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2026-03",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/6a3bfe35da47783d877239e3/ccsq_accessible_publication_tables_2026Q1.ods",
+          "contentHash": "146f0131be",
+          "sourceBytesHash": "9be187df4b6b",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "moj-officer-resignations",
+          "title": "Prison officer resignation rate",
+          "department": "moj",
+          "observationCount": 7,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2026-03",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/6a0d90f1faac4bc0b0e90635/hmpps-workforce-statistics-tables-mar-2026_final.ods",
+          "contentHash": "90c013daeb",
+          "sourceBytesHash": "173d2b5d306c",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "moj-cost-per-prisoner",
+          "title": "Average cost per prisoner",
+          "department": "moj",
+          "observationCount": 5,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/61f12ca38fa8f50594b5949c/costs-per-prison-place-prisoner-individual-prison-2020-21.ods",
+          "contentHash": "03095e23ea",
+          "sourceBytesHash": "ab45312e9256",
+          "warnings": []
+        },
+        {
+          "id": "moj-completion-days",
+          "title": "Crown Court case completion time",
+          "department": "moj",
+          "observationCount": 41,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2026-12",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/6a3bfe35da47783d877239e3/ccsq_accessible_publication_tables_2026Q1.ods",
+          "contentHash": "ddd78e211d",
+          "sourceBytesHash": "9be187df4b6b",
+          "warnings": []
+        },
+        {
+          "id": "mod-personnel-shortfall",
+          "title": "Trained personnel shortfall",
+          "department": "mod",
+          "observationCount": 56,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2026-01",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/69f06cf520a498c16734b04a/UK_armed_forces_quarterly_service_personnel_statistics_1_January_2026__ODS_.ods",
+          "contentHash": "c2bfeaa0b9",
+          "sourceBytesHash": "ed2d108baaa5",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "mod-voluntary-outflow",
+          "title": "Critical trades voluntary outflow",
+          "department": "mod",
+          "observationCount": 51,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2025-12",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/69f06cf520a498c16734b04a/UK_armed_forces_quarterly_service_personnel_statistics_1_January_2026__ODS_.ods",
+          "contentHash": "3cc1a15d43",
+          "sourceBytesHash": "ed2d108baaa5",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "mod-procurement",
+          "title": "MoD major projects delivery confidence",
+          "department": "mod",
+          "observationCount": 4,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.gov.uk/government/publications/government-major-projects-portfolio-data-for-bis-2013",
+          "contentHash": "3b0fbeb39e",
+          "sourceBytesHash": "6aa78743eeb0",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "mod-readiness",
+          "title": "Force readiness index",
+          "department": "mod",
+          "observationCount": 0,
+          "hasValidRange": false,
+          "freshnessStatus": "unknown",
+          "latestObservedPeriod": null,
+          "latestFetchedAt": null,
+          "source": "https://www.nao.org.uk/reports/the-equipment-plan-2023-2033/",
+          "contentHash": "a82cb24951da",
+          "sourceBytesHash": null,
+          "warnings": [
+            "no-observations",
+            "no-valid-range"
+          ]
+        },
+        {
+          "id": "mod-defence-spend-gdp",
+          "title": "Defence spending (% of GDP)",
+          "department": "mod",
+          "observationCount": 65,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/MS.MIL.XPND.GD.ZS?format=json&per_page=20000",
+          "contentHash": "abd5887314",
+          "sourceBytesHash": "4e07d7f12473",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "mod-personnel-total",
+          "title": "Armed forces personnel",
+          "department": "mod",
+          "observationCount": 33,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2020",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/MS.MIL.TOTL.P1?format=json&per_page=20000",
+          "contentHash": "901006b73e",
+          "sourceBytesHash": "83a23409f331",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dwp-pip-clearance",
+          "title": "PIP end-to-end clearance time",
+          "department": "dwp",
+          "observationCount": 155,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2026-04",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/6a2fde12a3674dfd3eb508a6/pip-tables-april-2026-england-and-wales.ods",
+          "contentHash": "ad1fe70602",
+          "sourceBytesHash": "9b6038d628c2",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dwp-work-coach-ratio",
+          "title": "Work coach caseload ratio",
+          "department": "dwp",
+          "observationCount": 0,
+          "hasValidRange": false,
+          "freshnessStatus": "unknown",
+          "latestObservedPeriod": null,
+          "latestFetchedAt": null,
+          "source": "https://www.nao.org.uk/reports/dwp-work-coaches/",
+          "contentHash": "a82cb24951da",
+          "sourceBytesHash": null,
+          "warnings": [
+            "no-observations",
+            "no-valid-range"
+          ]
+        },
+        {
+          "id": "dwp-fraud-error",
+          "title": "Fraud & error in benefit spend",
+          "department": "dwp",
+          "observationCount": 21,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2026",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/6a0472d0ee62840dba48a1e7/financial-year-ending-2026-estimates.xlsx",
+          "contentHash": "ff5b94a967",
+          "sourceBytesHash": "b67a3f7b501d",
+          "warnings": []
+        },
+        {
+          "id": "dwp-uc-mr",
+          "title": "Outstanding UC mandatory reconsiderations",
+          "department": "dwp",
+          "observationCount": 0,
+          "hasValidRange": false,
+          "freshnessStatus": "unknown",
+          "latestObservedPeriod": null,
+          "latestFetchedAt": null,
+          "source": "https://www.gov.uk/government/collections/mandatory-reconsiderations",
+          "contentHash": "a82cb24951da",
+          "sourceBytesHash": null,
+          "warnings": [
+            "no-observations",
+            "no-valid-range"
+          ]
+        },
+        {
+          "id": "dwp-pop-65",
+          "title": "Population aged 65+",
+          "department": "dwp",
+          "observationCount": 66,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SP.POP.65UP.TO.ZS?format=json&per_page=20000",
+          "contentHash": "7ee0bb0641",
+          "sourceBytesHash": "76615ce243f0",
+          "warnings": []
+        },
+        {
+          "id": "dwp-oldage-dependency",
+          "title": "Old-age dependency ratio",
+          "department": "dwp",
+          "observationCount": 66,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SP.POP.DPND.OL?format=json&per_page=20000",
+          "contentHash": "02f38282b9",
+          "sourceBytesHash": "528895676f33",
+          "warnings": []
+        },
+        {
+          "id": "dwp-female-participation",
+          "title": "Female labour participation",
+          "department": "dwp",
+          "observationCount": 36,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SL.TLF.CACT.FE.ZS?format=json&per_page=20000",
+          "contentHash": "91201882cd",
+          "sourceBytesHash": "c04fa15a8dc4",
+          "warnings": []
+        },
+        {
+          "id": "dwp-gini",
+          "title": "Income inequality (Gini)",
+          "department": "dwp",
+          "observationCount": 119,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2023",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SI.POV.GINI?format=json&per_page=20000",
+          "contentHash": "c1c5d81def",
+          "sourceBytesHash": "6e2fe34c41db",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dwp-youth-unemp",
+          "title": "Youth unemployment",
+          "department": "dwp",
+          "observationCount": 35,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SL.UEM.1524.ZS?format=json&per_page=20000",
+          "contentHash": "3cc1656f17",
+          "sourceBytesHash": "08fac1fc8cd3",
+          "warnings": []
+        },
+        {
+          "id": "dft-rail-cancellations",
+          "title": "Passenger rail cancellation score",
+          "department": "dft",
+          "observationCount": 28,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2026-03",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://dataportal.orr.gov.uk/media/2177/table-3123-trains-planned-and-cancellations-by-operator-and-cause.ods",
+          "contentHash": "915f89d85c",
+          "sourceBytesHash": "6b716e6a4a39",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dft-rail-fares",
+          "title": "Rail fares",
+          "department": "dft",
+          "observationCount": 449,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2026-05",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/d7ef/mm23/data",
+          "contentHash": "0ab1556c70",
+          "sourceBytesHash": "423b125ffe1d",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dft-local-roads",
+          "title": "Local road condition",
+          "department": "dft",
+          "observationCount": 18,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/696faccc011505255b2d4253/rdc0121.ods",
+          "contentHash": "89f8a2e812",
+          "sourceBytesHash": "836bc1382603",
+          "warnings": []
+        },
+        {
+          "id": "dft-dvla-backlog",
+          "title": "DVLA paper application backlog",
+          "department": "dft",
+          "observationCount": 0,
+          "hasValidRange": false,
+          "freshnessStatus": "unknown",
+          "latestObservedPeriod": null,
+          "latestFetchedAt": null,
+          "source": "https://www.gov.uk/government/organisations/driver-and-vehicle-licensing-agency/about/statistics",
+          "contentHash": "a82cb24951da",
+          "sourceBytesHash": null,
+          "warnings": [
+            "no-observations",
+            "no-valid-range"
+          ]
+        },
+        {
+          "id": "dft-capital-overrun",
+          "title": "DfT major projects delivery confidence",
+          "department": "dft",
+          "observationCount": 4,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.gov.uk/government/publications/government-major-projects-portfolio-data-for-bis-2013",
+          "contentHash": "c9d352ddb7",
+          "sourceBytesHash": "6aa78743eeb0",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dft-srn-degradation",
+          "title": "Strategic road network condition",
+          "department": "dft",
+          "observationCount": 10,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.orr.gov.uk/media/25721/download",
+          "contentHash": "a9b6136aa9",
+          "sourceBytesHash": "e79cdf98b2db",
+          "warnings": []
+        },
+        {
+          "id": "dft-road-death-rate",
+          "title": "Road deaths per 100,000",
+          "department": "dft",
+          "observationCount": 60,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2019",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SH.STA.TRAF.P5?format=json&per_page=20000",
+          "contentHash": "09d4689627",
+          "sourceBytesHash": "0fb88517139f",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dft-co2-pc",
+          "title": "CO₂ emissions per person",
+          "department": "dft",
+          "observationCount": 165,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/EN.GHG.CO2.PC.CE.AR5?format=json&per_page=20000",
+          "contentHash": "bde408dba0",
+          "sourceBytesHash": "0a757e4aafb2",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "hmt-gdp-per-capita",
+          "title": "Real GDP per head",
+          "department": "treasury",
+          "observationCount": 66,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/NY.GDP.PCAP.KD?format=json&per_page=20000",
+          "contentHash": "3f9bb9f0c3",
+          "sourceBytesHash": "d82653714de8",
+          "warnings": []
+        },
+        {
+          "id": "hmt-cost-of-living",
+          "title": "Inflation vs pay growth",
+          "department": "treasury",
+          "observationCount": 339,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2026",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/d7g7/mm23/data",
+          "contentHash": "895d57f118",
+          "sourceBytesHash": "4675a8fa1c10",
+          "warnings": []
+        },
+        {
+          "id": "hmt-food-prices",
+          "title": "Food prices",
+          "department": "treasury",
+          "observationCount": 461,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2026-05",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/d7bu/mm23/data",
+          "contentHash": "f58bf744f1",
+          "sourceBytesHash": "c7869f8f9c2b",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "hmt-psnd",
+          "title": "Public sector net debt",
+          "department": "treasury",
+          "observationCount": 33,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.ons.gov.uk/economy/governmentpublicsectorandtaxes/publicsectorfinance/timeseries/hf6x/pusf/data",
+          "contentHash": "8427ea9eb4",
+          "sourceBytesHash": "a7c49624e082",
+          "warnings": []
+        },
+        {
+          "id": "hmt-psnd-cash",
+          "title": "National debt in cash terms",
+          "department": "treasury",
+          "observationCount": 33,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.ons.gov.uk/economy/governmentpublicsectorandtaxes/publicsectorfinance/timeseries/hf6w/pusf/data",
+          "contentHash": "8b72a991d7",
+          "sourceBytesHash": "6ba1f674b0e5",
+          "warnings": []
+        },
+        {
+          "id": "hmt-tax-burden",
+          "title": "Total tax take",
+          "department": "treasury",
+          "observationCount": 53,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/GC.TAX.TOTL.GD.ZS?format=json&per_page=20000",
+          "contentHash": "3155de8ef6",
+          "sourceBytesHash": "6679adcc3c43",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "hmt-debt-interest",
+          "title": "Debt interest",
+          "department": "treasury",
+          "observationCount": 53,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/GC.XPN.INTP.RV.ZS?format=json&per_page=20000",
+          "contentHash": "0cfb95c4f6",
+          "sourceBytesHash": "56866fe5a653",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "hmt-regional-gap",
+          "title": "Regional divide",
+          "department": "treasury",
+          "observationCount": 26,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2023",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.ons.gov.uk/file?uri=/economy/grossvalueaddedgva/datasets/nominalregionalgrossvalueaddedbalancedperheadandincomecomponents/current/regionalgrossvalueaddedbalancedperheadandincomecomponents.xlsx",
+          "contentHash": "36e9e468e0",
+          "sourceBytesHash": "9102b1411aaa",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "hmt-unemployment",
+          "title": "Unemployment rate",
+          "department": "treasury",
+          "observationCount": 662,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2026-03",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.ons.gov.uk/employmentandlabourmarket/peoplenotinwork/unemployment/timeseries/mgsx/lms/data",
+          "contentHash": "97fafbc002",
+          "sourceBytesHash": "9832deb653cd",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "hmt-gdp-growth",
+          "title": "GDP growth",
+          "department": "treasury",
+          "observationCount": 65,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/NY.GDP.MKTP.KD.ZG?format=json&per_page=20000",
+          "contentHash": "e86670b045",
+          "sourceBytesHash": "a161b68dab01",
+          "warnings": []
+        },
+        {
+          "id": "hmt-employment-rate",
+          "title": "Employment rate",
+          "department": "treasury",
+          "observationCount": 35,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SL.EMP.TOTL.SP.ZS?format=json&per_page=20000",
+          "contentHash": "ea21d68603",
+          "sourceBytesHash": "a074d5aef5ee",
+          "warnings": []
+        },
+        {
+          "id": "hmt-participation",
+          "title": "Labour force participation",
+          "department": "treasury",
+          "observationCount": 36,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SL.TLF.CACT.ZS?format=json&per_page=20000",
+          "contentHash": "09122b199b",
+          "sourceBytesHash": "259935d163cc",
+          "warnings": []
+        },
+        {
+          "id": "hmt-investment-gdp",
+          "title": "Investment",
+          "department": "treasury",
+          "observationCount": 56,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/NE.GDI.TOTL.ZS?format=json&per_page=20000",
+          "contentHash": "059a1e4145",
+          "sourceBytesHash": "32beed620b09",
+          "warnings": []
+        },
+        {
+          "id": "hmt-trade-gdp",
+          "title": "Trade openness",
+          "department": "treasury",
+          "observationCount": 56,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/NE.TRD.GNFS.ZS?format=json&per_page=20000",
+          "contentHash": "5e7b4a8f1d",
+          "sourceBytesHash": "8b9b7476c708",
+          "warnings": []
+        },
+        {
+          "id": "hmt-savings",
+          "title": "Gross savings",
+          "department": "treasury",
+          "observationCount": 56,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/NY.GNS.ICTR.ZS?format=json&per_page=20000",
+          "contentHash": "564d010c23",
+          "sourceBytesHash": "808c17f24d50",
+          "warnings": []
+        },
+        {
+          "id": "hmt-current-account",
+          "title": "Current account balance",
+          "department": "treasury",
+          "observationCount": 56,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/BN.CAB.XOKA.GD.ZS?format=json&per_page=20000",
+          "contentHash": "a624bc512a",
+          "sourceBytesHash": "0333ad01ed27",
+          "warnings": []
+        },
+        {
+          "id": "hmt-gni-per-capita",
+          "title": "GNI per head (PPP)",
+          "department": "treasury",
+          "observationCount": 108,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/NY.GNP.PCAP.PP.CD?format=json&per_page=20000",
+          "contentHash": "62d94fd5ce",
+          "sourceBytesHash": "6ccdbada4b50",
+          "warnings": []
+        },
+        {
+          "id": "hmt-real-income",
+          "title": "Real household income per head",
+          "department": "treasury",
+          "observationCount": 71,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.ons.gov.uk/economy/grossdomesticproductgdp/timeseries/crxx/ukea/data",
+          "contentHash": "842d1e48b1",
+          "sourceBytesHash": "43d54ec48dea",
+          "warnings": []
+        },
+        {
+          "id": "hmt-productivity",
+          "title": "Productivity",
+          "department": "treasury",
+          "observationCount": 55,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/labourproductivity/timeseries/lzvb/prdy/data",
+          "contentHash": "6e8b070d65",
+          "sourceBytesHash": "607f465460cf",
+          "warnings": []
+        },
+        {
+          "id": "hmt-tax-split",
+          "title": "Direct vs indirect tax",
+          "department": "treasury",
+          "observationCount": 106,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/GC.TAX.YPKG.RV.ZS?format=json&per_page=20000",
+          "contentHash": "13d2c7f13c",
+          "sourceBytesHash": "14a6505dcc5a",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "hmt-deficit",
+          "title": "Budget deficit",
+          "department": "treasury",
+          "observationCount": 78,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.ons.gov.uk/economy/governmentpublicsectorandtaxes/publicsectorfinance/timeseries/j5ik/pusf/data",
+          "contentHash": "67054eb7ce",
+          "sourceBytesHash": "b26d675c22d6",
+          "warnings": []
+        },
+        {
+          "id": "mhclg-temp-accommodation",
+          "title": "Households in temporary accommodation",
+          "department": "mhclg",
+          "observationCount": 112,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2025-12",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/69f0899508ecdb5c6f34b063/Statutory_Homelessness_England_Time_Series_202512.ods",
+          "contentHash": "82a33519a0",
+          "sourceBytesHash": "3c7649c88bc4",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "mhclg-private-rents",
+          "title": "Private rents",
+          "department": "mhclg",
+          "observationCount": 122,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2025-02",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.ons.gov.uk/file?uri=/economy/inflationandpriceindices/datasets/priceindexofprivaterentsukhistoricalseries/26march2025/priceindexofprivaterentsukhistoricalseries.xlsx",
+          "contentHash": "eaac84b8c0",
+          "sourceBytesHash": "3aba59c0e970",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "mhclg-council-tax",
+          "title": "Council tax",
+          "department": "mhclg",
+          "observationCount": 34,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2027",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/69e8ab2d9ca985145673b826/Band_D_2026-27.ods",
+          "contentHash": "5220542571",
+          "sourceBytesHash": "c91521d622d7",
+          "warnings": []
+        },
+        {
+          "id": "mhclg-rough-sleeping",
+          "title": "Rough sleeping",
+          "department": "mhclg",
+          "observationCount": 16,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/699daac73e672177d0bc759b/Rough_sleeping_snapshot_in_England__autumn_2025.ods",
+          "contentHash": "ae116db150",
+          "sourceBytesHash": "7b5838ec8f38",
+          "warnings": []
+        },
+        {
+          "id": "mhclg-net-dwellings",
+          "title": "New homes added",
+          "department": "mhclg",
+          "observationCount": 19,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/691de46521ef5aaa6543efe4/Live_Table_120.ods",
+          "contentHash": "ad682d7d79",
+          "sourceBytesHash": "2ba344abbdce",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "mhclg-affordability",
+          "title": "Housing affordability",
+          "department": "mhclg",
+          "observationCount": 29,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.ons.gov.uk/file?uri=/peoplepopulationandcommunity/housing/datasets/ratioofhousepricetoworkplacebasedearningslowerquartileandmedian/current/aff1ratioofhousepricetoworkplacebasedearnings.xlsx",
+          "contentHash": "8a2bfcd3b8",
+          "sourceBytesHash": "8e83d37b9559",
+          "warnings": []
+        },
+        {
+          "id": "mhclg-social-waitlist",
+          "title": "Social housing waiting list",
+          "department": "mhclg",
+          "observationCount": 39,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/6a2be263e50716856ed4afc4/Live_Table_600.ods",
+          "contentHash": "fab2f96994",
+          "sourceBytesHash": "ba875e436200",
+          "warnings": []
+        },
+        {
+          "id": "defra-recycling",
+          "title": "Household recycling rate",
+          "department": "defra",
+          "observationCount": 15,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/69c68a26b66ff902f454434b/WFH_England_Data_202425.ods",
+          "contentHash": "27098ff854",
+          "sourceBytesHash": "e9d876e2e755",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "defra-pm25",
+          "title": "Air pollution (PM2.5)",
+          "department": "defra",
+          "observationCount": 34,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2023",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/EN.ATM.PM25.MC.M3?format=json&per_page=20000",
+          "contentHash": "312d77069f",
+          "sourceBytesHash": "154ec0905951",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "defra-forest",
+          "title": "Woodland cover",
+          "department": "defra",
+          "observationCount": 34,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2023",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/AG.LND.FRST.ZS?format=json&per_page=20000",
+          "contentHash": "73819d894b",
+          "sourceBytesHash": "9f3098f8bdea",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "defra-bathing-water",
+          "title": "Bathing water quality",
+          "department": "defra",
+          "observationCount": 10,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/69205a9da0e0fb4c2936ab72/EMBARGOED_EA_National_Bathing_Waters_Classification_Results_2025.ods",
+          "contentHash": "8c3dde92f3",
+          "sourceBytesHash": "6e7d26965574",
+          "warnings": []
+        },
+        {
+          "id": "defra-sewage-hours",
+          "title": "Sewage spill hours",
+          "department": "defra",
+          "observationCount": 6,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://environment.data.gov.uk/api/file/download?fileDataSetId=c55e170e-3c75-49a5-8026-a961ff94c8e0&fileName=EDM_2025_Storm_Overflow_Annual_Return.zip",
+          "contentHash": "a722dd2cc1",
+          "sourceBytesHash": "0515ac6536e0",
+          "warnings": []
+        },
+        {
+          "id": "desnz-renewables-share",
+          "title": "Renewable energy share",
+          "department": "desnz",
+          "observationCount": 32,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2021",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/EG.FEC.RNEW.ZS?format=json&per_page=20000",
+          "contentHash": "3a74c977a2",
+          "sourceBytesHash": "8912f5767576",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "desnz-ghg-emissions",
+          "title": "Greenhouse gas emissions",
+          "department": "desnz",
+          "observationCount": 33,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2022",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/65ff116e65ca2ffef17da7a7/final-greenhouse-gas-emissions-tables-2022.ods",
+          "contentHash": "13f9d4ea09",
+          "sourceBytesHash": "a621242f7614",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "desnz-fuel-poverty",
+          "title": "Households in fuel poverty",
+          "department": "desnz",
+          "observationCount": 16,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/69c3b05e3ed0546101e0dc41/2025_Trends_Tables__2026_Fuel_Poverty_Statistics_Publication_.xlsx",
+          "contentHash": "6bcde9f8ec",
+          "sourceBytesHash": "5143f7a18a54",
+          "warnings": []
+        },
+        {
+          "id": "desnz-electricity-price",
+          "title": "Domestic electricity price",
+          "department": "desnz",
+          "observationCount": 16,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2025-01",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/6a4245b97ac6fd9c6a94aae2/table_224__1_.xlsx",
+          "contentHash": "d7056e8d9a",
+          "sourceBytesHash": "6226f71f0548",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "desnz-energy-use-pc",
+          "title": "Energy use per person",
+          "department": "desnz",
+          "observationCount": 35,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/EG.USE.PCAP.KG.OE?format=json&per_page=20000",
+          "contentHash": "ac7750a430",
+          "sourceBytesHash": "a5ef277e7da1",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dsit-rd-gdp",
+          "title": "R&D spending",
+          "department": "dsit",
+          "observationCount": 28,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2023",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/GB.XPD.RSDV.GD.ZS?format=json&per_page=20000",
+          "contentHash": "0ff6d856a9",
+          "sourceBytesHash": "58f953b1782c",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dsit-researchers",
+          "title": "Researchers in R&D",
+          "department": "dsit",
+          "observationCount": 22,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2017",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SP.POP.SCIE.RD.P6?format=json&per_page=20000",
+          "contentHash": "e5b57bb38e",
+          "sourceBytesHash": "6d7d50daba37",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dsit-gigabit-broadband",
+          "title": "Gigabit broadband coverage",
+          "department": "dsit",
+          "observationCount": 3,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.ofcom.org.uk/phones-and-broadband/coverage-and-speeds/connected-nations-update",
+          "contentHash": "78fae9f134",
+          "sourceBytesHash": "28e4b493adda",
+          "warnings": []
+        },
+        {
+          "id": "dsit-internet-users",
+          "title": "Internet users",
+          "department": "dsit",
+          "observationCount": 35,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/IT.NET.USER.ZS?format=json&per_page=20000",
+          "contentHash": "f2ddffc3a6",
+          "sourceBytesHash": "d8f9a27ba8a9",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dsit-mobile-subs",
+          "title": "Mobile subscriptions",
+          "department": "dsit",
+          "observationCount": 53,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/IT.CEL.SETS.P2?format=json&per_page=20000",
+          "contentHash": "0d5f378f3e",
+          "sourceBytesHash": "991cc15d393a",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dbt-exports-gdp",
+          "title": "Exports",
+          "department": "dbt",
+          "observationCount": 56,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/NE.EXP.GNFS.ZS?format=json&per_page=20000",
+          "contentHash": "c359cacba9",
+          "sourceBytesHash": "a46c66878130",
+          "warnings": []
+        },
+        {
+          "id": "dbt-hightech-exports",
+          "title": "High-tech exports",
+          "department": "dbt",
+          "observationCount": 18,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/TX.VAL.TECH.MF.ZS?format=json&per_page=20000",
+          "contentHash": "77bb36d030",
+          "sourceBytesHash": "a0b615424933",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dbt-business-investment",
+          "title": "Business investment",
+          "department": "dbt",
+          "observationCount": 117,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2026-01",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.ons.gov.uk/economy/grossdomesticproductgdp/timeseries/npel/cxnv/data",
+          "contentHash": "ad910e8359",
+          "sourceBytesHash": "2e7409bf46ef",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dbt-retail-sales",
+          "title": "Retail sales",
+          "department": "dbt",
+          "observationCount": 365,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2026-05",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.ons.gov.uk/businessindustryandtrade/retailindustry/timeseries/j5ek/drsi/data",
+          "contentHash": "01005a824f",
+          "sourceBytesHash": "63567f4a10a5",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dbt-fdi",
+          "title": "Foreign direct investment",
+          "department": "dbt",
+          "observationCount": 55,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/BX.KLT.DINV.WD.GD.ZS?format=json&per_page=20000",
+          "contentHash": "c2b1672bbe",
+          "sourceBytesHash": "9c39dbc0ac07",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dcms-tourism-arrivals",
+          "title": "Inbound tourism",
+          "department": "dcms",
+          "observationCount": 26,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2020",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/ST.INT.ARVL?format=json&per_page=20000",
+          "contentHash": "a95c0d0bab",
+          "sourceBytesHash": "f2506991aec0",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dcms-creative-gva",
+          "title": "Creative industries GVA",
+          "department": "dcms",
+          "observationCount": 15,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/6982fc5d8c1e89ed1e91bbfc/DCMS_Sector_Economic_Estimates_Annual_GVA_2024__provisional__-_All_sectors.ods",
+          "contentHash": "d0d1b8dd62",
+          "sourceBytesHash": "a929bf4d2ffc",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dcms-sport-participation",
+          "title": "Adult sport participation",
+          "department": "dcms",
+          "observationCount": 10,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://sportengland-production-files.s3.eu-west-2.amazonaws.com/s3fs-public/2026-04/Active%20Lives%20Adult%20Survey%20report%20Nov%2024-25%20Tables%201-5%20Levels%20of%20activity.xlsx?VersionId=zC9fsQHK3OlNUB3ejQkw6gag9K7gmI6t",
+          "contentHash": "03364f067e",
+          "sourceBytesHash": "048a12fa9486",
+          "warnings": []
+        },
+        {
+          "id": "fcdo-oda-gni",
+          "title": "Aid spending (ODA)",
+          "department": "fcdo",
+          "observationCount": 8,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/5bfd469bed915d119ce0b966/Table1.ods",
+          "contentHash": "5b6c614529",
+          "sourceBytesHash": "7d7394bc4d09",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "fcdo-oda-total",
+          "title": "Total ODA",
+          "department": "fcdo",
+          "observationCount": 3,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/5bfd469bed915d119ce0b966/Table1.ods",
+          "contentHash": "5fd9001479",
+          "sourceBytesHash": "7d7394bc4d09",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "cab-gmpp-confidence",
+          "title": "Major projects delivery confidence",
+          "department": "cabinet-office",
+          "observationCount": 4,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.gov.uk/government/publications/government-major-projects-portfolio-data-for-bis-2013",
+          "contentHash": "ba60ef876e",
+          "sourceBytesHash": "6aa78743eeb0",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "cab-civil-service-headcount",
+          "title": "Civil service headcount",
+          "department": "cabinet-office",
+          "observationCount": 109,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2026",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/publicsectorpersonnel/timeseries/g7g6/pse/data",
+          "contentHash": "2fcfa73ee1",
+          "sourceBytesHash": "cdb5e2b710a6",
+          "warnings": []
+        },
+        {
+          "id": "cab-foi-intime",
+          "title": "FOI requests answered in time",
+          "department": "cabinet-office",
+          "observationCount": 12,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2026-01",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/6579df51254aaa000d050ca8/foi-statistics-q2-2023-statistical-tables.ods",
+          "contentHash": "b98cd5f597",
+          "sourceBytesHash": "b1227e530241",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "hmrc-call-wait",
+          "title": "Phone wait times",
+          "department": "hmrc",
+          "observationCount": 23,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2025-03",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/64ca4c2521df0f000dab4bd1/HMRC_monthly_performance_report_May_2023_data_table.xlsx",
+          "contentHash": "7dd467cab5",
+          "sourceBytesHash": "71bbafe874d4",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "hmrc-tax-gap",
+          "title": "Tax gap",
+          "department": "hmrc",
+          "observationCount": 20,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/6a314f53141f0690ad5fa41e/Measuring_tax_gap_online_tables_2026.xlsx",
+          "contentHash": "033cd1aead",
+          "sourceBytesHash": "707313bfc976",
+          "warnings": [
+            "aged"
+          ]
+        }
+      ]
+    },
+    {
+      "builtAt": "2026-07-02T16:23:10.068Z",
+      "built": "2026-07-02",
+      "pipelineCommit": "c4d099239c3de07004ca9cf792201f9bd0d130cf",
+      "totalSeries": 124,
+      "withObservations": 116,
+      "withValidRange": 115,
+      "freshness": {
+        "aged": 75,
+        "current": 41,
+        "unknown": 8
+      },
+      "series": [
+        {
+          "id": "waiting-list",
+          "title": "Elective care waiting list",
+          "department": "dhsc",
+          "observationCount": 18,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2026-03",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.england.nhs.uk/statistics/statistical-work-areas/rtt-waiting-times/",
+          "contentHash": "dedb206561",
+          "sourceBytesHash": "174f0df13b7b",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "rtt-18-week",
+          "title": "18-week treatment target compliance",
+          "department": "dhsc",
+          "observationCount": 18,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2026-03",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.england.nhs.uk/statistics/statistical-work-areas/rtt-waiting-times/",
+          "contentHash": "5fc18133ae",
+          "sourceBytesHash": null,
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dhsc-ambulance-c2",
+          "title": "Ambulance response (Category 2)",
+          "department": "dhsc",
+          "observationCount": 106,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2026-05",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.england.nhs.uk/statistics/wp-content/uploads/sites/2/2026/06/AmbSYS-to-May-2026-k58VJ.csv",
+          "contentHash": "776eba2553",
+          "sourceBytesHash": "fa2b03cbcf09",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "discharge-delays",
+          "title": "Hospital discharge bottleneck",
+          "department": "dhsc",
+          "observationCount": 25,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2026-04",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.england.nhs.uk/statistics/statistical-work-areas/discharge-delays-acute-data/",
+          "contentHash": "cdb98f09a8",
+          "sourceBytesHash": "9d65894300ff",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "agency-spend",
+          "title": "NHS temporary agency staff spend",
+          "department": "dhsc",
+          "observationCount": 12,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2025-04",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.nao.org.uk/reports/nhs-financial-management-and-sustainability/",
+          "contentHash": "d1cd18ace2",
+          "sourceBytesHash": "219e3463af16",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "capital-overrun",
+          "title": "Capital programme cost overrun",
+          "department": "dhsc",
+          "observationCount": 4,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.gov.uk/government/publications/government-major-projects-portfolio-data-for-bis-2013",
+          "contentHash": "0468677264",
+          "sourceBytesHash": "6aa78743eeb0",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dhsc-spend-per-life-year",
+          "title": "Health spend per year of life",
+          "department": "dhsc",
+          "observationCount": 25,
+          "hasValidRange": false,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://data.worldbank.org/indicator/SH.XPD.CHEX.PC.CD?locations=GB",
+          "contentHash": "66f4d31bcff9",
+          "sourceBytesHash": null,
+          "warnings": [
+            "no-valid-range",
+            "aged"
+          ]
+        },
+        {
+          "id": "dhsc-gp-access",
+          "title": "GP appointment access",
+          "department": "dhsc",
+          "observationCount": 2,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://gp-patient.co.uk/FileDownload/Download?fileRedirect=2025%2Fsurvey-results%2Fnational-results%2Fnational-results-and-trends%2FGPPS_2025_National_results_and_trends_PUBLIC.xlsx",
+          "contentHash": "f28eca1dab",
+          "sourceBytesHash": "f22bc1d59c33",
+          "warnings": []
+        },
+        {
+          "id": "ae-performance",
+          "title": "A&E 4-hour standard",
+          "department": "dhsc",
+          "observationCount": 187,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2026-05",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.england.nhs.uk/statistics/wp-content/uploads/sites/2/2026/06/Monthly-AE-Time-Series-May-2026-wlgnE2.xls",
+          "contentHash": "b79e5e0ad8",
+          "sourceBytesHash": "a2bf0e8cd323",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dhsc-clinical-per-1000",
+          "title": "Clinical workforce per 1,000 people",
+          "department": "dhsc",
+          "observationCount": 78,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2023",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SH.MED.PHYS.ZS?format=json&per_page=20000",
+          "contentHash": "8ca61b893c",
+          "sourceBytesHash": "564dad8175ee",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dhsc-beds-per-1000",
+          "title": "Hospital beds per 1,000 people",
+          "department": "dhsc",
+          "observationCount": 124,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2023",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SH.MED.BEDS.ZS?format=json&per_page=20000",
+          "contentHash": "929907e0ba",
+          "sourceBytesHash": "25972fbf1795",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dhsc-health-spend-gdp",
+          "title": "Health spending (% of GDP)",
+          "department": "dhsc",
+          "observationCount": 75,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SH.XPD.CHEX.GD.ZS?format=json&per_page=20000",
+          "contentHash": "2af4e88b7e",
+          "sourceBytesHash": "dd8ba835d351",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dhsc-health-spend-pc",
+          "title": "Health spending per person",
+          "department": "dhsc",
+          "observationCount": 75,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SH.XPD.CHEX.PC.CD?format=json&per_page=20000",
+          "contentHash": "b325f85de1",
+          "sourceBytesHash": "b2c203cf8d9b",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dhsc-infant-mortality",
+          "title": "Infant mortality",
+          "department": "dhsc",
+          "observationCount": 65,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SP.DYN.IMRT.IN?format=json&per_page=20000",
+          "contentHash": "2ae2f0e825",
+          "sourceBytesHash": "a4b3bc07880b",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dhsc-suicide",
+          "title": "Suicide rate",
+          "department": "dhsc",
+          "observationCount": 22,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2021",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SH.STA.SUIC.P5?format=json&per_page=20000",
+          "contentHash": "ba4b384dfb",
+          "sourceBytesHash": "254efbc647fd",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dhsc-measles-imm",
+          "title": "Measles immunisation",
+          "department": "dhsc",
+          "observationCount": 45,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SH.IMM.MEAS?format=json&per_page=20000",
+          "contentHash": "9f77a0f305",
+          "sourceBytesHash": "b0243344bf2b",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dhsc-oop",
+          "title": "Out-of-pocket health costs",
+          "department": "dhsc",
+          "observationCount": 25,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SH.XPD.OOPC.CH.ZS?format=json&per_page=20000",
+          "contentHash": "2c72a7e522",
+          "sourceBytesHash": "e47e2afd5f26",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "turnover",
+          "title": "Civil service & NHS workforce turnover",
+          "department": "dhsc",
+          "observationCount": 0,
+          "hasValidRange": false,
+          "freshnessStatus": "unknown",
+          "latestObservedPeriod": null,
+          "latestFetchedAt": null,
+          "source": "https://digital.nhs.uk/data-and-information/publications/statistical/nhs-workforce-statistics",
+          "contentHash": "a82cb24951da",
+          "sourceBytesHash": null,
+          "warnings": [
+            "no-observations",
+            "no-valid-range"
+          ]
+        },
+        {
+          "id": "vacancy",
+          "title": "Health & social care vacancy rate",
+          "department": "dhsc",
+          "observationCount": 300,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2026-04",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/employmentandemployeetypes/timeseries/jpb9/lms/data",
+          "contentHash": "5e5c6d3dc0",
+          "sourceBytesHash": "82d4360a6dbc",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "life-expectancy",
+          "title": "Life expectancy at birth",
+          "department": "dhsc",
+          "observationCount": 65,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SP.DYN.LE00.IN?format=json&per_page=20000",
+          "contentHash": "b825143b8d",
+          "sourceBytesHash": "0e9dc4c17999",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dfe-attainment-gap",
+          "title": "Disadvantaged attainment gap",
+          "department": "dfe",
+          "observationCount": 15,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://explore-education-statistics.service.gov.uk/data-catalogue/data-set/dbff4e55-5b10-44bc-be2b-23d9d68e0f98",
+          "contentHash": "73bfa306d6",
+          "sourceBytesHash": "62265328da4c",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dfe-persistent-absence",
+          "title": "Persistent absence from school",
+          "department": "dfe",
+          "observationCount": 6,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://explore-education-statistics.service.gov.uk/data-catalogue/data-set/e2eb493a-dc95-41f4-96ef-b886c5cd2019",
+          "contentHash": "cfeb4e24ce",
+          "sourceBytesHash": "35ca50c119bd",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dfe-ect-attrition",
+          "title": "Early-career teacher attrition",
+          "department": "dfe",
+          "observationCount": 24,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2019",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://explore-education-statistics.service.gov.uk/data-catalogue/data-set/e0a0988c-41e8-411a-be55-ec990ce97043",
+          "contentHash": "0229300356",
+          "sourceBytesHash": "6aac2219d62e",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dfe-dsg-deficit",
+          "title": "Local Authority DSG deficits",
+          "department": "dfe",
+          "observationCount": 0,
+          "hasValidRange": false,
+          "freshnessStatus": "unknown",
+          "latestObservedPeriod": null,
+          "latestFetchedAt": null,
+          "source": "https://www.local.gov.uk/topics/children-and-young-people/dedicated-schools-grant-deficits",
+          "contentHash": "a82cb24951da",
+          "sourceBytesHash": null,
+          "warnings": [
+            "no-observations",
+            "no-valid-range"
+          ]
+        },
+        {
+          "id": "dfe-teacher-recruitment",
+          "title": "Teacher training recruitment",
+          "department": "dfe",
+          "observationCount": 11,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://explore-education-statistics.service.gov.uk/data-catalogue/data-set/04e0590d-63a9-45d4-b924-98c7a5bc5e76",
+          "contentHash": "e22e9b713a",
+          "sourceBytesHash": "18079fbbe75d",
+          "warnings": []
+        },
+        {
+          "id": "dfe-spend-per-pupil",
+          "title": "Spending per primary pupil",
+          "department": "dfe",
+          "observationCount": 46,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2016",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SE.XPD.PRIM.PC.ZS?format=json&per_page=20000",
+          "contentHash": "cac0e76d74",
+          "sourceBytesHash": "978bb093da0e",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dfe-edu-spend-gdp",
+          "title": "Education spending (% of GDP)",
+          "department": "dfe",
+          "observationCount": 46,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2021",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SE.XPD.TOTL.GD.ZS?format=json&per_page=20000",
+          "contentHash": "ca552df0c5",
+          "sourceBytesHash": "3e2cc8e5e12b",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dfe-pupil-teacher",
+          "title": "Pupil–teacher ratio (primary)",
+          "department": "dfe",
+          "observationCount": 38,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2017",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SE.PRM.ENRL.TC.ZS?format=json&per_page=20000",
+          "contentHash": "7d12a1db1a",
+          "sourceBytesHash": "73528a7dc7f8",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dfe-tertiary-enrol",
+          "title": "University participation",
+          "department": "dfe",
+          "observationCount": 24,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2023",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SE.TER.ENRR?format=json&per_page=20000",
+          "contentHash": "e3a00b96d7",
+          "sourceBytesHash": "4c4051ad4361",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "ho-asylum-backlog",
+          "title": "Pending asylum seekers",
+          "department": "home-office",
+          "observationCount": 75,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.unhcr.org/refugee-statistics/download",
+          "contentHash": "306c8a6bdf",
+          "sourceBytesHash": "12eeb93f49e4",
+          "warnings": []
+        },
+        {
+          "id": "ho-net-migration",
+          "title": "Net migration",
+          "department": "home-office",
+          "observationCount": 55,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.ons.gov.uk/file?uri=/peoplepopulationandcommunity/populationandmigration/internationalmigration/datasets/longterminternationalimmigrationemigrationandnetmigrationflowsprovisional/yearendingdecember2025/may2026publicationspreadsheet.xlsx",
+          "contentHash": "442d699935",
+          "sourceBytesHash": "2c2eaa869ec6",
+          "warnings": []
+        },
+        {
+          "id": "ho-charge-rate",
+          "title": "Crimes resulting in a charge",
+          "department": "home-office",
+          "observationCount": 11,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/6890c7aee8ba9507fc1b09cc/outcomes-mar25-tables-240725.ods",
+          "contentHash": "8323dc17d6",
+          "sourceBytesHash": "ba244ec35952",
+          "warnings": []
+        },
+        {
+          "id": "ho-shoplifting",
+          "title": "Shoplifting offences",
+          "department": "home-office",
+          "observationCount": 25,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.ons.gov.uk/file?uri=/peoplepopulationandcommunity/crimeandjustice/datasets/crimeinenglandandwalesappendixtables/yearendingdecember2025/appendixtablesyedec2025.xlsx",
+          "contentHash": "a349bbb028",
+          "sourceBytesHash": "c8868276319f",
+          "warnings": []
+        },
+        {
+          "id": "ho-caseworker-turnover",
+          "title": "Asylum caseworker turnover",
+          "department": "home-office",
+          "observationCount": 0,
+          "hasValidRange": false,
+          "freshnessStatus": "unknown",
+          "latestObservedPeriod": null,
+          "latestFetchedAt": null,
+          "source": "https://www.nao.org.uk/reports/asylum-and-protection-transformation-programme/",
+          "contentHash": "a82cb24951da",
+          "sourceBytesHash": null,
+          "warnings": [
+            "no-observations",
+            "no-valid-range"
+          ]
+        },
+        {
+          "id": "ho-hotel-spend",
+          "title": "Asylum hotel contingency spend",
+          "department": "home-office",
+          "observationCount": 0,
+          "hasValidRange": false,
+          "freshnessStatus": "unknown",
+          "latestObservedPeriod": null,
+          "latestFetchedAt": null,
+          "source": "https://www.nao.org.uk/reports/investigation-into-asylum-accommodation/",
+          "contentHash": "a82cb24951da",
+          "sourceBytesHash": null,
+          "warnings": [
+            "no-observations",
+            "no-valid-range"
+          ]
+        },
+        {
+          "id": "ho-visa-sla",
+          "title": "Visa processing service standard",
+          "department": "home-office",
+          "observationCount": 17,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2025-12",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/6a0d7c8f04baf6101d4bfdbb/visas-status-and-immigration-data-jan-mar-2026.ods",
+          "contentHash": "2f0f2948a4",
+          "sourceBytesHash": "26e24a44e3b8",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "ho-passport-times",
+          "title": "Passport processing",
+          "department": "home-office",
+          "observationCount": 10,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2026-03",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/6a0d7020c75cc34a8ff8f5a8/passports-and-citizenship-data-jan-mar-2026.ods",
+          "contentHash": "196a39d314",
+          "sourceBytesHash": "32ec499a9af5",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "ho-homicide-rate",
+          "title": "Homicide rate",
+          "department": "home-office",
+          "observationCount": 98,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2023",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/VC.IHR.PSRC.P5?format=json&per_page=20000",
+          "contentHash": "a598280592",
+          "sourceBytesHash": "f8534e45d8b6",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "ho-migrant-stock",
+          "title": "Foreign-born population",
+          "department": "home-office",
+          "observationCount": 8,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SM.POP.TOTL.ZS?format=json&per_page=20000",
+          "contentHash": "e9b8b3945f",
+          "sourceBytesHash": "d84fb772cb3c",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "moj-crown-backlog",
+          "title": "Crown Court outstanding caseload",
+          "department": "moj",
+          "observationCount": 41,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2026-03",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/6a3bfe35da47783d877239e3/ccsq_accessible_publication_tables_2026Q1.ods",
+          "contentHash": "146f0131be",
+          "sourceBytesHash": "9be187df4b6b",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "moj-officer-resignations",
+          "title": "Prison officer resignation rate",
+          "department": "moj",
+          "observationCount": 7,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2026-03",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/6a0d90f1faac4bc0b0e90635/hmpps-workforce-statistics-tables-mar-2026_final.ods",
+          "contentHash": "90c013daeb",
+          "sourceBytesHash": "173d2b5d306c",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "moj-cost-per-prisoner",
+          "title": "Average cost per prisoner",
+          "department": "moj",
+          "observationCount": 5,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/61f12ca38fa8f50594b5949c/costs-per-prison-place-prisoner-individual-prison-2020-21.ods",
+          "contentHash": "03095e23ea",
+          "sourceBytesHash": "ab45312e9256",
+          "warnings": []
+        },
+        {
+          "id": "moj-completion-days",
+          "title": "Crown Court case completion time",
+          "department": "moj",
+          "observationCount": 41,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2026-12",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/6a3bfe35da47783d877239e3/ccsq_accessible_publication_tables_2026Q1.ods",
+          "contentHash": "ddd78e211d",
+          "sourceBytesHash": "9be187df4b6b",
+          "warnings": []
+        },
+        {
+          "id": "mod-personnel-shortfall",
+          "title": "Trained personnel shortfall",
+          "department": "mod",
+          "observationCount": 56,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2026-01",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/69f06cf520a498c16734b04a/UK_armed_forces_quarterly_service_personnel_statistics_1_January_2026__ODS_.ods",
+          "contentHash": "c2bfeaa0b9",
+          "sourceBytesHash": "ed2d108baaa5",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "mod-voluntary-outflow",
+          "title": "Critical trades voluntary outflow",
+          "department": "mod",
+          "observationCount": 51,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2025-12",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/69f06cf520a498c16734b04a/UK_armed_forces_quarterly_service_personnel_statistics_1_January_2026__ODS_.ods",
+          "contentHash": "3cc1a15d43",
+          "sourceBytesHash": "ed2d108baaa5",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "mod-procurement",
+          "title": "MoD major projects delivery confidence",
+          "department": "mod",
+          "observationCount": 4,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.gov.uk/government/publications/government-major-projects-portfolio-data-for-bis-2013",
+          "contentHash": "3b0fbeb39e",
+          "sourceBytesHash": "6aa78743eeb0",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "mod-readiness",
+          "title": "Force readiness index",
+          "department": "mod",
+          "observationCount": 0,
+          "hasValidRange": false,
+          "freshnessStatus": "unknown",
+          "latestObservedPeriod": null,
+          "latestFetchedAt": null,
+          "source": "https://www.nao.org.uk/reports/the-equipment-plan-2023-2033/",
+          "contentHash": "a82cb24951da",
+          "sourceBytesHash": null,
+          "warnings": [
+            "no-observations",
+            "no-valid-range"
+          ]
+        },
+        {
+          "id": "mod-defence-spend-gdp",
+          "title": "Defence spending (% of GDP)",
+          "department": "mod",
+          "observationCount": 65,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/MS.MIL.XPND.GD.ZS?format=json&per_page=20000",
+          "contentHash": "abd5887314",
+          "sourceBytesHash": "4e07d7f12473",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "mod-personnel-total",
+          "title": "Armed forces personnel",
+          "department": "mod",
+          "observationCount": 33,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2020",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/MS.MIL.TOTL.P1?format=json&per_page=20000",
+          "contentHash": "901006b73e",
+          "sourceBytesHash": "83a23409f331",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dwp-pip-clearance",
+          "title": "PIP end-to-end clearance time",
+          "department": "dwp",
+          "observationCount": 155,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2026-04",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/6a2fde12a3674dfd3eb508a6/pip-tables-april-2026-england-and-wales.ods",
+          "contentHash": "ad1fe70602",
+          "sourceBytesHash": "9b6038d628c2",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dwp-work-coach-ratio",
+          "title": "Work coach caseload ratio",
+          "department": "dwp",
+          "observationCount": 0,
+          "hasValidRange": false,
+          "freshnessStatus": "unknown",
+          "latestObservedPeriod": null,
+          "latestFetchedAt": null,
+          "source": "https://www.nao.org.uk/reports/dwp-work-coaches/",
+          "contentHash": "a82cb24951da",
+          "sourceBytesHash": null,
+          "warnings": [
+            "no-observations",
+            "no-valid-range"
+          ]
+        },
+        {
+          "id": "dwp-fraud-error",
+          "title": "Fraud & error in benefit spend",
+          "department": "dwp",
+          "observationCount": 21,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2026",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/6a0472d0ee62840dba48a1e7/financial-year-ending-2026-estimates.xlsx",
+          "contentHash": "ff5b94a967",
+          "sourceBytesHash": "b67a3f7b501d",
+          "warnings": []
+        },
+        {
+          "id": "dwp-uc-mr",
+          "title": "Outstanding UC mandatory reconsiderations",
+          "department": "dwp",
+          "observationCount": 0,
+          "hasValidRange": false,
+          "freshnessStatus": "unknown",
+          "latestObservedPeriod": null,
+          "latestFetchedAt": null,
+          "source": "https://www.gov.uk/government/collections/mandatory-reconsiderations",
+          "contentHash": "a82cb24951da",
+          "sourceBytesHash": null,
+          "warnings": [
+            "no-observations",
+            "no-valid-range"
+          ]
+        },
+        {
+          "id": "dwp-pop-65",
+          "title": "Population aged 65+",
+          "department": "dwp",
+          "observationCount": 66,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SP.POP.65UP.TO.ZS?format=json&per_page=20000",
+          "contentHash": "7ee0bb0641",
+          "sourceBytesHash": "76615ce243f0",
+          "warnings": []
+        },
+        {
+          "id": "dwp-oldage-dependency",
+          "title": "Old-age dependency ratio",
+          "department": "dwp",
+          "observationCount": 66,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SP.POP.DPND.OL?format=json&per_page=20000",
+          "contentHash": "02f38282b9",
+          "sourceBytesHash": "528895676f33",
+          "warnings": []
+        },
+        {
+          "id": "dwp-female-participation",
+          "title": "Female labour participation",
+          "department": "dwp",
+          "observationCount": 36,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SL.TLF.CACT.FE.ZS?format=json&per_page=20000",
+          "contentHash": "91201882cd",
+          "sourceBytesHash": "c04fa15a8dc4",
+          "warnings": []
+        },
+        {
+          "id": "dwp-gini",
+          "title": "Income inequality (Gini)",
+          "department": "dwp",
+          "observationCount": 119,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2023",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SI.POV.GINI?format=json&per_page=20000",
+          "contentHash": "c1c5d81def",
+          "sourceBytesHash": "6e2fe34c41db",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dwp-youth-unemp",
+          "title": "Youth unemployment",
+          "department": "dwp",
+          "observationCount": 35,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SL.UEM.1524.ZS?format=json&per_page=20000",
+          "contentHash": "3cc1656f17",
+          "sourceBytesHash": "08fac1fc8cd3",
+          "warnings": []
+        },
+        {
+          "id": "dft-rail-cancellations",
+          "title": "Passenger rail cancellation score",
+          "department": "dft",
+          "observationCount": 28,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2026-03",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://dataportal.orr.gov.uk/media/2177/table-3123-trains-planned-and-cancellations-by-operator-and-cause.ods",
+          "contentHash": "915f89d85c",
+          "sourceBytesHash": "6b716e6a4a39",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dft-rail-fares",
+          "title": "Rail fares",
+          "department": "dft",
+          "observationCount": 449,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2026-05",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/d7ef/mm23/data",
+          "contentHash": "0ab1556c70",
+          "sourceBytesHash": "423b125ffe1d",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dft-local-roads",
+          "title": "Local road condition",
+          "department": "dft",
+          "observationCount": 18,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/696faccc011505255b2d4253/rdc0121.ods",
+          "contentHash": "89f8a2e812",
+          "sourceBytesHash": "836bc1382603",
+          "warnings": []
+        },
+        {
+          "id": "dft-dvla-backlog",
+          "title": "DVLA paper application backlog",
+          "department": "dft",
+          "observationCount": 0,
+          "hasValidRange": false,
+          "freshnessStatus": "unknown",
+          "latestObservedPeriod": null,
+          "latestFetchedAt": null,
+          "source": "https://www.gov.uk/government/organisations/driver-and-vehicle-licensing-agency/about/statistics",
+          "contentHash": "a82cb24951da",
+          "sourceBytesHash": null,
+          "warnings": [
+            "no-observations",
+            "no-valid-range"
+          ]
+        },
+        {
+          "id": "dft-capital-overrun",
+          "title": "DfT major projects delivery confidence",
+          "department": "dft",
+          "observationCount": 4,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.gov.uk/government/publications/government-major-projects-portfolio-data-for-bis-2013",
+          "contentHash": "c9d352ddb7",
+          "sourceBytesHash": "6aa78743eeb0",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dft-srn-degradation",
+          "title": "Strategic road network condition",
+          "department": "dft",
+          "observationCount": 10,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.orr.gov.uk/media/25721/download",
+          "contentHash": "a9b6136aa9",
+          "sourceBytesHash": "653587eff8f0",
+          "warnings": []
+        },
+        {
+          "id": "dft-road-death-rate",
+          "title": "Road deaths per 100,000",
+          "department": "dft",
+          "observationCount": 60,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2019",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SH.STA.TRAF.P5?format=json&per_page=20000",
+          "contentHash": "09d4689627",
+          "sourceBytesHash": "0fb88517139f",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dft-co2-pc",
+          "title": "CO₂ emissions per person",
+          "department": "dft",
+          "observationCount": 165,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/EN.GHG.CO2.PC.CE.AR5?format=json&per_page=20000",
+          "contentHash": "bde408dba0",
+          "sourceBytesHash": "0a757e4aafb2",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "hmt-gdp-per-capita",
+          "title": "Real GDP per head",
+          "department": "treasury",
+          "observationCount": 66,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/NY.GDP.PCAP.KD?format=json&per_page=20000",
+          "contentHash": "3f9bb9f0c3",
+          "sourceBytesHash": "d82653714de8",
+          "warnings": []
+        },
+        {
+          "id": "hmt-cost-of-living",
+          "title": "Inflation vs pay growth",
+          "department": "treasury",
+          "observationCount": 339,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2026",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/d7g7/mm23/data",
+          "contentHash": "895d57f118",
+          "sourceBytesHash": "4675a8fa1c10",
+          "warnings": []
+        },
+        {
+          "id": "hmt-food-prices",
+          "title": "Food prices",
+          "department": "treasury",
+          "observationCount": 461,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2026-05",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/d7bu/mm23/data",
+          "contentHash": "f58bf744f1",
+          "sourceBytesHash": "c7869f8f9c2b",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "hmt-psnd",
+          "title": "Public sector net debt",
+          "department": "treasury",
+          "observationCount": 33,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.ons.gov.uk/economy/governmentpublicsectorandtaxes/publicsectorfinance/timeseries/hf6x/pusf/data",
+          "contentHash": "8427ea9eb4",
+          "sourceBytesHash": "a7c49624e082",
+          "warnings": []
+        },
+        {
+          "id": "hmt-psnd-cash",
+          "title": "National debt in cash terms",
+          "department": "treasury",
+          "observationCount": 33,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.ons.gov.uk/economy/governmentpublicsectorandtaxes/publicsectorfinance/timeseries/hf6w/pusf/data",
+          "contentHash": "8b72a991d7",
+          "sourceBytesHash": "6ba1f674b0e5",
+          "warnings": []
+        },
+        {
+          "id": "hmt-tax-burden",
+          "title": "Total tax take",
+          "department": "treasury",
+          "observationCount": 53,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/GC.TAX.TOTL.GD.ZS?format=json&per_page=20000",
+          "contentHash": "3155de8ef6",
+          "sourceBytesHash": "6679adcc3c43",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "hmt-debt-interest",
+          "title": "Debt interest",
+          "department": "treasury",
+          "observationCount": 53,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/GC.XPN.INTP.RV.ZS?format=json&per_page=20000",
+          "contentHash": "0cfb95c4f6",
+          "sourceBytesHash": "56866fe5a653",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "hmt-regional-gap",
+          "title": "Regional divide",
+          "department": "treasury",
+          "observationCount": 26,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2023",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.ons.gov.uk/file?uri=/economy/grossvalueaddedgva/datasets/nominalregionalgrossvalueaddedbalancedperheadandincomecomponents/current/regionalgrossvalueaddedbalancedperheadandincomecomponents.xlsx",
+          "contentHash": "36e9e468e0",
+          "sourceBytesHash": "47f7758bf6d5",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "hmt-unemployment",
+          "title": "Unemployment rate",
+          "department": "treasury",
+          "observationCount": 662,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2026-03",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.ons.gov.uk/employmentandlabourmarket/peoplenotinwork/unemployment/timeseries/mgsx/lms/data",
+          "contentHash": "97fafbc002",
+          "sourceBytesHash": "9832deb653cd",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "hmt-gdp-growth",
+          "title": "GDP growth",
+          "department": "treasury",
+          "observationCount": 65,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/NY.GDP.MKTP.KD.ZG?format=json&per_page=20000",
+          "contentHash": "e86670b045",
+          "sourceBytesHash": "a161b68dab01",
+          "warnings": []
+        },
+        {
+          "id": "hmt-employment-rate",
+          "title": "Employment rate",
+          "department": "treasury",
+          "observationCount": 35,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SL.EMP.TOTL.SP.ZS?format=json&per_page=20000",
+          "contentHash": "ea21d68603",
+          "sourceBytesHash": "a074d5aef5ee",
+          "warnings": []
+        },
+        {
+          "id": "hmt-participation",
+          "title": "Labour force participation",
+          "department": "treasury",
+          "observationCount": 36,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SL.TLF.CACT.ZS?format=json&per_page=20000",
+          "contentHash": "09122b199b",
+          "sourceBytesHash": "259935d163cc",
+          "warnings": []
+        },
+        {
+          "id": "hmt-investment-gdp",
+          "title": "Investment",
+          "department": "treasury",
+          "observationCount": 56,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/NE.GDI.TOTL.ZS?format=json&per_page=20000",
+          "contentHash": "059a1e4145",
+          "sourceBytesHash": "32beed620b09",
+          "warnings": []
+        },
+        {
+          "id": "hmt-trade-gdp",
+          "title": "Trade openness",
+          "department": "treasury",
+          "observationCount": 56,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/NE.TRD.GNFS.ZS?format=json&per_page=20000",
+          "contentHash": "5e7b4a8f1d",
+          "sourceBytesHash": "8b9b7476c708",
+          "warnings": []
+        },
+        {
+          "id": "hmt-savings",
+          "title": "Gross savings",
+          "department": "treasury",
+          "observationCount": 56,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/NY.GNS.ICTR.ZS?format=json&per_page=20000",
+          "contentHash": "564d010c23",
+          "sourceBytesHash": "808c17f24d50",
+          "warnings": []
+        },
+        {
+          "id": "hmt-current-account",
+          "title": "Current account balance",
+          "department": "treasury",
+          "observationCount": 56,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/BN.CAB.XOKA.GD.ZS?format=json&per_page=20000",
+          "contentHash": "a624bc512a",
+          "sourceBytesHash": "0333ad01ed27",
+          "warnings": []
+        },
+        {
+          "id": "hmt-gni-per-capita",
+          "title": "GNI per head (PPP)",
+          "department": "treasury",
+          "observationCount": 108,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/NY.GNP.PCAP.PP.CD?format=json&per_page=20000",
+          "contentHash": "62d94fd5ce",
+          "sourceBytesHash": "6ccdbada4b50",
+          "warnings": []
+        },
+        {
+          "id": "hmt-real-income",
+          "title": "Real household income per head",
+          "department": "treasury",
+          "observationCount": 71,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.ons.gov.uk/economy/grossdomesticproductgdp/timeseries/crxx/ukea/data",
+          "contentHash": "842d1e48b1",
+          "sourceBytesHash": "43d54ec48dea",
+          "warnings": []
+        },
+        {
+          "id": "hmt-productivity",
+          "title": "Productivity",
+          "department": "treasury",
+          "observationCount": 55,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/labourproductivity/timeseries/lzvb/prdy/data",
+          "contentHash": "6e8b070d65",
+          "sourceBytesHash": "607f465460cf",
+          "warnings": []
+        },
+        {
+          "id": "hmt-tax-split",
+          "title": "Direct vs indirect tax",
+          "department": "treasury",
+          "observationCount": 106,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/GC.TAX.YPKG.RV.ZS?format=json&per_page=20000",
+          "contentHash": "13d2c7f13c",
+          "sourceBytesHash": "14a6505dcc5a",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "hmt-deficit",
+          "title": "Budget deficit",
+          "department": "treasury",
+          "observationCount": 78,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.ons.gov.uk/economy/governmentpublicsectorandtaxes/publicsectorfinance/timeseries/j5ik/pusf/data",
+          "contentHash": "67054eb7ce",
+          "sourceBytesHash": "b26d675c22d6",
+          "warnings": []
+        },
+        {
+          "id": "mhclg-temp-accommodation",
+          "title": "Households in temporary accommodation",
+          "department": "mhclg",
+          "observationCount": 112,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2025-12",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/69f0899508ecdb5c6f34b063/Statutory_Homelessness_England_Time_Series_202512.ods",
+          "contentHash": "82a33519a0",
+          "sourceBytesHash": "3c7649c88bc4",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "mhclg-private-rents",
+          "title": "Private rents",
+          "department": "mhclg",
+          "observationCount": 122,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2025-02",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.ons.gov.uk/file?uri=/economy/inflationandpriceindices/datasets/priceindexofprivaterentsukhistoricalseries/26march2025/priceindexofprivaterentsukhistoricalseries.xlsx",
+          "contentHash": "eaac84b8c0",
+          "sourceBytesHash": "0e8d42e22c7c",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "mhclg-council-tax",
+          "title": "Council tax",
+          "department": "mhclg",
+          "observationCount": 34,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2027",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/69e8ab2d9ca985145673b826/Band_D_2026-27.ods",
+          "contentHash": "5220542571",
+          "sourceBytesHash": "c91521d622d7",
+          "warnings": []
+        },
+        {
+          "id": "mhclg-rough-sleeping",
+          "title": "Rough sleeping",
+          "department": "mhclg",
+          "observationCount": 16,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/699daac73e672177d0bc759b/Rough_sleeping_snapshot_in_England__autumn_2025.ods",
+          "contentHash": "ae116db150",
+          "sourceBytesHash": "7b5838ec8f38",
+          "warnings": []
+        },
+        {
+          "id": "mhclg-net-dwellings",
+          "title": "New homes added",
+          "department": "mhclg",
+          "observationCount": 19,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/691de46521ef5aaa6543efe4/Live_Table_120.ods",
+          "contentHash": "ad682d7d79",
+          "sourceBytesHash": "2ba344abbdce",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "mhclg-affordability",
+          "title": "Housing affordability",
+          "department": "mhclg",
+          "observationCount": 29,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.ons.gov.uk/file?uri=/peoplepopulationandcommunity/housing/datasets/ratioofhousepricetoworkplacebasedearningslowerquartileandmedian/current/aff1ratioofhousepricetoworkplacebasedearnings.xlsx",
+          "contentHash": "8a2bfcd3b8",
+          "sourceBytesHash": "ba14c75b82ef",
+          "warnings": []
+        },
+        {
+          "id": "mhclg-social-waitlist",
+          "title": "Social housing waiting list",
+          "department": "mhclg",
+          "observationCount": 39,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/6a2be263e50716856ed4afc4/Live_Table_600.ods",
+          "contentHash": "fab2f96994",
+          "sourceBytesHash": "ba875e436200",
+          "warnings": []
+        },
+        {
+          "id": "defra-recycling",
+          "title": "Household recycling rate",
+          "department": "defra",
+          "observationCount": 15,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/69c68a26b66ff902f454434b/WFH_England_Data_202425.ods",
+          "contentHash": "27098ff854",
+          "sourceBytesHash": "e9d876e2e755",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "defra-pm25",
+          "title": "Air pollution (PM2.5)",
+          "department": "defra",
+          "observationCount": 34,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2023",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/EN.ATM.PM25.MC.M3?format=json&per_page=20000",
+          "contentHash": "312d77069f",
+          "sourceBytesHash": "154ec0905951",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "defra-forest",
+          "title": "Woodland cover",
+          "department": "defra",
+          "observationCount": 34,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2023",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/AG.LND.FRST.ZS?format=json&per_page=20000",
+          "contentHash": "73819d894b",
+          "sourceBytesHash": "9f3098f8bdea",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "defra-bathing-water",
+          "title": "Bathing water quality",
+          "department": "defra",
+          "observationCount": 10,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/69205a9da0e0fb4c2936ab72/EMBARGOED_EA_National_Bathing_Waters_Classification_Results_2025.ods",
+          "contentHash": "8c3dde92f3",
+          "sourceBytesHash": "6e7d26965574",
+          "warnings": []
+        },
+        {
+          "id": "defra-sewage-hours",
+          "title": "Sewage spill hours",
+          "department": "defra",
+          "observationCount": 6,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://environment.data.gov.uk/api/file/download?fileDataSetId=c55e170e-3c75-49a5-8026-a961ff94c8e0&fileName=EDM_2025_Storm_Overflow_Annual_Return.zip",
+          "contentHash": "a722dd2cc1",
+          "sourceBytesHash": "19eb5b4c18ae",
+          "warnings": []
+        },
+        {
+          "id": "desnz-renewables-share",
+          "title": "Renewable energy share",
+          "department": "desnz",
+          "observationCount": 32,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2021",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/EG.FEC.RNEW.ZS?format=json&per_page=20000",
+          "contentHash": "3a74c977a2",
+          "sourceBytesHash": "8912f5767576",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "desnz-ghg-emissions",
+          "title": "Greenhouse gas emissions",
+          "department": "desnz",
+          "observationCount": 33,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2022",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/65ff116e65ca2ffef17da7a7/final-greenhouse-gas-emissions-tables-2022.ods",
+          "contentHash": "13f9d4ea09",
+          "sourceBytesHash": "a621242f7614",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "desnz-fuel-poverty",
+          "title": "Households in fuel poverty",
+          "department": "desnz",
+          "observationCount": 16,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/69c3b05e3ed0546101e0dc41/2025_Trends_Tables__2026_Fuel_Poverty_Statistics_Publication_.xlsx",
+          "contentHash": "6bcde9f8ec",
+          "sourceBytesHash": "5143f7a18a54",
+          "warnings": []
+        },
+        {
+          "id": "desnz-electricity-price",
+          "title": "Domestic electricity price",
+          "department": "desnz",
+          "observationCount": 16,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2025-01",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/6a4245b97ac6fd9c6a94aae2/table_224__1_.xlsx",
+          "contentHash": "d7056e8d9a",
+          "sourceBytesHash": "6226f71f0548",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "desnz-energy-use-pc",
+          "title": "Energy use per person",
+          "department": "desnz",
+          "observationCount": 35,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/EG.USE.PCAP.KG.OE?format=json&per_page=20000",
+          "contentHash": "ac7750a430",
+          "sourceBytesHash": "a5ef277e7da1",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dsit-rd-gdp",
+          "title": "R&D spending",
+          "department": "dsit",
+          "observationCount": 28,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2023",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/GB.XPD.RSDV.GD.ZS?format=json&per_page=20000",
+          "contentHash": "0ff6d856a9",
+          "sourceBytesHash": "58f953b1782c",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dsit-researchers",
+          "title": "Researchers in R&D",
+          "department": "dsit",
+          "observationCount": 22,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2017",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/SP.POP.SCIE.RD.P6?format=json&per_page=20000",
+          "contentHash": "e5b57bb38e",
+          "sourceBytesHash": "6d7d50daba37",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dsit-gigabit-broadband",
+          "title": "Gigabit broadband coverage",
+          "department": "dsit",
+          "observationCount": 3,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.ofcom.org.uk/phones-and-broadband/coverage-and-speeds/connected-nations-update",
+          "contentHash": "78fae9f134",
+          "sourceBytesHash": "28e4b493adda",
+          "warnings": []
+        },
+        {
+          "id": "dsit-internet-users",
+          "title": "Internet users",
+          "department": "dsit",
+          "observationCount": 35,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/IT.NET.USER.ZS?format=json&per_page=20000",
+          "contentHash": "f2ddffc3a6",
+          "sourceBytesHash": "d8f9a27ba8a9",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dsit-mobile-subs",
+          "title": "Mobile subscriptions",
+          "department": "dsit",
+          "observationCount": 53,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/IT.CEL.SETS.P2?format=json&per_page=20000",
+          "contentHash": "0d5f378f3e",
+          "sourceBytesHash": "991cc15d393a",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dbt-exports-gdp",
+          "title": "Exports",
+          "department": "dbt",
+          "observationCount": 56,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/NE.EXP.GNFS.ZS?format=json&per_page=20000",
+          "contentHash": "c359cacba9",
+          "sourceBytesHash": "a46c66878130",
+          "warnings": []
+        },
+        {
+          "id": "dbt-hightech-exports",
+          "title": "High-tech exports",
+          "department": "dbt",
+          "observationCount": 18,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/TX.VAL.TECH.MF.ZS?format=json&per_page=20000",
+          "contentHash": "77bb36d030",
+          "sourceBytesHash": "a0b615424933",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dbt-business-investment",
+          "title": "Business investment",
+          "department": "dbt",
+          "observationCount": 117,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2026-01",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.ons.gov.uk/economy/grossdomesticproductgdp/timeseries/npel/cxnv/data",
+          "contentHash": "ad910e8359",
+          "sourceBytesHash": "2e7409bf46ef",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dbt-retail-sales",
+          "title": "Retail sales",
+          "department": "dbt",
+          "observationCount": 365,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2026-05",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.ons.gov.uk/businessindustryandtrade/retailindustry/timeseries/j5ek/drsi/data",
+          "contentHash": "01005a824f",
+          "sourceBytesHash": "63567f4a10a5",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dbt-fdi",
+          "title": "Foreign direct investment",
+          "department": "dbt",
+          "observationCount": 55,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/BX.KLT.DINV.WD.GD.ZS?format=json&per_page=20000",
+          "contentHash": "c2b1672bbe",
+          "sourceBytesHash": "9c39dbc0ac07",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dcms-tourism-arrivals",
+          "title": "Inbound tourism",
+          "department": "dcms",
+          "observationCount": 26,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2020",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://api.worldbank.org/v2/country/GBR/indicator/ST.INT.ARVL?format=json&per_page=20000",
+          "contentHash": "a95c0d0bab",
+          "sourceBytesHash": "f2506991aec0",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dcms-creative-gva",
+          "title": "Creative industries GVA",
+          "department": "dcms",
+          "observationCount": 15,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/6982fc5d8c1e89ed1e91bbfc/DCMS_Sector_Economic_Estimates_Annual_GVA_2024__provisional__-_All_sectors.ods",
+          "contentHash": "d0d1b8dd62",
+          "sourceBytesHash": "a929bf4d2ffc",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "dcms-sport-participation",
+          "title": "Adult sport participation",
+          "department": "dcms",
+          "observationCount": 10,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2025",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://sportengland-production-files.s3.eu-west-2.amazonaws.com/s3fs-public/2026-04/Active%20Lives%20Adult%20Survey%20report%20Nov%2024-25%20Tables%201-5%20Levels%20of%20activity.xlsx?VersionId=zC9fsQHK3OlNUB3ejQkw6gag9K7gmI6t",
+          "contentHash": "03364f067e",
+          "sourceBytesHash": "2a82f8350740",
+          "warnings": []
+        },
+        {
+          "id": "fcdo-oda-gni",
+          "title": "Aid spending (ODA)",
+          "department": "fcdo",
+          "observationCount": 8,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/5bfd469bed915d119ce0b966/Table1.ods",
+          "contentHash": "5b6c614529",
+          "sourceBytesHash": "7d7394bc4d09",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "fcdo-oda-total",
+          "title": "Total ODA",
+          "department": "fcdo",
+          "observationCount": 3,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/5bfd469bed915d119ce0b966/Table1.ods",
+          "contentHash": "5fd9001479",
+          "sourceBytesHash": "7d7394bc4d09",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "cab-gmpp-confidence",
+          "title": "Major projects delivery confidence",
+          "department": "cabinet-office",
+          "observationCount": 4,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.gov.uk/government/publications/government-major-projects-portfolio-data-for-bis-2013",
+          "contentHash": "ba60ef876e",
+          "sourceBytesHash": "6aa78743eeb0",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "cab-civil-service-headcount",
+          "title": "Civil service headcount",
+          "department": "cabinet-office",
+          "observationCount": 109,
+          "hasValidRange": true,
+          "freshnessStatus": "current",
+          "latestObservedPeriod": "2026",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/publicsectorpersonnel/timeseries/g7g6/pse/data",
+          "contentHash": "2fcfa73ee1",
+          "sourceBytesHash": "cdb5e2b710a6",
+          "warnings": []
+        },
+        {
+          "id": "cab-foi-intime",
+          "title": "FOI requests answered in time",
+          "department": "cabinet-office",
+          "observationCount": 12,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2026-01",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/6579df51254aaa000d050ca8/foi-statistics-q2-2023-statistical-tables.ods",
+          "contentHash": "b98cd5f597",
+          "sourceBytesHash": "b1227e530241",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "hmrc-call-wait",
+          "title": "Phone wait times",
+          "department": "hmrc",
+          "observationCount": 23,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2025-03",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/64ca4c2521df0f000dab4bd1/HMRC_monthly_performance_report_May_2023_data_table.xlsx",
+          "contentHash": "7dd467cab5",
+          "sourceBytesHash": "71bbafe874d4",
+          "warnings": [
+            "aged"
+          ]
+        },
+        {
+          "id": "hmrc-tax-gap",
+          "title": "Tax gap",
+          "department": "hmrc",
+          "observationCount": 20,
+          "hasValidRange": true,
+          "freshnessStatus": "aged",
+          "latestObservedPeriod": "2024",
+          "latestFetchedAt": "2026-07-02",
+          "source": "https://assets.publishing.service.gov.uk/media/6a314f53141f0690ad5fa41e/Measuring_tax_gap_online_tables_2026.xlsx",
+          "contentHash": "033cd1aead",
+          "sourceBytesHash": "707313bfc976",
+          "warnings": [
+            "aged"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,99 @@
+{
+  "@context": "https://egly443.github.io/Govviz/data/profile.json",
+  "id": "https://egly443.github.io/Govviz/data/series/dfe-ect-attrition.json",
+  "title": "Early-career teacher attrition",
+  "description": "% leaving state schools within 5 years of qualifying",
+  "producer": "DfE School Workforce in England (EES)",
+  "statisticType": "Official Statistic",
+  "measure": "% leaving state schools within 5 years of qualifying",
+  "unit": "percent",
+  "unitMultiplier": 0,
+  "unitLabel": "percent (%)",
+  "geography": null,
+  "geographyLabel": null,
+  "periodicity": "P1Y",
+  "validRange": {
+    "min": 15,
+    "max": 60
+  },
+  "suppressionScheme": "https://egly443.github.io/Govviz/data/suppression/v1",
+  "revisionStatus": "final",
+  "licence": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+  "provenance": {
+    "source": "DfE School Workforce in England (EES)",
+    "methodology": "https://explore-education-statistics.service.gov.uk/find-statistics/school-workforce-in-england",
+    "derivation": "Direct from source; latest value validated against validRange",
+    "upstreamUrl": "https://explore-education-statistics.service.gov.uk/data-catalogue/data-set/e0a0988c-41e8-411a-be55-ec990ce97043",
+    "fetchedAt": "2026-07-02",
+    "contentHash": "0229300356",
+    "sourceBytesHash": "6aac2219d62e",
+    "compiledBy": "Govviz"
+  },
+  "semanticTags": [
+    "dfe",
+    "education",
+    "attainment",
+    "workforce",
+    "funding",
+    "pipeline",
+    "annual",
+    "percent",
+    "schools"
+  ],
+  "subjectUris": [
+    "https://www.gov.uk/government/organisations/department-for-education",
+    "https://explore-education-statistics.service.gov.uk/find-statistics/school-workforce-in-england"
+  ],
+  "qualityDimensions": {
+    "accuracy": "Not asserted by Govviz; upstream producer methodology remains authoritative.",
+    "completeness": "24 observations emitted in the tidy data file.",
+    "uniqueness": "One observation per period/ref_area key in the emitted tidy table.",
+    "consistency": "Compiled by the same source-specific parser and emitted through one CSVW schema.",
+    "timeliness": "Latest observed period 2019 is older than the expected annual cadence projection 2020-12-31; latest source fetch recorded 2026-07-02.",
+    "validity": "Latest source values passed the published validRange 15 to 60."
+  },
+  "compiler": {
+    "name": "Govviz",
+    "url": "https://egly443.github.io/Govviz",
+    "conformanceVersion": "ai-ready-series-profile-v0.2",
+    "compiledAt": "2026-07-02T16:51:32.870Z",
+    "pipelineCommit": "90aea5d6665231b8497666afb12794279c7826d6",
+    "sourceBytesHash": "6aac2219d62e"
+  },
+  "upstreamConformance": "not-asserted-by-primary-publisher",
+  "publisherClaim": "not-asserted-by-primary-publisher",
+  "nextRelease": null,
+  "nextReleaseEstimated": false,
+  "expectedCadence": "annual",
+  "latestObservedPeriod": "2019",
+  "latestFetchedAt": "2026-07-02",
+  "estimatedNextPeriod": "2020-12-31",
+  "freshnessStatus": "aged",
+  "freshnessReason": "Latest observed period 2019 is older than the expected annual cadence projection 2020-12-31; latest source fetch recorded 2026-07-02.",
+  "conformanceLevel": "M5-reference-rendering",
+  "limitations": [
+    "Govviz is a downstream compiler, not the primary publisher.",
+    "The primary producer may not publish the same tidy structure, stable id, CSVW metadata, or validation range upstream.",
+    "Freshness metadata is inferred from observed periods and fetch timestamps; it is not an official release calendar.",
+    "The contact and accountability route remains the primary producer's published route, not a Govviz official statistics contact.",
+    "No upstream policy-as-code conformance assertion has been made by the primary producer."
+  ],
+  "latest": "https://egly443.github.io/Govviz/data/series/dfe-ect-attrition/data.csv",
+  "distribution": [
+    "https://egly443.github.io/Govviz/data/series/dfe-ect-attrition/data.csv",
+    "https://egly443.github.io/Govviz/data/series/dfe-ect-attrition/data-3d21ff35a82d.csv",
+    "https://egly443.github.io/Govviz/data/series/dfe-ect-attrition/data.csv-metadata.json",
+    "https://egly443.github.io/Govviz/data/series/dfe-ect-attrition.json"
+  ],
+  "csvw": "https://egly443.github.io/Govviz/data/series/dfe-ect-attrition/data.csv-metadata.json",
+  "agent": "https://egly443.github.io/Govviz/data/mcp.json",
+  "basis": null,
+  "caveat": null,
+  "lens": null,
+  "goodDirection": "down",
+  "department": {
+    "code": "dfe",
+    "name": "Education"
+  },
+  "observationCount": 24
+}

@@ -1,0 +1,104 @@
+{
+  "@context": "https://egly443.github.io/Govviz/data/profile.json",
+  "id": "https://egly443.github.io/Govviz/data/series/waiting-list.json",
+  "title": "Elective care waiting list",
+  "description": "Incomplete RTT pathways",
+  "producer": "NHS England RTT, monthly",
+  "statisticType": "Official Statistic",
+  "measure": "Incomplete RTT pathways",
+  "unit": "persons",
+  "unitMultiplier": 6,
+  "unitLabel": "persons (millions shown)",
+  "geography": "E92000001",
+  "geographyLabel": "England",
+  "periodicity": "P1M",
+  "validRange": {
+    "min": 1,
+    "max": 12
+  },
+  "suppressionScheme": "https://egly443.github.io/Govviz/data/suppression/v1",
+  "revisionStatus": "provisional",
+  "licence": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+  "provenance": {
+    "source": "NHS England RTT, monthly",
+    "methodology": "https://www.england.nhs.uk/statistics/statistical-work-areas/rtt-waiting-times/",
+    "derivation": "Direct from source; latest value validated against validRange",
+    "upstreamUrl": "https://www.england.nhs.uk/statistics/statistical-work-areas/rtt-waiting-times/",
+    "fetchedAt": "2026-07-02",
+    "contentHash": "dedb206561",
+    "sourceBytesHash": "174f0df13b7b",
+    "compiledBy": "Govviz"
+  },
+  "semanticTags": [
+    "dhsc",
+    "health & social care",
+    "waiting list",
+    "urgent care",
+    "workforce",
+    "capital",
+    "experience",
+    "monthly",
+    "england",
+    "persons",
+    "health",
+    "waiting lists",
+    "nhs performance"
+  ],
+  "subjectUris": [
+    "https://www.gov.uk/government/organisations/department-of-health-and-social-care",
+    "https://statistics.data.gov.uk/id/statistical-geography/E92000001",
+    "https://www.england.nhs.uk/statistics/statistical-work-areas/rtt-waiting-times/"
+  ],
+  "qualityDimensions": {
+    "accuracy": "Not asserted by Govviz; upstream producer methodology remains authoritative.",
+    "completeness": "18 observations emitted in the tidy data file.",
+    "uniqueness": "One observation per period/ref_area key in the emitted tidy table.",
+    "consistency": "Compiled by the same source-specific parser and emitted through one CSVW schema.",
+    "timeliness": "Latest observed period 2026-03 is older than the expected monthly cadence projection 2026-04-01; latest source fetch recorded 2026-07-02.",
+    "validity": "Latest source values passed the published validRange 1 to 12."
+  },
+  "compiler": {
+    "name": "Govviz",
+    "url": "https://egly443.github.io/Govviz",
+    "conformanceVersion": "ai-ready-series-profile-v0.2",
+    "compiledAt": "2026-07-02T16:51:32.832Z",
+    "pipelineCommit": "90aea5d6665231b8497666afb12794279c7826d6",
+    "sourceBytesHash": "174f0df13b7b"
+  },
+  "upstreamConformance": "not-asserted-by-primary-publisher",
+  "publisherClaim": "not-asserted-by-primary-publisher",
+  "nextRelease": null,
+  "nextReleaseEstimated": false,
+  "expectedCadence": "monthly",
+  "latestObservedPeriod": "2026-03",
+  "latestFetchedAt": "2026-07-02",
+  "estimatedNextPeriod": "2026-04-01",
+  "freshnessStatus": "aged",
+  "freshnessReason": "Latest observed period 2026-03 is older than the expected monthly cadence projection 2026-04-01; latest source fetch recorded 2026-07-02.",
+  "conformanceLevel": "M5-reference-rendering",
+  "limitations": [
+    "Govviz is a downstream compiler, not the primary publisher.",
+    "The primary producer may not publish the same tidy structure, stable id, CSVW metadata, or validation range upstream.",
+    "Freshness metadata is inferred from observed periods and fetch timestamps; it is not an official release calendar.",
+    "The contact and accountability route remains the primary producer's published route, not a Govviz official statistics contact.",
+    "No upstream policy-as-code conformance assertion has been made by the primary producer."
+  ],
+  "latest": "https://egly443.github.io/Govviz/data/series/waiting-list/data.csv",
+  "distribution": [
+    "https://egly443.github.io/Govviz/data/series/waiting-list/data.csv",
+    "https://egly443.github.io/Govviz/data/series/waiting-list/data-90b79c631ba5.csv",
+    "https://egly443.github.io/Govviz/data/series/waiting-list/data.csv-metadata.json",
+    "https://egly443.github.io/Govviz/data/series/waiting-list.json"
+  ],
+  "csvw": "https://egly443.github.io/Govviz/data/series/waiting-list/data.csv-metadata.json",
+  "agent": "https://egly443.github.io/Govviz/data/mcp.json",
+  "basis": null,
+  "caveat": null,
+  "lens": "experience",
+  "goodDirection": "down",
+  "department": {
+    "code": "dhsc",
+    "name": "Health & Social Care"
+  },
+  "observationCount": 18
+}

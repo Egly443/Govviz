@@ -1,0 +1,100 @@
+{
+  "@context": "https://egly443.github.io/Govviz/data/profile.json",
+  "id": "https://egly443.github.io/Govviz/data/series/mhclg-council-tax.json",
+  "title": "Council tax",
+  "description": "Average Band D council tax, England (£/yr)",
+  "producer": "MHCLG, Council Tax levels set by local authorities (live tables)",
+  "statisticType": "Official Statistic",
+  "measure": "Average Band D council tax, England (£/yr)",
+  "unit": "GBP",
+  "unitMultiplier": 0,
+  "unitLabel": "£",
+  "geography": null,
+  "geographyLabel": null,
+  "periodicity": "P1Y",
+  "validRange": {
+    "min": 400,
+    "max": 3500
+  },
+  "suppressionScheme": "https://egly443.github.io/Govviz/data/suppression/v1",
+  "revisionStatus": "final",
+  "licence": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+  "provenance": {
+    "source": "MHCLG, Council Tax levels set by local authorities (live tables)",
+    "methodology": "https://www.gov.uk/government/statistical-data-sets/live-tables-on-council-tax",
+    "derivation": "Direct from source; latest value validated against validRange",
+    "upstreamUrl": "https://assets.publishing.service.gov.uk/media/69e8ab2d9ca985145673b826/Band_D_2026-27.ods",
+    "fetchedAt": "2026-07-02",
+    "contentHash": "5220542571",
+    "sourceBytesHash": "c91521d622d7",
+    "compiledBy": "Govviz"
+  },
+  "semanticTags": [
+    "mhclg",
+    "housing, communities & local government",
+    "homelessness",
+    "supply",
+    "affordability",
+    "experience",
+    "annual",
+    "gbp",
+    "productivity",
+    "public finance"
+  ],
+  "subjectUris": [
+    "https://www.gov.uk/government/organisations/ministry-of-housing-communities-local-government",
+    "https://www.gov.uk/government/statistical-data-sets/live-tables-on-council-tax"
+  ],
+  "qualityDimensions": {
+    "accuracy": "Not asserted by Govviz; upstream producer methodology remains authoritative.",
+    "completeness": "34 observations emitted in the tidy data file.",
+    "uniqueness": "One observation per period/ref_area key in the emitted tidy table.",
+    "consistency": "Compiled by the same source-specific parser and emitted through one CSVW schema.",
+    "timeliness": "Latest observed period 2027 is within the expected annual cadence; latest source fetch recorded 2026-07-02.",
+    "validity": "Latest source values passed the published validRange 400 to 3500."
+  },
+  "compiler": {
+    "name": "Govviz",
+    "url": "https://egly443.github.io/Govviz",
+    "conformanceVersion": "ai-ready-series-profile-v0.2",
+    "compiledAt": "2026-07-02T16:51:32.942Z",
+    "pipelineCommit": "90aea5d6665231b8497666afb12794279c7826d6",
+    "sourceBytesHash": "c91521d622d7"
+  },
+  "upstreamConformance": "not-asserted-by-primary-publisher",
+  "publisherClaim": "not-asserted-by-primary-publisher",
+  "nextRelease": null,
+  "nextReleaseEstimated": false,
+  "expectedCadence": "annual",
+  "latestObservedPeriod": "2027",
+  "latestFetchedAt": "2026-07-02",
+  "estimatedNextPeriod": "2028-12-31",
+  "freshnessStatus": "current",
+  "freshnessReason": "Latest observed period 2027 is within the expected annual cadence; latest source fetch recorded 2026-07-02.",
+  "conformanceLevel": "M5-reference-rendering",
+  "limitations": [
+    "Govviz is a downstream compiler, not the primary publisher.",
+    "The primary producer may not publish the same tidy structure, stable id, CSVW metadata, or validation range upstream.",
+    "Freshness metadata is inferred from observed periods and fetch timestamps; it is not an official release calendar.",
+    "The contact and accountability route remains the primary producer's published route, not a Govviz official statistics contact.",
+    "No upstream policy-as-code conformance assertion has been made by the primary producer."
+  ],
+  "latest": "https://egly443.github.io/Govviz/data/series/mhclg-council-tax/data.csv",
+  "distribution": [
+    "https://egly443.github.io/Govviz/data/series/mhclg-council-tax/data.csv",
+    "https://egly443.github.io/Govviz/data/series/mhclg-council-tax/data-8bea96fbd689.csv",
+    "https://egly443.github.io/Govviz/data/series/mhclg-council-tax/data.csv-metadata.json",
+    "https://egly443.github.io/Govviz/data/series/mhclg-council-tax.json"
+  ],
+  "csvw": "https://egly443.github.io/Govviz/data/series/mhclg-council-tax/data.csv-metadata.json",
+  "agent": "https://egly443.github.io/Govviz/data/mcp.json",
+  "basis": null,
+  "caveat": null,
+  "lens": "experience",
+  "goodDirection": "down",
+  "department": {
+    "code": "mhclg",
+    "name": "Housing, Communities & Local Government"
+  },
+  "observationCount": 34
+}

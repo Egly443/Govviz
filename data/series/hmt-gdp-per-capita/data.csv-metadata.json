@@ -1,0 +1,62 @@
+{
+  "@context": [
+    "http://www.w3.org/ns/csvw",
+    {
+      "@language": "en"
+    }
+  ],
+  "url": "data-702ea47a411e.csv",
+  "dc:title": "Real GDP per head",
+  "dc:description": "Chained-volume £ per person",
+  "dc:publisher": {
+    "schema:name": "ONS quarterly national accounts"
+  },
+  "dc:license": {
+    "@id": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/"
+  },
+  "dc:source": {
+    "@id": "https://api.worldbank.org/v2/country/GBR/indicator/NY.GDP.PCAP.KD?format=json&per_page=20000"
+  },
+  "tableSchema": {
+    "columns": [
+      {
+        "name": "period",
+        "titles": "period",
+        "datatype": "string",
+        "dc:description": "Observation period (year, or ISO date)",
+        "propertyUrl": "http://purl.org/linked-data/sdmx/2009/dimension#timePeriod"
+      },
+      {
+        "name": "value",
+        "titles": "value",
+        "datatype": "number",
+        "dc:description": "Observation value in £",
+        "propertyUrl": "http://purl.org/linked-data/sdmx/2009/measure#obsValue"
+      },
+      {
+        "name": "unit",
+        "titles": "unit",
+        "datatype": "string",
+        "dc:description": "Unit of measure",
+        "propertyUrl": "http://purl.org/linked-data/sdmx/2009/attribute#unitMeasure"
+      },
+      {
+        "name": "unit_multiplier",
+        "titles": "unit_multiplier",
+        "datatype": "integer",
+        "dc:description": "Power-of-ten multiplier: base value = value × 10^unit_multiplier",
+        "propertyUrl": "http://purl.org/linked-data/sdmx/2009/attribute#unitMult"
+      },
+      {
+        "name": "status",
+        "titles": "status",
+        "datatype": "string",
+        "dc:description": "Observation status / suppression code",
+        "propertyUrl": "http://purl.org/linked-data/sdmx/2009/attribute#obsStatus"
+      }
+    ],
+    "primaryKey": [
+      "period"
+    ]
+  }
+}

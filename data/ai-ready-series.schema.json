@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://egly443.github.io/Govviz/data/ai-ready-series.schema.json",
+  "title": "AI-ready series metadata record (v0.2)",
+  "description": "Executable form of the AI-ready series profile (docs/conformance/ai-ready-series-profile.md). A conformant series metadata record validates against this schema; the published reference implementation (Govviz) self-certifies every record against it as a build gate.",
+  "type": "object",
+  "required": [
+    "id", "title", "description", "producer", "statisticType", "measure",
+    "unit", "periodicity", "suppressionScheme", "revisionStatus", "licence",
+    "provenance", "compiler", "upstreamConformance", "expectedCadence",
+    "latestObservedPeriod", "latestFetchedAt", "freshnessStatus",
+    "freshnessReason", "conformanceLevel", "limitations", "latest"
+  ],
+  "properties": {
+    "id": { "type": "string", "format": "uri", "description": "Permanent, resolvable series identifier" },
+    "title": { "type": "string", "minLength": 1 },
+    "description": { "type": "string", "minLength": 1, "description": "Disambiguating description — must let a consumer tell this measure from a similar one" },
+    "producer": { "type": "string", "minLength": 1, "description": "Named accountable primary producer" },
+    "statisticType": { "type": "string", "minLength": 1 },
+    "measure": { "type": "string", "minLength": 1 },
+    "unit": { "type": "string", "minLength": 1 },
+    "unitMultiplier": { "type": "integer", "description": "Power-of-ten: base value = value × 10^unitMultiplier" },
+    "geography": { "type": ["string", "null"], "description": "ONS statistical-geography code, or null when not cleanly mappable" },
+    "periodicity": { "type": "string", "pattern": "^P", "description": "ISO 8601 duration, e.g. P1Y, P3M, P1M" },
+    "validRange": {
+      "type": "object",
+      "description": "Published plausible-range guard — a consumer rejects values outside it. May be absent on derived ratios or a local build without fetched data.",
+      "required": ["min", "max"],
+      "properties": { "min": { "type": "number" }, "max": { "type": "number" } }
+    },
+    "suppressionScheme": { "type": "string", "format": "uri" },
+    "revisionStatus": { "type": "string", "enum": ["provisional", "revised", "final", "estimated"] },
+    "licence": { "type": "string", "format": "uri" },
+    "provenance": {
+      "type": "object",
+      "required": ["source"],
+      "properties": {
+        "source": { "type": "string", "minLength": 1 },
+        "methodology": { "type": ["string", "null"] },
+        "derivation": { "type": ["string", "null"] },
+        "upstreamUrl": { "type": ["string", "null"] },
+        "fetchedAt": { "type": ["string", "null"] },
+        "contentHash": { "type": ["string", "null"] },
+        "sourceBytesHash": { "type": ["string", "null"] }
+      }
+    },
+    "compiler": {
+      "type": "object",
+      "description": "Downstream compiler metadata. This distinguishes Govviz's reference rendering from the primary producer.",
+      "required": ["name", "url", "compiledAt", "pipelineCommit", "sourceBytesHash", "conformanceVersion"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "url": { "type": "string", "format": "uri" },
+        "compiledAt": { "type": "string", "minLength": 1 },
+        "pipelineCommit": { "type": "string", "minLength": 1 },
+        "sourceBytesHash": { "type": ["string", "null"] },
+        "conformanceVersion": { "type": "string", "minLength": 1 }
+      }
+    },
+    "upstreamConformance": {
+      "type": "string",
+      "description": "Whether the primary producer asserts this AI-ready profile upstream.",
+      "enum": ["not-asserted-by-primary-publisher", "asserted-by-primary-publisher", "unknown"]
+    },
+    "publisherClaim": {
+      "type": "string",
+      "description": "Backward-readable alias for upstreamConformance.",
+      "enum": ["not-asserted-by-primary-publisher", "asserted-by-primary-publisher", "unknown"]
+    },
+    "nextRelease": {
+      "type": ["string", "null"],
+      "description": "Official next release date only when known from a source-specific release calendar; otherwise null. Do not use this for compiler estimates."
+    },
+    "nextReleaseEstimated": { "type": "boolean", "description": "Backward-compatible flag for older records; false when nextRelease is null." },
+    "expectedCadence": { "type": ["string", "null"], "enum": ["monthly", "quarterly", "annual", null] },
+    "latestObservedPeriod": { "type": ["string", "null"], "description": "Latest period observed in the emitted tidy data file." },
+    "latestFetchedAt": { "type": ["string", "null"], "description": "Compiler-side timestamp/date for the latest upstream fetch evidence." },
+    "freshnessStatus": { "type": "string", "enum": ["current", "aged", "unknown"] },
+    "freshnessReason": { "type": "string", "minLength": 1 },
+    "estimatedNextPeriod": {
+      "type": ["string", "null"],
+      "description": "Compiler-side cadence projection from the latest observed period; not an official release date."
+    },
+    "conformanceLevel": {
+      "type": "string",
+      "enum": ["M4-reference-rendering", "M5-reference-rendering"],
+      "description": "Govviz reference-rendering conformance level, not an upstream producer score."
+    },
+    "limitations": {
+      "type": "array",
+      "description": "Human-readable caveats that prevent overclaiming upstream or official conformance.",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "latest": { "type": "string", "format": "uri", "description": "Stable pointer to the current data file" },
+    "csvw": { "type": "string", "format": "uri" },
+    "agent": { "type": "string", "format": "uri" },
+    "semanticTags": {
+      "type": "array",
+      "description": "Recommended discovery tags for policy problems, missions, themes, units and departments.",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "subjectUris": {
+      "type": "array",
+      "description": "Recommended stable identifiers for departments, geographies, source pages or concepts.",
+      "items": { "type": "string", "format": "uri" },
+      "uniqueItems": true
+    },
+    "qualityDimensions": {
+      "type": "object",
+      "description": "Recommended Government Data Quality Framework dimensions. Warning-level for downstream compilers; primary publishers own authoritative quality claims.",
+      "properties": {
+        "accuracy": { "type": "string" },
+        "completeness": { "type": "string" },
+        "uniqueness": { "type": "string" },
+        "consistency": { "type": "string" },
+        "timeliness": { "type": "string" },
+        "validity": { "type": "string" }
+      }
+    },
+    "dataSteward": { "description": "Recommended upstream data steward; usually primary-publisher supplied.", "type": ["string", "object", "null"] },
+    "contact": { "description": "Recommended source contact or feedback route.", "type": ["string", "object", "null"] },
+    "accessClass": {
+      "description": "Recommended machine-readable access class.",
+      "type": ["string", "null"],
+      "enum": ["open-public-aggregate", "open-registration-required", "restricted-sensitive", "not-published-by-source", null]
+    },
+    "accessProcess": { "description": "Recommended access-process URL or text.", "type": ["string", "null"] },
+    "legalBasis": { "description": "Recommended legal/public-task basis where asserted by the publisher.", "type": ["string", "null"] },
+    "dataProtection": { "description": "Recommended data-protection and disclosure-control statement.", "type": ["string", "null"] },
+    "riskOwner": { "description": "Recommended owner of misuse, interpretation or operational risk.", "type": ["string", "object", "null"] },
+    "qualityOwner": { "description": "Recommended owner of upstream quality assurance.", "type": ["string", "object", "null"] },
+    "methodologyUrl": { "type": ["string", "null"], "format": "uri" },
+    "revisionPolicyUrl": { "type": ["string", "null"], "format": "uri" },
+    "releaseCalendarUrl": { "type": ["string", "null"], "format": "uri" },
+    "relatedSeries": {
+      "type": "array",
+      "description": "Recommended links to numerator, denominator or comparable series.",
+      "items": { "type": "string" }
+    },
+    "sourceSystem": { "type": ["string", "null"] },
+    "lineage": { "type": ["string", "object", "null"] },
+    "qualityStatement": { "type": ["string", "null"] },
+    "knownLimitations": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "machineUseRestrictions": {
+      "description": "Recommended machine-use constraints beyond the licence, if any.",
+      "type": ["array", "string", "null"],
+      "items": { "type": "string" }
+    }
+  }
+}

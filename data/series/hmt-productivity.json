@@ -1,0 +1,99 @@
+{
+  "@context": "https://egly443.github.io/Govviz/data/profile.json",
+  "id": "https://egly443.github.io/Govviz/data/series/hmt-productivity.json",
+  "title": "Productivity",
+  "description": "Output per hour worked, index",
+  "producer": "ONS labour productivity",
+  "statisticType": "Official Statistic",
+  "measure": "Output per hour worked, index",
+  "unit": "index",
+  "unitMultiplier": 0,
+  "unitLabel": "index (rebased)",
+  "geography": null,
+  "geographyLabel": null,
+  "periodicity": "P1Y",
+  "validRange": {
+    "min": 30,
+    "max": 130
+  },
+  "suppressionScheme": "https://egly443.github.io/Govviz/data/suppression/v1",
+  "revisionStatus": "final",
+  "licence": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+  "provenance": {
+    "source": "ONS labour productivity",
+    "methodology": "https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/labourproductivity",
+    "derivation": "Direct from source; latest value validated against validRange",
+    "upstreamUrl": "https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/labourproductivity/timeseries/lzvb/prdy/data",
+    "fetchedAt": "2026-07-02",
+    "contentHash": "6e8b070d65",
+    "sourceBytesHash": "607f465460cf",
+    "compiledBy": "Govviz"
+  },
+  "semanticTags": [
+    "treasury",
+    "living standards",
+    "debt",
+    "tax",
+    "cost of living",
+    "annual",
+    "index",
+    "productivity",
+    "public finance"
+  ],
+  "subjectUris": [
+    "https://www.gov.uk/government/organisations/hm-treasury",
+    "https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/labourproductivity"
+  ],
+  "qualityDimensions": {
+    "accuracy": "Not asserted by Govviz; upstream producer methodology remains authoritative.",
+    "completeness": "55 observations emitted in the tidy data file.",
+    "uniqueness": "One observation per period/ref_area key in the emitted tidy table.",
+    "consistency": "Compiled by the same source-specific parser and emitted through one CSVW schema.",
+    "timeliness": "Latest observed period 2025 is within the expected annual cadence; latest source fetch recorded 2026-07-02.",
+    "validity": "Latest source values passed the published validRange 30 to 130."
+  },
+  "compiler": {
+    "name": "Govviz",
+    "url": "https://egly443.github.io/Govviz",
+    "conformanceVersion": "ai-ready-series-profile-v0.2",
+    "compiledAt": "2026-07-02T16:51:32.937Z",
+    "pipelineCommit": "90aea5d6665231b8497666afb12794279c7826d6",
+    "sourceBytesHash": "607f465460cf"
+  },
+  "upstreamConformance": "not-asserted-by-primary-publisher",
+  "publisherClaim": "not-asserted-by-primary-publisher",
+  "nextRelease": null,
+  "nextReleaseEstimated": false,
+  "expectedCadence": "annual",
+  "latestObservedPeriod": "2025",
+  "latestFetchedAt": "2026-07-02",
+  "estimatedNextPeriod": "2026-12-31",
+  "freshnessStatus": "current",
+  "freshnessReason": "Latest observed period 2025 is within the expected annual cadence; latest source fetch recorded 2026-07-02.",
+  "conformanceLevel": "M5-reference-rendering",
+  "limitations": [
+    "Govviz is a downstream compiler, not the primary publisher.",
+    "The primary producer may not publish the same tidy structure, stable id, CSVW metadata, or validation range upstream.",
+    "Freshness metadata is inferred from observed periods and fetch timestamps; it is not an official release calendar.",
+    "The contact and accountability route remains the primary producer's published route, not a Govviz official statistics contact.",
+    "No upstream policy-as-code conformance assertion has been made by the primary producer."
+  ],
+  "latest": "https://egly443.github.io/Govviz/data/series/hmt-productivity/data.csv",
+  "distribution": [
+    "https://egly443.github.io/Govviz/data/series/hmt-productivity/data.csv",
+    "https://egly443.github.io/Govviz/data/series/hmt-productivity/data-3de67018a655.csv",
+    "https://egly443.github.io/Govviz/data/series/hmt-productivity/data.csv-metadata.json",
+    "https://egly443.github.io/Govviz/data/series/hmt-productivity.json"
+  ],
+  "csvw": "https://egly443.github.io/Govviz/data/series/hmt-productivity/data.csv-metadata.json",
+  "agent": "https://egly443.github.io/Govviz/data/mcp.json",
+  "basis": null,
+  "caveat": null,
+  "lens": null,
+  "goodDirection": "up",
+  "department": {
+    "code": "treasury",
+    "name": "Treasury"
+  },
+  "observationCount": 55
+}

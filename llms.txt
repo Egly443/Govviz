@@ -1,0 +1,22 @@
+# Govviz — UK government performance data, made AI-readable
+
+> Govviz presents long-run UK government performance indicators with real,
+> officially-sourced data, and sets out how to make public statistics readable
+> by the AI agents increasingly acting on citizens' behalf.
+
+## Essay (full text, Markdown)
+- [Agentic Open Data](https://egly443.github.io/Govviz/blog.md): why AI agents can't reliably read UK government open data today, and a costed, standards-based plan (stable IDs, tidy data / CSVW / SDMX, in-band semantics, open access, MCP) to fix it.
+
+## Specifications
+- [AI-ready series profile](https://github.com/Egly443/Govviz/blob/main/docs/conformance/ai-ready-series-profile.md): a thin, normative profile for publishing one statistical series so an agent can consume it.
+- [Conformance suite](https://github.com/Egly443/Govviz/blob/main/docs/conformance/test-cases.json): an adversarial AI-readiness test set built from the hardest real UK datasets.
+
+## Dashboard
+- [Whole-of-government overview](https://egly443.github.io/Govviz/overview): real, sourced UK department performance indicators.
+
+## Open data (AI-ready, machine-first)
+- [DCAT catalogue](https://egly443.github.io/Govviz/data/catalog.json): every Govviz series as a catalogued dataset with stable id, tidy CSV, CSVW and in-band semantics.
+- [AI-ready series profile](https://egly443.github.io/Govviz/data/profile.json): the normative profile this data implements (resolve id -> GET tidy data; published validRange to reject wrong-but-plausible values).
+- [Health history](https://egly443.github.io/Govviz/data/health-history.json): rolling build-time source and series health snapshots.
+- [Worked example](https://egly443.github.io/Govviz/data/series/defra-sewage-hours.json): the essay's hardest case (sewage spill hours) collapsed to one record + one tidy file.
+- [Agent interface (MCP)](https://egly443.github.io/Govviz/data/mcp.json): open agent layer over the catalogue.

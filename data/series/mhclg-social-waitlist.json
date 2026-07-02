@@ -1,0 +1,102 @@
+{
+  "@context": "https://egly443.github.io/Govviz/data/profile.json",
+  "id": "https://egly443.github.io/Govviz/data/series/mhclg-social-waitlist.json",
+  "title": "Social housing waiting list",
+  "description": "Households on local authority housing waiting lists, England",
+  "producer": "MHCLG live tables on rents, lettings and tenancies (Table 600)",
+  "statisticType": "Official Statistic",
+  "measure": "Households on local authority housing waiting lists, England",
+  "unit": "number",
+  "unitMultiplier": 0,
+  "unitLabel": "number",
+  "geography": null,
+  "geographyLabel": null,
+  "periodicity": "P1Y",
+  "validRange": {
+    "min": 500000,
+    "max": 2500000
+  },
+  "suppressionScheme": "https://egly443.github.io/Govviz/data/suppression/v1",
+  "revisionStatus": "final",
+  "licence": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+  "provenance": {
+    "source": "MHCLG live tables on rents, lettings and tenancies (Table 600)",
+    "methodology": "Summed across the nine English regions (no national total is published in the source table).",
+    "derivation": "Summed across the nine English regions (no national total is published in the source table).",
+    "upstreamUrl": "https://assets.publishing.service.gov.uk/media/6a2be263e50716856ed4afc4/Live_Table_600.ods",
+    "fetchedAt": "2026-07-02",
+    "contentHash": "fab2f96994",
+    "sourceBytesHash": "ba875e436200",
+    "compiledBy": "Govviz"
+  },
+  "semanticTags": [
+    "mhclg",
+    "housing, communities & local government",
+    "homelessness",
+    "supply",
+    "affordability",
+    "annual",
+    "number",
+    "health",
+    "waiting lists",
+    "nhs performance",
+    "housing",
+    "housing supply"
+  ],
+  "subjectUris": [
+    "https://www.gov.uk/government/organisations/ministry-of-housing-communities-local-government",
+    "https://www.gov.uk/government/statistical-data-sets/live-tables-on-rents-lettings-and-tenancies"
+  ],
+  "qualityDimensions": {
+    "accuracy": "Not asserted by Govviz; upstream producer methodology remains authoritative.",
+    "completeness": "39 observations emitted in the tidy data file.",
+    "uniqueness": "One observation per period/ref_area key in the emitted tidy table.",
+    "consistency": "Compiled by the same source-specific parser and emitted through one CSVW schema.",
+    "timeliness": "Latest observed period 2025 is within the expected annual cadence; latest source fetch recorded 2026-07-02.",
+    "validity": "Latest source values passed the published validRange 500000 to 2500000."
+  },
+  "compiler": {
+    "name": "Govviz",
+    "url": "https://egly443.github.io/Govviz",
+    "conformanceVersion": "ai-ready-series-profile-v0.2",
+    "compiledAt": "2026-07-02T16:51:32.946Z",
+    "pipelineCommit": "90aea5d6665231b8497666afb12794279c7826d6",
+    "sourceBytesHash": "ba875e436200"
+  },
+  "upstreamConformance": "not-asserted-by-primary-publisher",
+  "publisherClaim": "not-asserted-by-primary-publisher",
+  "nextRelease": null,
+  "nextReleaseEstimated": false,
+  "expectedCadence": "annual",
+  "latestObservedPeriod": "2025",
+  "latestFetchedAt": "2026-07-02",
+  "estimatedNextPeriod": "2026-12-31",
+  "freshnessStatus": "current",
+  "freshnessReason": "Latest observed period 2025 is within the expected annual cadence; latest source fetch recorded 2026-07-02.",
+  "conformanceLevel": "M5-reference-rendering",
+  "limitations": [
+    "Govviz is a downstream compiler, not the primary publisher.",
+    "The primary producer may not publish the same tidy structure, stable id, CSVW metadata, or validation range upstream.",
+    "Freshness metadata is inferred from observed periods and fetch timestamps; it is not an official release calendar.",
+    "The contact and accountability route remains the primary producer's published route, not a Govviz official statistics contact.",
+    "No upstream policy-as-code conformance assertion has been made by the primary producer."
+  ],
+  "latest": "https://egly443.github.io/Govviz/data/series/mhclg-social-waitlist/data.csv",
+  "distribution": [
+    "https://egly443.github.io/Govviz/data/series/mhclg-social-waitlist/data.csv",
+    "https://egly443.github.io/Govviz/data/series/mhclg-social-waitlist/data-24274e57bf2f.csv",
+    "https://egly443.github.io/Govviz/data/series/mhclg-social-waitlist/data.csv-metadata.json",
+    "https://egly443.github.io/Govviz/data/series/mhclg-social-waitlist.json"
+  ],
+  "csvw": "https://egly443.github.io/Govviz/data/series/mhclg-social-waitlist/data.csv-metadata.json",
+  "agent": "https://egly443.github.io/Govviz/data/mcp.json",
+  "basis": null,
+  "caveat": null,
+  "lens": null,
+  "goodDirection": "down",
+  "department": {
+    "code": "mhclg",
+    "name": "Housing, Communities & Local Government"
+  },
+  "observationCount": 39
+}

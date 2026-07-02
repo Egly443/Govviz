@@ -1,0 +1,70 @@
+{
+  "@context": [
+    "http://www.w3.org/ns/csvw",
+    {
+      "@language": "en"
+    }
+  ],
+  "url": "data-1909656690c9.csv",
+  "dc:title": "Inflation vs pay growth",
+  "dc:description": "Annual % change: CPI vs average weekly earnings",
+  "dc:publisher": {
+    "schema:name": "ONS consumer prices & average weekly earnings"
+  },
+  "dc:license": {
+    "@id": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/"
+  },
+  "dc:source": {
+    "@id": "https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/d7g7/mm23/data"
+  },
+  "tableSchema": {
+    "columns": [
+      {
+        "name": "period",
+        "titles": "period",
+        "datatype": "string",
+        "dc:description": "Observation period (year, or ISO date)",
+        "propertyUrl": "http://purl.org/linked-data/sdmx/2009/dimension#timePeriod"
+      },
+      {
+        "name": "ref_area",
+        "titles": "ref_area",
+        "datatype": "string",
+        "dc:description": "Reference area (ISO-3166 alpha-3 where a country)",
+        "propertyUrl": "http://purl.org/linked-data/sdmx/2009/dimension#refArea"
+      },
+      {
+        "name": "value",
+        "titles": "value",
+        "datatype": "number",
+        "dc:description": "Observation value in percent (%)",
+        "propertyUrl": "http://purl.org/linked-data/sdmx/2009/measure#obsValue"
+      },
+      {
+        "name": "unit",
+        "titles": "unit",
+        "datatype": "string",
+        "dc:description": "Unit of measure",
+        "propertyUrl": "http://purl.org/linked-data/sdmx/2009/attribute#unitMeasure"
+      },
+      {
+        "name": "unit_multiplier",
+        "titles": "unit_multiplier",
+        "datatype": "integer",
+        "dc:description": "Power-of-ten multiplier: base value = value × 10^unit_multiplier",
+        "propertyUrl": "http://purl.org/linked-data/sdmx/2009/attribute#unitMult"
+      },
+      {
+        "name": "status",
+        "titles": "status",
+        "datatype": "string",
+        "dc:description": "Observation status / suppression code",
+        "propertyUrl": "http://purl.org/linked-data/sdmx/2009/attribute#obsStatus"
+      }
+    ],
+    "primaryKey": [
+      "period",
+      "ref_area"
+    ]
+  }
+}

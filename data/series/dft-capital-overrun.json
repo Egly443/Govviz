@@ -1,0 +1,103 @@
+{
+  "@context": "https://egly443.github.io/Govviz/data/profile.json",
+  "id": "https://egly443.github.io/Govviz/data/series/dft-capital-overrun.json",
+  "title": "DfT major projects delivery confidence",
+  "description": "% of DfT GMPP projects rated Amber/Red or Red",
+  "producer": "IPA/NISTA Government Major Projects Portfolio",
+  "statisticType": "Official Statistic",
+  "measure": "% of DfT GMPP projects rated Amber/Red or Red",
+  "unit": "percent",
+  "unitMultiplier": 0,
+  "unitLabel": "percent (%)",
+  "geography": null,
+  "geographyLabel": null,
+  "periodicity": "P1Y",
+  "validRange": {
+    "min": 0,
+    "max": 100
+  },
+  "suppressionScheme": "https://egly443.github.io/Govviz/data/suppression/v1",
+  "revisionStatus": "final",
+  "licence": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+  "provenance": {
+    "source": "IPA/NISTA Government Major Projects Portfolio",
+    "methodology": "https://www.gov.uk/government/collections/major-projects-data",
+    "derivation": "Direct from source; latest value validated against validRange",
+    "upstreamUrl": "https://www.gov.uk/government/publications/government-major-projects-portfolio-data-for-bis-2013",
+    "fetchedAt": "2026-07-02",
+    "contentHash": "c9d352ddb7",
+    "sourceBytesHash": "6aa78743eeb0",
+    "compiledBy": "Govviz"
+  },
+  "semanticTags": [
+    "dft",
+    "transport",
+    "reliability",
+    "service",
+    "delivery",
+    "assets",
+    "annual",
+    "percent"
+  ],
+  "subjectUris": [
+    "https://www.gov.uk/government/organisations/department-for-transport",
+    "https://www.gov.uk/government/collections/major-projects-data"
+  ],
+  "qualityDimensions": {
+    "accuracy": "Not asserted by Govviz; upstream producer methodology remains authoritative.",
+    "completeness": "4 observations emitted in the tidy data file.",
+    "uniqueness": "One observation per period/ref_area key in the emitted tidy table.",
+    "consistency": "Compiled by the same source-specific parser and emitted through one CSVW schema.",
+    "timeliness": "Latest observed period 2024 is older than the expected annual cadence projection 2025-12-31; latest source fetch recorded 2026-07-02.",
+    "validity": "Latest source values passed the published validRange 0 to 100."
+  },
+  "compiler": {
+    "name": "Govviz",
+    "url": "https://egly443.github.io/Govviz",
+    "conformanceVersion": "ai-ready-series-profile-v0.2",
+    "compiledAt": "2026-07-02T16:51:32.910Z",
+    "pipelineCommit": "90aea5d6665231b8497666afb12794279c7826d6",
+    "sourceBytesHash": "6aa78743eeb0"
+  },
+  "upstreamConformance": "not-asserted-by-primary-publisher",
+  "publisherClaim": "not-asserted-by-primary-publisher",
+  "nextRelease": null,
+  "nextReleaseEstimated": false,
+  "expectedCadence": "annual",
+  "latestObservedPeriod": "2024",
+  "latestFetchedAt": "2026-07-02",
+  "estimatedNextPeriod": "2025-12-31",
+  "freshnessStatus": "aged",
+  "freshnessReason": "Latest observed period 2024 is older than the expected annual cadence projection 2025-12-31; latest source fetch recorded 2026-07-02.",
+  "conformanceLevel": "M5-reference-rendering",
+  "limitations": [
+    "Govviz is a downstream compiler, not the primary publisher.",
+    "The primary producer may not publish the same tidy structure, stable id, CSVW metadata, or validation range upstream.",
+    "Freshness metadata is inferred from observed periods and fetch timestamps; it is not an official release calendar.",
+    "The contact and accountability route remains the primary producer's published route, not a Govviz official statistics contact.",
+    "No upstream policy-as-code conformance assertion has been made by the primary producer."
+  ],
+  "latest": "https://egly443.github.io/Govviz/data/series/dft-capital-overrun/data.csv",
+  "distribution": [
+    "https://egly443.github.io/Govviz/data/series/dft-capital-overrun/data.csv",
+    "https://egly443.github.io/Govviz/data/series/dft-capital-overrun/data-c61e8465105f.csv",
+    "https://egly443.github.io/Govviz/data/series/dft-capital-overrun/data.csv-metadata.json",
+    "https://egly443.github.io/Govviz/data/series/dft-capital-overrun.json"
+  ],
+  "csvw": "https://egly443.github.io/Govviz/data/series/dft-capital-overrun/data.csv-metadata.json",
+  "agent": "https://egly443.github.io/Govviz/data/mcp.json",
+  "basis": null,
+  "caveat": null,
+  "lens": null,
+  "goodDirection": "down",
+  "target": {
+    "value": 0,
+    "label": "None at risk",
+    "kind": "standard"
+  },
+  "department": {
+    "code": "dft",
+    "name": "Transport"
+  },
+  "observationCount": 4
+}

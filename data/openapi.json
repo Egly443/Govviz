@@ -1,0 +1,142 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Govviz AI-ready open data",
+    "version": "2026-07-02",
+    "description": "Static contract for the Govviz AI-ready series catalogue and per-series data endpoints.",
+    "license": {
+      "name": "OGL v3.0",
+      "url": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://egly443.github.io/Govviz/data"
+    }
+  ],
+  "paths": {
+    "/catalog.json": {
+      "get": {
+        "summary": "DCAT catalogue of all series",
+        "responses": {
+          "200": {
+            "description": "DCAT catalogue",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/series/index.json": {
+      "get": {
+        "summary": "Machine index of available series",
+        "responses": {
+          "200": {
+            "description": "Series index",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/series/{id}.json": {
+      "get": {
+        "summary": "AI-ready metadata record for one series",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Series metadata record conforming to the AI-ready series profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "https://egly443.github.io/Govviz/data/ai-ready-series.schema.json"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/series/{id}/data.csv": {
+      "get": {
+        "summary": "Latest tidy observations for one series",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV with period,value,unit,unit_multiplier,status columns",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/series/{id}/data.csv-metadata.json": {
+      "get": {
+        "summary": "CSVW metadata for one series data file",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSVW table schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AiReadySeries": {
+        "type": "object",
+        "description": "Canonical schema is published at https://egly443.github.io/Govviz/data/ai-ready-series.schema.json and mirrored in docs/conformance/ai-ready-series.schema.json."
+      }
+    }
+  }
+}

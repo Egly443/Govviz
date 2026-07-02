@@ -1,0 +1,99 @@
+{
+  "@context": "https://egly443.github.io/Govviz/data/profile.json",
+  "id": "https://egly443.github.io/Govviz/data/series/dft-srn-degradation.json",
+  "title": "Strategic road network condition",
+  "description": "% of SRN pavement in good condition (target ≥96.2%)",
+  "producer": "Office of Rail and Road — annual assessment of National Highways (Table 3a)",
+  "statisticType": "Official Statistic",
+  "measure": "% of SRN pavement in good condition (target ≥96.2%)",
+  "unit": "percent",
+  "unitMultiplier": 0,
+  "unitLabel": "percent (%)",
+  "geography": null,
+  "geographyLabel": null,
+  "periodicity": "P1Y",
+  "validRange": {
+    "min": 80,
+    "max": 100
+  },
+  "suppressionScheme": "https://egly443.github.io/Govviz/data/suppression/v1",
+  "revisionStatus": "final",
+  "licence": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+  "provenance": {
+    "source": "Office of Rail and Road — annual assessment of National Highways (Table 3a)",
+    "methodology": "https://www.orr.gov.uk/monitoring-and-regulation/roads-monitoring/annual-assessment-national-highways",
+    "derivation": "Direct from source; latest value validated against validRange",
+    "upstreamUrl": "https://www.orr.gov.uk/media/25721/download",
+    "fetchedAt": "2026-07-02",
+    "contentHash": "a9b6136aa9",
+    "sourceBytesHash": "e79cdf98b2db",
+    "compiledBy": "Govviz"
+  },
+  "semanticTags": [
+    "dft",
+    "transport",
+    "reliability",
+    "service",
+    "delivery",
+    "assets",
+    "annual",
+    "percent",
+    "infrastructure"
+  ],
+  "subjectUris": [
+    "https://www.gov.uk/government/organisations/department-for-transport",
+    "https://www.orr.gov.uk/monitoring-and-regulation/roads-monitoring/annual-assessment-national-highways"
+  ],
+  "qualityDimensions": {
+    "accuracy": "Not asserted by Govviz; upstream producer methodology remains authoritative.",
+    "completeness": "10 observations emitted in the tidy data file.",
+    "uniqueness": "One observation per period/ref_area key in the emitted tidy table.",
+    "consistency": "Compiled by the same source-specific parser and emitted through one CSVW schema.",
+    "timeliness": "Latest observed period 2025 is within the expected annual cadence; latest source fetch recorded 2026-07-02.",
+    "validity": "Latest source values passed the published validRange 80 to 100."
+  },
+  "compiler": {
+    "name": "Govviz",
+    "url": "https://egly443.github.io/Govviz",
+    "conformanceVersion": "ai-ready-series-profile-v0.2",
+    "compiledAt": "2026-07-02T16:51:32.911Z",
+    "pipelineCommit": "90aea5d6665231b8497666afb12794279c7826d6",
+    "sourceBytesHash": "e79cdf98b2db"
+  },
+  "upstreamConformance": "not-asserted-by-primary-publisher",
+  "publisherClaim": "not-asserted-by-primary-publisher",
+  "nextRelease": null,
+  "nextReleaseEstimated": false,
+  "expectedCadence": "annual",
+  "latestObservedPeriod": "2025",
+  "latestFetchedAt": "2026-07-02",
+  "estimatedNextPeriod": "2026-12-31",
+  "freshnessStatus": "current",
+  "freshnessReason": "Latest observed period 2025 is within the expected annual cadence; latest source fetch recorded 2026-07-02.",
+  "conformanceLevel": "M5-reference-rendering",
+  "limitations": [
+    "Govviz is a downstream compiler, not the primary publisher.",
+    "The primary producer may not publish the same tidy structure, stable id, CSVW metadata, or validation range upstream.",
+    "Freshness metadata is inferred from observed periods and fetch timestamps; it is not an official release calendar.",
+    "The contact and accountability route remains the primary producer's published route, not a Govviz official statistics contact.",
+    "No upstream policy-as-code conformance assertion has been made by the primary producer."
+  ],
+  "latest": "https://egly443.github.io/Govviz/data/series/dft-srn-degradation/data.csv",
+  "distribution": [
+    "https://egly443.github.io/Govviz/data/series/dft-srn-degradation/data.csv",
+    "https://egly443.github.io/Govviz/data/series/dft-srn-degradation/data-e68fdd79b9ea.csv",
+    "https://egly443.github.io/Govviz/data/series/dft-srn-degradation/data.csv-metadata.json",
+    "https://egly443.github.io/Govviz/data/series/dft-srn-degradation.json"
+  ],
+  "csvw": "https://egly443.github.io/Govviz/data/series/dft-srn-degradation/data.csv-metadata.json",
+  "agent": "https://egly443.github.io/Govviz/data/mcp.json",
+  "basis": null,
+  "caveat": null,
+  "lens": null,
+  "goodDirection": "up",
+  "department": {
+    "code": "dft",
+    "name": "Transport"
+  },
+  "observationCount": 10
+}

@@ -1,0 +1,15 @@
+{
+  "id": "https://egly443.github.io/Govviz/data/suppression/v1",
+  "title": "Govviz observation-status & suppression scheme v1",
+  "description": "Codes used in the `status` column of every data file. Govviz publishes no statistically-disclosure-controlled microdata, so in practice only revision-status codes appear; suppression codes are defined so a consumer can rely on a single declared vocabulary, and so the scheme is forward-compatible with upstream SDC markers.",
+  "crosswalk": "SDMX OBS_STATUS; ONS/Code of Practice suppression markers",
+  "codes": {
+    "final": "Final / confirmed value",
+    "provisional": "Provisional value, subject to revision",
+    "revised": "Previously-published value, revised",
+    "estimated": "Estimated / modelled value",
+    "c": "Suppressed for statistical disclosure control (confidential, small cell)",
+    "x": "Not available / not applicable",
+    "z": "Not applicable (genuine zero or category does not exist)"
+  }
+}

@@ -1,0 +1,102 @@
+{
+  "@context": "https://egly443.github.io/Govviz/data/profile.json",
+  "id": "https://egly443.github.io/Govviz/data/series/moj-crown-backlog.json",
+  "title": "Crown Court outstanding caseload",
+  "description": "Open cases awaiting trial or sentence",
+  "producer": "Ministry of Justice criminal court statistics",
+  "statisticType": "Official Statistic",
+  "measure": "Open cases awaiting trial or sentence",
+  "unit": "number",
+  "unitMultiplier": 0,
+  "unitLabel": "number",
+  "geography": null,
+  "geographyLabel": null,
+  "periodicity": "P1M",
+  "validRange": {
+    "min": 5000,
+    "max": 120000
+  },
+  "suppressionScheme": "https://egly443.github.io/Govviz/data/suppression/v1",
+  "revisionStatus": "final",
+  "licence": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+  "provenance": {
+    "source": "Ministry of Justice criminal court statistics",
+    "methodology": "https://www.gov.uk/government/collections/criminal-court-statistics",
+    "derivation": "Direct from source; latest value validated against validRange",
+    "upstreamUrl": "https://assets.publishing.service.gov.uk/media/6a3bfe35da47783d877239e3/ccsq_accessible_publication_tables_2026Q1.ods",
+    "fetchedAt": "2026-07-02",
+    "contentHash": "146f0131be",
+    "sourceBytesHash": "9be187df4b6b",
+    "compiledBy": "Govviz"
+  },
+  "semanticTags": [
+    "moj",
+    "justice",
+    "backlog",
+    "cost",
+    "workforce",
+    "speed",
+    "monthly",
+    "number",
+    "health",
+    "waiting lists",
+    "nhs performance",
+    "courts backlog"
+  ],
+  "subjectUris": [
+    "https://www.gov.uk/government/organisations/ministry-of-justice",
+    "https://www.gov.uk/government/collections/criminal-court-statistics"
+  ],
+  "qualityDimensions": {
+    "accuracy": "Not asserted by Govviz; upstream producer methodology remains authoritative.",
+    "completeness": "41 observations emitted in the tidy data file.",
+    "uniqueness": "One observation per period/ref_area key in the emitted tidy table.",
+    "consistency": "Compiled by the same source-specific parser and emitted through one CSVW schema.",
+    "timeliness": "Latest observed period 2026-03 is older than the expected monthly cadence projection 2026-04-01; latest source fetch recorded 2026-07-02.",
+    "validity": "Latest source values passed the published validRange 5000 to 120000."
+  },
+  "compiler": {
+    "name": "Govviz",
+    "url": "https://egly443.github.io/Govviz",
+    "conformanceVersion": "ai-ready-series-profile-v0.2",
+    "compiledAt": "2026-07-02T16:51:32.886Z",
+    "pipelineCommit": "90aea5d6665231b8497666afb12794279c7826d6",
+    "sourceBytesHash": "9be187df4b6b"
+  },
+  "upstreamConformance": "not-asserted-by-primary-publisher",
+  "publisherClaim": "not-asserted-by-primary-publisher",
+  "nextRelease": null,
+  "nextReleaseEstimated": false,
+  "expectedCadence": "monthly",
+  "latestObservedPeriod": "2026-03",
+  "latestFetchedAt": "2026-07-02",
+  "estimatedNextPeriod": "2026-04-01",
+  "freshnessStatus": "aged",
+  "freshnessReason": "Latest observed period 2026-03 is older than the expected monthly cadence projection 2026-04-01; latest source fetch recorded 2026-07-02.",
+  "conformanceLevel": "M5-reference-rendering",
+  "limitations": [
+    "Govviz is a downstream compiler, not the primary publisher.",
+    "The primary producer may not publish the same tidy structure, stable id, CSVW metadata, or validation range upstream.",
+    "Freshness metadata is inferred from observed periods and fetch timestamps; it is not an official release calendar.",
+    "The contact and accountability route remains the primary producer's published route, not a Govviz official statistics contact.",
+    "No upstream policy-as-code conformance assertion has been made by the primary producer."
+  ],
+  "latest": "https://egly443.github.io/Govviz/data/series/moj-crown-backlog/data.csv",
+  "distribution": [
+    "https://egly443.github.io/Govviz/data/series/moj-crown-backlog/data.csv",
+    "https://egly443.github.io/Govviz/data/series/moj-crown-backlog/data-84712c30cfb7.csv",
+    "https://egly443.github.io/Govviz/data/series/moj-crown-backlog/data.csv-metadata.json",
+    "https://egly443.github.io/Govviz/data/series/moj-crown-backlog.json"
+  ],
+  "csvw": "https://egly443.github.io/Govviz/data/series/moj-crown-backlog/data.csv-metadata.json",
+  "agent": "https://egly443.github.io/Govviz/data/mcp.json",
+  "basis": null,
+  "caveat": null,
+  "lens": null,
+  "goodDirection": "down",
+  "department": {
+    "code": "moj",
+    "name": "Justice"
+  },
+  "observationCount": 41
+}

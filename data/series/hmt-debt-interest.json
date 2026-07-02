@@ -1,0 +1,99 @@
+{
+  "@context": "https://egly443.github.io/Govviz/data/profile.json",
+  "id": "https://egly443.github.io/Govviz/data/series/hmt-debt-interest.json",
+  "title": "Debt interest",
+  "description": "Debt interest as % of government revenue",
+  "producer": "World Bank (IMF GFS)",
+  "statisticType": "Aggregated international statistic",
+  "measure": "Debt interest as % of government revenue",
+  "unit": "percent",
+  "unitMultiplier": 0,
+  "unitLabel": "percent (%)",
+  "geography": null,
+  "geographyLabel": null,
+  "periodicity": "P1Y",
+  "validRange": {
+    "min": 2,
+    "max": 25
+  },
+  "suppressionScheme": "https://egly443.github.io/Govviz/data/suppression/v1",
+  "revisionStatus": "final",
+  "licence": "https://creativecommons.org/licenses/by/4.0/",
+  "provenance": {
+    "source": "World Bank (IMF GFS)",
+    "methodology": "https://data.worldbank.org/indicator/GC.XPN.INTP.RV.ZS?locations=GB",
+    "derivation": "Direct from source; latest value validated against validRange",
+    "upstreamUrl": "https://api.worldbank.org/v2/country/GBR/indicator/GC.XPN.INTP.RV.ZS?format=json&per_page=20000",
+    "fetchedAt": "2026-07-02",
+    "contentHash": "0cfb95c4f6",
+    "sourceBytesHash": "56866fe5a653",
+    "compiledBy": "Govviz"
+  },
+  "semanticTags": [
+    "treasury",
+    "living standards",
+    "debt",
+    "tax",
+    "cost of living",
+    "annual",
+    "percent",
+    "productivity",
+    "public finance"
+  ],
+  "subjectUris": [
+    "https://www.gov.uk/government/organisations/hm-treasury",
+    "https://data.worldbank.org/indicator/GC.XPN.INTP.RV.ZS?locations=GB"
+  ],
+  "qualityDimensions": {
+    "accuracy": "Not asserted by Govviz; upstream producer methodology remains authoritative.",
+    "completeness": "53 observations emitted in the tidy data file.",
+    "uniqueness": "One observation per period/ref_area key in the emitted tidy table.",
+    "consistency": "Compiled by the same source-specific parser and emitted through one CSVW schema.",
+    "timeliness": "Latest observed period 2024 is older than the expected annual cadence projection 2025-12-31; latest source fetch recorded 2026-07-02.",
+    "validity": "Latest source values passed the published validRange 2 to 25."
+  },
+  "compiler": {
+    "name": "Govviz",
+    "url": "https://egly443.github.io/Govviz",
+    "conformanceVersion": "ai-ready-series-profile-v0.2",
+    "compiledAt": "2026-07-02T16:51:32.923Z",
+    "pipelineCommit": "90aea5d6665231b8497666afb12794279c7826d6",
+    "sourceBytesHash": "56866fe5a653"
+  },
+  "upstreamConformance": "not-asserted-by-primary-publisher",
+  "publisherClaim": "not-asserted-by-primary-publisher",
+  "nextRelease": null,
+  "nextReleaseEstimated": false,
+  "expectedCadence": "annual",
+  "latestObservedPeriod": "2024",
+  "latestFetchedAt": "2026-07-02",
+  "estimatedNextPeriod": "2025-12-31",
+  "freshnessStatus": "aged",
+  "freshnessReason": "Latest observed period 2024 is older than the expected annual cadence projection 2025-12-31; latest source fetch recorded 2026-07-02.",
+  "conformanceLevel": "M5-reference-rendering",
+  "limitations": [
+    "Govviz is a downstream compiler, not the primary publisher.",
+    "The primary producer may not publish the same tidy structure, stable id, CSVW metadata, or validation range upstream.",
+    "Freshness metadata is inferred from observed periods and fetch timestamps; it is not an official release calendar.",
+    "The contact and accountability route remains the primary producer's published route, not a Govviz official statistics contact.",
+    "No upstream policy-as-code conformance assertion has been made by the primary producer."
+  ],
+  "latest": "https://egly443.github.io/Govviz/data/series/hmt-debt-interest/data.csv",
+  "distribution": [
+    "https://egly443.github.io/Govviz/data/series/hmt-debt-interest/data.csv",
+    "https://egly443.github.io/Govviz/data/series/hmt-debt-interest/data-1cc7bb31819b.csv",
+    "https://egly443.github.io/Govviz/data/series/hmt-debt-interest/data.csv-metadata.json",
+    "https://egly443.github.io/Govviz/data/series/hmt-debt-interest.json"
+  ],
+  "csvw": "https://egly443.github.io/Govviz/data/series/hmt-debt-interest/data.csv-metadata.json",
+  "agent": "https://egly443.github.io/Govviz/data/mcp.json",
+  "basis": null,
+  "caveat": null,
+  "lens": null,
+  "goodDirection": "down",
+  "department": {
+    "code": "treasury",
+    "name": "Treasury"
+  },
+  "observationCount": 53
+}

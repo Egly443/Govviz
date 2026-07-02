@@ -1,0 +1,62 @@
+{
+  "@context": [
+    "http://www.w3.org/ns/csvw",
+    {
+      "@language": "en"
+    }
+  ],
+  "url": "data-d9a5a9aa612b.csv",
+  "dc:title": "Crimes resulting in a charge",
+  "dc:description": "% of recorded offences with a charge or summons",
+  "dc:publisher": {
+    "schema:name": "Home Office, police recorded crime & outcomes open data"
+  },
+  "dc:license": {
+    "@id": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/"
+  },
+  "dc:source": {
+    "@id": "https://assets.publishing.service.gov.uk/media/6890c7aee8ba9507fc1b09cc/outcomes-mar25-tables-240725.ods"
+  },
+  "tableSchema": {
+    "columns": [
+      {
+        "name": "period",
+        "titles": "period",
+        "datatype": "string",
+        "dc:description": "Observation period (year, or ISO date)",
+        "propertyUrl": "http://purl.org/linked-data/sdmx/2009/dimension#timePeriod"
+      },
+      {
+        "name": "value",
+        "titles": "value",
+        "datatype": "number",
+        "dc:description": "Observation value in percent (%)",
+        "propertyUrl": "http://purl.org/linked-data/sdmx/2009/measure#obsValue"
+      },
+      {
+        "name": "unit",
+        "titles": "unit",
+        "datatype": "string",
+        "dc:description": "Unit of measure",
+        "propertyUrl": "http://purl.org/linked-data/sdmx/2009/attribute#unitMeasure"
+      },
+      {
+        "name": "unit_multiplier",
+        "titles": "unit_multiplier",
+        "datatype": "integer",
+        "dc:description": "Power-of-ten multiplier: base value = value × 10^unit_multiplier",
+        "propertyUrl": "http://purl.org/linked-data/sdmx/2009/attribute#unitMult"
+      },
+      {
+        "name": "status",
+        "titles": "status",
+        "datatype": "string",
+        "dc:description": "Observation status / suppression code",
+        "propertyUrl": "http://purl.org/linked-data/sdmx/2009/attribute#obsStatus"
+      }
+    ],
+    "primaryKey": [
+      "period"
+    ]
+  }
+}

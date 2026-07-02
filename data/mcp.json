@@ -1,0 +1,30 @@
+{
+  "name": "govviz-open-data",
+  "description": "Open-agent (MCP) interface over the Govviz AI-ready series catalogue. Reference stdio server: tools/mcp/govviz-mcp.mjs in the repository.",
+  "transport": "stdio",
+  "repository": "https://github.com/Egly443/Govviz/blob/main/tools/mcp/govviz-mcp.mjs",
+  "catalogue": "https://egly443.github.io/Govviz/data/catalog.json",
+  "tools": [
+    {
+      "name": "list_series",
+      "description": "List all series (id, title, unit, periodicity)."
+    },
+    {
+      "name": "get_series_metadata",
+      "description": "Get the AI-ready metadata record for a series id."
+    },
+    {
+      "name": "get_observations",
+      "description": "Get the tidy observations for a series id."
+    },
+    {
+      "name": "validate_value",
+      "description": "Validate a proposed value against validRange, unit and periodicity metadata."
+    },
+    {
+      "name": "get_data_health",
+      "description": "Return current catalogue health and the latest rolling health-history snapshots."
+    }
+  ],
+  "note": "Standards under standards: the data is independently usable via DCAT/CSVW, so the agent interface carries no lock-in."
+}

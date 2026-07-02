@@ -1,0 +1,99 @@
+{
+  "@context": "https://egly443.github.io/Govviz/data/profile.json",
+  "id": "https://egly443.github.io/Govviz/data/series/dft-local-roads.json",
+  "title": "Local road condition",
+  "description": "% of local 'A' roads that should be considered for maintenance, England",
+  "producer": "DfT, Road condition statistics (RDC)",
+  "statisticType": "Official Statistic",
+  "measure": "% of local 'A' roads that should be considered for maintenance, England",
+  "unit": "percent",
+  "unitMultiplier": 0,
+  "unitLabel": "percent (%)",
+  "geography": null,
+  "geographyLabel": null,
+  "periodicity": "P1Y",
+  "validRange": {
+    "min": 1,
+    "max": 40
+  },
+  "suppressionScheme": "https://egly443.github.io/Govviz/data/suppression/v1",
+  "revisionStatus": "final",
+  "licence": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+  "provenance": {
+    "source": "DfT, Road condition statistics (RDC)",
+    "methodology": "Mean across the English regions (the source reports a value per region, not a single England figure).",
+    "derivation": "Mean across the English regions (the source reports a value per region, not a single England figure).",
+    "upstreamUrl": "https://assets.publishing.service.gov.uk/media/696faccc011505255b2d4253/rdc0121.ods",
+    "fetchedAt": "2026-07-02",
+    "contentHash": "89f8a2e812",
+    "sourceBytesHash": "836bc1382603",
+    "compiledBy": "Govviz"
+  },
+  "semanticTags": [
+    "dft",
+    "transport",
+    "reliability",
+    "service",
+    "delivery",
+    "assets",
+    "annual",
+    "percent",
+    "infrastructure"
+  ],
+  "subjectUris": [
+    "https://www.gov.uk/government/organisations/department-for-transport",
+    "https://www.gov.uk/government/statistical-data-sets/road-condition-statistics-data-tables-rdc"
+  ],
+  "qualityDimensions": {
+    "accuracy": "Not asserted by Govviz; upstream producer methodology remains authoritative.",
+    "completeness": "18 observations emitted in the tidy data file.",
+    "uniqueness": "One observation per period/ref_area key in the emitted tidy table.",
+    "consistency": "Compiled by the same source-specific parser and emitted through one CSVW schema.",
+    "timeliness": "Latest observed period 2025 is within the expected annual cadence; latest source fetch recorded 2026-07-02.",
+    "validity": "Latest source values passed the published validRange 1 to 40."
+  },
+  "compiler": {
+    "name": "Govviz",
+    "url": "https://egly443.github.io/Govviz",
+    "conformanceVersion": "ai-ready-series-profile-v0.2",
+    "compiledAt": "2026-07-02T16:51:32.908Z",
+    "pipelineCommit": "90aea5d6665231b8497666afb12794279c7826d6",
+    "sourceBytesHash": "836bc1382603"
+  },
+  "upstreamConformance": "not-asserted-by-primary-publisher",
+  "publisherClaim": "not-asserted-by-primary-publisher",
+  "nextRelease": null,
+  "nextReleaseEstimated": false,
+  "expectedCadence": "annual",
+  "latestObservedPeriod": "2025",
+  "latestFetchedAt": "2026-07-02",
+  "estimatedNextPeriod": "2026-12-31",
+  "freshnessStatus": "current",
+  "freshnessReason": "Latest observed period 2025 is within the expected annual cadence; latest source fetch recorded 2026-07-02.",
+  "conformanceLevel": "M5-reference-rendering",
+  "limitations": [
+    "Govviz is a downstream compiler, not the primary publisher.",
+    "The primary producer may not publish the same tidy structure, stable id, CSVW metadata, or validation range upstream.",
+    "Freshness metadata is inferred from observed periods and fetch timestamps; it is not an official release calendar.",
+    "The contact and accountability route remains the primary producer's published route, not a Govviz official statistics contact.",
+    "No upstream policy-as-code conformance assertion has been made by the primary producer."
+  ],
+  "latest": "https://egly443.github.io/Govviz/data/series/dft-local-roads/data.csv",
+  "distribution": [
+    "https://egly443.github.io/Govviz/data/series/dft-local-roads/data.csv",
+    "https://egly443.github.io/Govviz/data/series/dft-local-roads/data-bd67b6306d35.csv",
+    "https://egly443.github.io/Govviz/data/series/dft-local-roads/data.csv-metadata.json",
+    "https://egly443.github.io/Govviz/data/series/dft-local-roads.json"
+  ],
+  "csvw": "https://egly443.github.io/Govviz/data/series/dft-local-roads/data.csv-metadata.json",
+  "agent": "https://egly443.github.io/Govviz/data/mcp.json",
+  "basis": null,
+  "caveat": null,
+  "lens": null,
+  "goodDirection": "down",
+  "department": {
+    "code": "dft",
+    "name": "Transport"
+  },
+  "observationCount": 18
+}

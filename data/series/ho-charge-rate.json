@@ -1,0 +1,98 @@
+{
+  "@context": "https://egly443.github.io/Govviz/data/profile.json",
+  "id": "https://egly443.github.io/Govviz/data/series/ho-charge-rate.json",
+  "title": "Crimes resulting in a charge",
+  "description": "% of recorded offences with a charge or summons",
+  "producer": "Home Office, police recorded crime & outcomes open data",
+  "statisticType": "Official Statistic",
+  "measure": "% of recorded offences with a charge or summons",
+  "unit": "percent",
+  "unitMultiplier": 0,
+  "unitLabel": "percent (%)",
+  "geography": null,
+  "geographyLabel": null,
+  "periodicity": "P1Y",
+  "validRange": {
+    "min": 2,
+    "max": 30
+  },
+  "suppressionScheme": "https://egly443.github.io/Govviz/data/suppression/v1",
+  "revisionStatus": "final",
+  "licence": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+  "provenance": {
+    "source": "Home Office, police recorded crime & outcomes open data",
+    "methodology": "https://www.gov.uk/government/statistical-data-sets/police-recorded-crime-and-outcomes-open-data-tables",
+    "derivation": "Direct from source; latest value validated against validRange",
+    "upstreamUrl": "https://assets.publishing.service.gov.uk/media/6890c7aee8ba9507fc1b09cc/outcomes-mar25-tables-240725.ods",
+    "fetchedAt": "2026-07-02",
+    "contentHash": "8323dc17d6",
+    "sourceBytesHash": "ba244ec35952",
+    "compiledBy": "Govviz"
+  },
+  "semanticTags": [
+    "home-office",
+    "home office",
+    "throughput",
+    "workforce",
+    "value for money",
+    "service standard",
+    "annual",
+    "percent"
+  ],
+  "subjectUris": [
+    "https://www.gov.uk/government/organisations/home-office",
+    "https://www.gov.uk/government/statistical-data-sets/police-recorded-crime-and-outcomes-open-data-tables"
+  ],
+  "qualityDimensions": {
+    "accuracy": "Not asserted by Govviz; upstream producer methodology remains authoritative.",
+    "completeness": "11 observations emitted in the tidy data file.",
+    "uniqueness": "One observation per period/ref_area key in the emitted tidy table.",
+    "consistency": "Compiled by the same source-specific parser and emitted through one CSVW schema.",
+    "timeliness": "Latest observed period 2025 is within the expected annual cadence; latest source fetch recorded 2026-07-02.",
+    "validity": "Latest source values passed the published validRange 2 to 30."
+  },
+  "compiler": {
+    "name": "Govviz",
+    "url": "https://egly443.github.io/Govviz",
+    "conformanceVersion": "ai-ready-series-profile-v0.2",
+    "compiledAt": "2026-07-02T16:51:32.878Z",
+    "pipelineCommit": "90aea5d6665231b8497666afb12794279c7826d6",
+    "sourceBytesHash": "ba244ec35952"
+  },
+  "upstreamConformance": "not-asserted-by-primary-publisher",
+  "publisherClaim": "not-asserted-by-primary-publisher",
+  "nextRelease": null,
+  "nextReleaseEstimated": false,
+  "expectedCadence": "annual",
+  "latestObservedPeriod": "2025",
+  "latestFetchedAt": "2026-07-02",
+  "estimatedNextPeriod": "2026-12-31",
+  "freshnessStatus": "current",
+  "freshnessReason": "Latest observed period 2025 is within the expected annual cadence; latest source fetch recorded 2026-07-02.",
+  "conformanceLevel": "M5-reference-rendering",
+  "limitations": [
+    "Govviz is a downstream compiler, not the primary publisher.",
+    "The primary producer may not publish the same tidy structure, stable id, CSVW metadata, or validation range upstream.",
+    "Freshness metadata is inferred from observed periods and fetch timestamps; it is not an official release calendar.",
+    "The contact and accountability route remains the primary producer's published route, not a Govviz official statistics contact.",
+    "No upstream policy-as-code conformance assertion has been made by the primary producer."
+  ],
+  "latest": "https://egly443.github.io/Govviz/data/series/ho-charge-rate/data.csv",
+  "distribution": [
+    "https://egly443.github.io/Govviz/data/series/ho-charge-rate/data.csv",
+    "https://egly443.github.io/Govviz/data/series/ho-charge-rate/data-d9a5a9aa612b.csv",
+    "https://egly443.github.io/Govviz/data/series/ho-charge-rate/data.csv-metadata.json",
+    "https://egly443.github.io/Govviz/data/series/ho-charge-rate.json"
+  ],
+  "csvw": "https://egly443.github.io/Govviz/data/series/ho-charge-rate/data.csv-metadata.json",
+  "agent": "https://egly443.github.io/Govviz/data/mcp.json",
+  "basis": null,
+  "caveat": null,
+  "lens": null,
+  "goodDirection": "up",
+  "department": {
+    "code": "home-office",
+    "name": "Home Office"
+  },
+  "observationCount": 11
+}

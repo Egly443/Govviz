@@ -1,0 +1,100 @@
+{
+  "@context": "https://egly443.github.io/Govviz/data/profile.json",
+  "id": "https://egly443.github.io/Govviz/data/series/mod-personnel-total.json",
+  "title": "Armed forces personnel",
+  "description": "Total military personnel",
+  "producer": "World Bank (IISS)",
+  "statisticType": "Aggregated international statistic",
+  "measure": "Total military personnel",
+  "unit": "number",
+  "unitMultiplier": 0,
+  "unitLabel": "number",
+  "geography": "K02000001",
+  "geographyLabel": "UK",
+  "periodicity": "P1Y",
+  "validRange": {
+    "min": 50000,
+    "max": 1000000
+  },
+  "suppressionScheme": "https://egly443.github.io/Govviz/data/suppression/v1",
+  "revisionStatus": "final",
+  "licence": "https://creativecommons.org/licenses/by/4.0/",
+  "provenance": {
+    "source": "World Bank (IISS)",
+    "methodology": "https://data.worldbank.org/indicator/MS.MIL.TOTL.P1?locations=GB",
+    "derivation": "Direct from source; latest value validated against validRange",
+    "upstreamUrl": "https://api.worldbank.org/v2/country/GBR/indicator/MS.MIL.TOTL.P1?format=json&per_page=20000",
+    "fetchedAt": "2026-07-02",
+    "contentHash": "901006b73e",
+    "sourceBytesHash": "83a23409f331",
+    "compiledBy": "Govviz"
+  },
+  "semanticTags": [
+    "mod",
+    "defence",
+    "people",
+    "procurement",
+    "readiness",
+    "affordability",
+    "annual",
+    "uk",
+    "number"
+  ],
+  "subjectUris": [
+    "https://www.gov.uk/government/organisations/ministry-of-defence",
+    "https://statistics.data.gov.uk/id/statistical-geography/K02000001",
+    "https://data.worldbank.org/indicator/MS.MIL.TOTL.P1?locations=GB"
+  ],
+  "qualityDimensions": {
+    "accuracy": "Not asserted by Govviz; upstream producer methodology remains authoritative.",
+    "completeness": "33 observations emitted in the tidy data file.",
+    "uniqueness": "One observation per period/ref_area key in the emitted tidy table.",
+    "consistency": "Compiled by the same source-specific parser and emitted through one CSVW schema.",
+    "timeliness": "Latest observed period 2020 is older than the expected annual cadence projection 2021-12-31; latest source fetch recorded 2026-07-02.",
+    "validity": "Latest source values passed the published validRange 50000 to 1000000."
+  },
+  "compiler": {
+    "name": "Govviz",
+    "url": "https://egly443.github.io/Govviz",
+    "conformanceVersion": "ai-ready-series-profile-v0.2",
+    "compiledAt": "2026-07-02T16:51:32.895Z",
+    "pipelineCommit": "90aea5d6665231b8497666afb12794279c7826d6",
+    "sourceBytesHash": "83a23409f331"
+  },
+  "upstreamConformance": "not-asserted-by-primary-publisher",
+  "publisherClaim": "not-asserted-by-primary-publisher",
+  "nextRelease": null,
+  "nextReleaseEstimated": false,
+  "expectedCadence": "annual",
+  "latestObservedPeriod": "2020",
+  "latestFetchedAt": "2026-07-02",
+  "estimatedNextPeriod": "2021-12-31",
+  "freshnessStatus": "aged",
+  "freshnessReason": "Latest observed period 2020 is older than the expected annual cadence projection 2021-12-31; latest source fetch recorded 2026-07-02.",
+  "conformanceLevel": "M5-reference-rendering",
+  "limitations": [
+    "Govviz is a downstream compiler, not the primary publisher.",
+    "The primary producer may not publish the same tidy structure, stable id, CSVW metadata, or validation range upstream.",
+    "Freshness metadata is inferred from observed periods and fetch timestamps; it is not an official release calendar.",
+    "The contact and accountability route remains the primary producer's published route, not a Govviz official statistics contact.",
+    "No upstream policy-as-code conformance assertion has been made by the primary producer."
+  ],
+  "latest": "https://egly443.github.io/Govviz/data/series/mod-personnel-total/data.csv",
+  "distribution": [
+    "https://egly443.github.io/Govviz/data/series/mod-personnel-total/data.csv",
+    "https://egly443.github.io/Govviz/data/series/mod-personnel-total/data-5cfa670d263e.csv",
+    "https://egly443.github.io/Govviz/data/series/mod-personnel-total/data.csv-metadata.json",
+    "https://egly443.github.io/Govviz/data/series/mod-personnel-total.json"
+  ],
+  "csvw": "https://egly443.github.io/Govviz/data/series/mod-personnel-total/data.csv-metadata.json",
+  "agent": "https://egly443.github.io/Govviz/data/mcp.json",
+  "basis": null,
+  "caveat": null,
+  "lens": null,
+  "goodDirection": "up",
+  "department": {
+    "code": "mod",
+    "name": "Defence"
+  },
+  "observationCount": 33
+}

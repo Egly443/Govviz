@@ -1,0 +1,2976 @@
+{
+  "built": "2026-07-02",
+  "count": 124,
+  "tags": [
+    "affordability",
+    "air",
+    "annual",
+    "assets",
+    "attainment",
+    "backlog",
+    "beds",
+    "business & trade",
+    "cabinet office",
+    "cabinet-office",
+    "capacity",
+    "capital",
+    "climate",
+    "commitment",
+    "compliance",
+    "connectivity",
+    "cost",
+    "cost of living",
+    "courts backlog",
+    "creative economy",
+    "culture, media & sport",
+    "days",
+    "dbt",
+    "dcms",
+    "debt",
+    "defence",
+    "defra",
+    "delivery",
+    "desnz",
+    "development",
+    "dfe",
+    "dft",
+    "dhsc",
+    "dsit",
+    "dwp",
+    "education",
+    "emissions",
+    "energy bills",
+    "energy security & net zero",
+    "england",
+    "england & wales",
+    "environment",
+    "environment, food & rural affairs",
+    "experience",
+    "exports",
+    "fcdo",
+    "foreign, commonwealth & development office",
+    "funding",
+    "gbp",
+    "gbp per day",
+    "gbp per year",
+    "health",
+    "health & social care",
+    "hm revenue & customs",
+    "hmrc",
+    "home affairs",
+    "home office",
+    "home-office",
+    "homelessness",
+    "hours",
+    "housing",
+    "housing supply",
+    "housing, communities & local government",
+    "index",
+    "infrastructure",
+    "innovation",
+    "integrity",
+    "investment",
+    "justice",
+    "living standards",
+    "mhclg",
+    "migration",
+    "minutes",
+    "mod",
+    "moj",
+    "monthly",
+    "nhs performance",
+    "number",
+    "participation",
+    "people",
+    "percent",
+    "persons",
+    "pipeline",
+    "process",
+    "procurement",
+    "productivity",
+    "public finance",
+    "public service backlog",
+    "quarterly",
+    "ratio",
+    "readiness",
+    "reliability",
+    "renewables",
+    "research",
+    "schools",
+    "science, innovation & technology",
+    "service",
+    "service standard",
+    "sewage",
+    "speed",
+    "supply",
+    "talent",
+    "tax",
+    "throughput",
+    "tourism",
+    "transparency",
+    "transport",
+    "treasury",
+    "uk",
+    "uk vs germany & france",
+    "urgent care",
+    "usd",
+    "value for money",
+    "waiting list",
+    "waiting lists",
+    "waste",
+    "water",
+    "work & pensions",
+    "workforce",
+    "years"
+  ],
+  "series": [
+    {
+      "id": "waiting-list",
+      "record": "https://egly443.github.io/Govviz/data/series/waiting-list.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/waiting-list/data.csv",
+      "title": "Elective care waiting list",
+      "department": "dhsc",
+      "tags": [
+        "dhsc",
+        "health & social care",
+        "waiting list",
+        "urgent care",
+        "workforce",
+        "capital",
+        "experience",
+        "monthly",
+        "england",
+        "persons",
+        "health",
+        "waiting lists",
+        "nhs performance"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-of-health-and-social-care",
+        "https://statistics.data.gov.uk/id/statistical-geography/E92000001",
+        "https://www.england.nhs.uk/statistics/statistical-work-areas/rtt-waiting-times/"
+      ]
+    },
+    {
+      "id": "rtt-18-week",
+      "record": "https://egly443.github.io/Govviz/data/series/rtt-18-week.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/rtt-18-week/data.csv",
+      "title": "18-week treatment target compliance",
+      "department": "dhsc",
+      "tags": [
+        "dhsc",
+        "health & social care",
+        "waiting list",
+        "urgent care",
+        "workforce",
+        "capital",
+        "experience",
+        "monthly",
+        "england",
+        "percent",
+        "health",
+        "waiting lists",
+        "nhs performance"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-of-health-and-social-care",
+        "https://statistics.data.gov.uk/id/statistical-geography/E92000001",
+        "https://www.england.nhs.uk/statistics/statistical-work-areas/rtt-waiting-times/"
+      ]
+    },
+    {
+      "id": "dhsc-ambulance-c2",
+      "record": "https://egly443.github.io/Govviz/data/series/dhsc-ambulance-c2.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dhsc-ambulance-c2/data.csv",
+      "title": "Ambulance response (Category 2)",
+      "department": "dhsc",
+      "tags": [
+        "dhsc",
+        "health & social care",
+        "waiting list",
+        "urgent care",
+        "workforce",
+        "capital",
+        "experience",
+        "monthly",
+        "england",
+        "minutes",
+        "health",
+        "waiting lists",
+        "nhs performance"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-of-health-and-social-care",
+        "https://statistics.data.gov.uk/id/statistical-geography/E92000001",
+        "https://www.england.nhs.uk/statistics/statistical-work-areas/ambulance-quality-indicators/"
+      ]
+    },
+    {
+      "id": "discharge-delays",
+      "record": "https://egly443.github.io/Govviz/data/series/discharge-delays.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/discharge-delays/data.csv",
+      "title": "Hospital discharge bottleneck",
+      "department": "dhsc",
+      "tags": [
+        "dhsc",
+        "health & social care",
+        "waiting list",
+        "urgent care",
+        "workforce",
+        "capital",
+        "monthly",
+        "england",
+        "beds",
+        "health",
+        "waiting lists",
+        "nhs performance"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-of-health-and-social-care",
+        "https://statistics.data.gov.uk/id/statistical-geography/E92000001",
+        "https://www.england.nhs.uk/statistics/statistical-work-areas/discharge-delays-acute-data/"
+      ]
+    },
+    {
+      "id": "agency-spend",
+      "record": "https://egly443.github.io/Govviz/data/series/agency-spend.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/agency-spend/data.csv",
+      "title": "NHS temporary agency staff spend",
+      "department": "dhsc",
+      "tags": [
+        "dhsc",
+        "health & social care",
+        "waiting list",
+        "urgent care",
+        "workforce",
+        "capital",
+        "process",
+        "monthly",
+        "england",
+        "gbp",
+        "energy bills",
+        "cost of living",
+        "productivity",
+        "public finance"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-of-health-and-social-care",
+        "https://statistics.data.gov.uk/id/statistical-geography/E92000001",
+        "https://www.nao.org.uk/reports/nhs-financial-management-and-sustainability/"
+      ]
+    },
+    {
+      "id": "capital-overrun",
+      "record": "https://egly443.github.io/Govviz/data/series/capital-overrun.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/capital-overrun/data.csv",
+      "title": "Capital programme cost overrun",
+      "department": "dhsc",
+      "tags": [
+        "dhsc",
+        "health & social care",
+        "waiting list",
+        "urgent care",
+        "workforce",
+        "capital",
+        "process",
+        "annual",
+        "percent"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-of-health-and-social-care",
+        "https://www.gov.uk/government/collections/ipa-annual-report-on-major-projects"
+      ]
+    },
+    {
+      "id": "dhsc-spend-per-life-year",
+      "record": "https://egly443.github.io/Govviz/data/series/dhsc-spend-per-life-year.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dhsc-spend-per-life-year/data.csv",
+      "title": "Health spend per year of life",
+      "department": "dhsc",
+      "tags": [
+        "dhsc",
+        "health & social care",
+        "waiting list",
+        "urgent care",
+        "workforce",
+        "capital",
+        "annual",
+        "usd",
+        "health",
+        "waiting lists",
+        "nhs performance",
+        "productivity",
+        "public finance"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-of-health-and-social-care",
+        "https://data.worldbank.org/indicator/SH.XPD.CHEX.PC.CD?locations=GB"
+      ]
+    },
+    {
+      "id": "dhsc-gp-access",
+      "record": "https://egly443.github.io/Govviz/data/series/dhsc-gp-access.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dhsc-gp-access/data.csv",
+      "title": "GP appointment access",
+      "department": "dhsc",
+      "tags": [
+        "dhsc",
+        "health & social care",
+        "waiting list",
+        "urgent care",
+        "workforce",
+        "capital",
+        "annual",
+        "percent"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-of-health-and-social-care",
+        "https://www.england.nhs.uk/statistics/statistical-work-areas/gp-patient-survey/"
+      ]
+    },
+    {
+      "id": "ae-performance",
+      "record": "https://egly443.github.io/Govviz/data/series/ae-performance.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/ae-performance/data.csv",
+      "title": "A&E 4-hour standard",
+      "department": "dhsc",
+      "tags": [
+        "dhsc",
+        "health & social care",
+        "waiting list",
+        "urgent care",
+        "workforce",
+        "capital",
+        "experience",
+        "monthly",
+        "england",
+        "percent",
+        "health",
+        "waiting lists",
+        "nhs performance"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-of-health-and-social-care",
+        "https://statistics.data.gov.uk/id/statistical-geography/E92000001",
+        "https://www.england.nhs.uk/statistics/statistical-work-areas/ae-waiting-times-and-activity/"
+      ]
+    },
+    {
+      "id": "dhsc-clinical-per-1000",
+      "record": "https://egly443.github.io/Govviz/data/series/dhsc-clinical-per-1000.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dhsc-clinical-per-1000/data.csv",
+      "title": "Clinical workforce per 1,000 people",
+      "department": "dhsc",
+      "tags": [
+        "dhsc",
+        "health & social care",
+        "waiting list",
+        "urgent care",
+        "workforce",
+        "capital",
+        "annual",
+        "number",
+        "health",
+        "waiting lists",
+        "nhs performance"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-of-health-and-social-care",
+        "https://data.worldbank.org/indicator/SH.MED.PHYS.ZS?locations=GB"
+      ]
+    },
+    {
+      "id": "dhsc-beds-per-1000",
+      "record": "https://egly443.github.io/Govviz/data/series/dhsc-beds-per-1000.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dhsc-beds-per-1000/data.csv",
+      "title": "Hospital beds per 1,000 people",
+      "department": "dhsc",
+      "tags": [
+        "dhsc",
+        "health & social care",
+        "waiting list",
+        "urgent care",
+        "workforce",
+        "capital",
+        "annual",
+        "number",
+        "health",
+        "waiting lists",
+        "nhs performance"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-of-health-and-social-care",
+        "https://data.worldbank.org/indicator/SH.MED.BEDS.ZS?locations=GB"
+      ]
+    },
+    {
+      "id": "dhsc-health-spend-gdp",
+      "record": "https://egly443.github.io/Govviz/data/series/dhsc-health-spend-gdp.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dhsc-health-spend-gdp/data.csv",
+      "title": "Health spending (% of GDP)",
+      "department": "dhsc",
+      "tags": [
+        "dhsc",
+        "health & social care",
+        "waiting list",
+        "urgent care",
+        "workforce",
+        "capital",
+        "annual",
+        "percent",
+        "housing",
+        "housing supply",
+        "homelessness",
+        "productivity",
+        "public finance"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-of-health-and-social-care",
+        "https://data.worldbank.org/indicator/SH.XPD.CHEX.GD.ZS?locations=GB"
+      ]
+    },
+    {
+      "id": "dhsc-health-spend-pc",
+      "record": "https://egly443.github.io/Govviz/data/series/dhsc-health-spend-pc.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dhsc-health-spend-pc/data.csv",
+      "title": "Health spending per person",
+      "department": "dhsc",
+      "tags": [
+        "dhsc",
+        "health & social care",
+        "waiting list",
+        "urgent care",
+        "workforce",
+        "capital",
+        "annual",
+        "uk vs germany & france",
+        "usd",
+        "housing",
+        "housing supply",
+        "homelessness",
+        "productivity",
+        "public finance"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-of-health-and-social-care",
+        "https://statistics.data.gov.uk/id/statistical-geography/K02000001",
+        "https://data.worldbank.org/indicator/SH.XPD.CHEX.PC.CD?locations=GB"
+      ]
+    },
+    {
+      "id": "dhsc-infant-mortality",
+      "record": "https://egly443.github.io/Govviz/data/series/dhsc-infant-mortality.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dhsc-infant-mortality/data.csv",
+      "title": "Infant mortality",
+      "department": "dhsc",
+      "tags": [
+        "dhsc",
+        "health & social care",
+        "waiting list",
+        "urgent care",
+        "workforce",
+        "capital",
+        "annual",
+        "number",
+        "health",
+        "waiting lists",
+        "nhs performance"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-of-health-and-social-care",
+        "https://data.worldbank.org/indicator/SP.DYN.IMRT.IN?locations=GB"
+      ]
+    },
+    {
+      "id": "dhsc-suicide",
+      "record": "https://egly443.github.io/Govviz/data/series/dhsc-suicide.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dhsc-suicide/data.csv",
+      "title": "Suicide rate",
+      "department": "dhsc",
+      "tags": [
+        "dhsc",
+        "health & social care",
+        "waiting list",
+        "urgent care",
+        "workforce",
+        "capital",
+        "annual",
+        "uk",
+        "number"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-of-health-and-social-care",
+        "https://statistics.data.gov.uk/id/statistical-geography/K02000001",
+        "https://data.worldbank.org/indicator/SH.STA.SUIC.P5?locations=GB"
+      ]
+    },
+    {
+      "id": "dhsc-measles-imm",
+      "record": "https://egly443.github.io/Govviz/data/series/dhsc-measles-imm.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dhsc-measles-imm/data.csv",
+      "title": "Measles immunisation",
+      "department": "dhsc",
+      "tags": [
+        "dhsc",
+        "health & social care",
+        "waiting list",
+        "urgent care",
+        "workforce",
+        "capital",
+        "annual",
+        "uk",
+        "number"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-of-health-and-social-care",
+        "https://statistics.data.gov.uk/id/statistical-geography/K02000001",
+        "https://data.worldbank.org/indicator/SH.IMM.MEAS?locations=GB"
+      ]
+    },
+    {
+      "id": "dhsc-oop",
+      "record": "https://egly443.github.io/Govviz/data/series/dhsc-oop.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dhsc-oop/data.csv",
+      "title": "Out-of-pocket health costs",
+      "department": "dhsc",
+      "tags": [
+        "dhsc",
+        "health & social care",
+        "waiting list",
+        "urgent care",
+        "workforce",
+        "capital",
+        "annual",
+        "uk",
+        "percent",
+        "productivity",
+        "public finance"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-of-health-and-social-care",
+        "https://statistics.data.gov.uk/id/statistical-geography/K02000001",
+        "https://data.worldbank.org/indicator/SH.XPD.OOPC.CH.ZS?locations=GB"
+      ]
+    },
+    {
+      "id": "turnover",
+      "record": "https://egly443.github.io/Govviz/data/series/turnover.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/turnover/data.csv",
+      "title": "Civil service & NHS workforce turnover",
+      "department": "dhsc",
+      "tags": [
+        "dhsc",
+        "health & social care",
+        "waiting list",
+        "urgent care",
+        "workforce",
+        "capital",
+        "monthly",
+        "percent"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-of-health-and-social-care",
+        "https://digital.nhs.uk/data-and-information/publications/statistical/nhs-workforce-statistics"
+      ]
+    },
+    {
+      "id": "vacancy",
+      "record": "https://egly443.github.io/Govviz/data/series/vacancy.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/vacancy/data.csv",
+      "title": "Health & social care vacancy rate",
+      "department": "dhsc",
+      "tags": [
+        "dhsc",
+        "health & social care",
+        "waiting list",
+        "urgent care",
+        "workforce",
+        "capital",
+        "monthly",
+        "percent"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-of-health-and-social-care",
+        "https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/employmentandemployeetypes/timeseries/jpb9/lms"
+      ]
+    },
+    {
+      "id": "life-expectancy",
+      "record": "https://egly443.github.io/Govviz/data/series/life-expectancy.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/life-expectancy/data.csv",
+      "title": "Life expectancy at birth",
+      "department": "dhsc",
+      "tags": [
+        "dhsc",
+        "health & social care",
+        "waiting list",
+        "urgent care",
+        "workforce",
+        "capital",
+        "experience",
+        "annual",
+        "years",
+        "health",
+        "waiting lists",
+        "nhs performance"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-of-health-and-social-care",
+        "https://www.ons.gov.uk/peoplepopulationandcommunity/birthsdeathsandmarriages/lifeexpectancies"
+      ]
+    },
+    {
+      "id": "dfe-attainment-gap",
+      "record": "https://egly443.github.io/Govviz/data/series/dfe-attainment-gap.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dfe-attainment-gap/data.csv",
+      "title": "Disadvantaged attainment gap",
+      "department": "dfe",
+      "tags": [
+        "dfe",
+        "education",
+        "attainment",
+        "workforce",
+        "funding",
+        "pipeline",
+        "annual",
+        "england",
+        "index",
+        "schools"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-education",
+        "https://statistics.data.gov.uk/id/statistical-geography/E92000001",
+        "https://explore-education-statistics.service.gov.uk/find-statistics/key-stage-4-performance"
+      ]
+    },
+    {
+      "id": "dfe-persistent-absence",
+      "record": "https://egly443.github.io/Govviz/data/series/dfe-persistent-absence.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dfe-persistent-absence/data.csv",
+      "title": "Persistent absence from school",
+      "department": "dfe",
+      "tags": [
+        "dfe",
+        "education",
+        "attainment",
+        "workforce",
+        "funding",
+        "pipeline",
+        "annual",
+        "percent",
+        "schools"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-education",
+        "https://explore-education-statistics.service.gov.uk/find-statistics/pupil-absence-in-schools-in-england"
+      ]
+    },
+    {
+      "id": "dfe-ect-attrition",
+      "record": "https://egly443.github.io/Govviz/data/series/dfe-ect-attrition.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dfe-ect-attrition/data.csv",
+      "title": "Early-career teacher attrition",
+      "department": "dfe",
+      "tags": [
+        "dfe",
+        "education",
+        "attainment",
+        "workforce",
+        "funding",
+        "pipeline",
+        "annual",
+        "percent",
+        "schools"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-education",
+        "https://explore-education-statistics.service.gov.uk/find-statistics/school-workforce-in-england"
+      ]
+    },
+    {
+      "id": "dfe-dsg-deficit",
+      "record": "https://egly443.github.io/Govviz/data/series/dfe-dsg-deficit.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dfe-dsg-deficit/data.csv",
+      "title": "Local Authority DSG deficits",
+      "department": "dfe",
+      "tags": [
+        "dfe",
+        "education",
+        "attainment",
+        "workforce",
+        "funding",
+        "pipeline",
+        "annual",
+        "gbp",
+        "schools",
+        "energy bills",
+        "cost of living"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-education",
+        "https://www.local.gov.uk/topics/children-and-young-people/dedicated-schools-grant-deficits"
+      ]
+    },
+    {
+      "id": "dfe-teacher-recruitment",
+      "record": "https://egly443.github.io/Govviz/data/series/dfe-teacher-recruitment.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dfe-teacher-recruitment/data.csv",
+      "title": "Teacher training recruitment",
+      "department": "dfe",
+      "tags": [
+        "dfe",
+        "education",
+        "attainment",
+        "workforce",
+        "funding",
+        "pipeline",
+        "annual",
+        "england",
+        "percent",
+        "schools",
+        "transport",
+        "infrastructure"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-education",
+        "https://statistics.data.gov.uk/id/statistical-geography/E92000001",
+        "https://explore-education-statistics.service.gov.uk/find-statistics/initial-teacher-training-census"
+      ]
+    },
+    {
+      "id": "dfe-spend-per-pupil",
+      "record": "https://egly443.github.io/Govviz/data/series/dfe-spend-per-pupil.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dfe-spend-per-pupil/data.csv",
+      "title": "Spending per primary pupil",
+      "department": "dfe",
+      "tags": [
+        "dfe",
+        "education",
+        "attainment",
+        "workforce",
+        "funding",
+        "pipeline",
+        "annual",
+        "uk vs germany & france",
+        "number",
+        "schools",
+        "productivity",
+        "public finance"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-education",
+        "https://statistics.data.gov.uk/id/statistical-geography/K02000001",
+        "https://data.worldbank.org/indicator/SE.XPD.PRIM.PC.ZS?locations=GB"
+      ]
+    },
+    {
+      "id": "dfe-edu-spend-gdp",
+      "record": "https://egly443.github.io/Govviz/data/series/dfe-edu-spend-gdp.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dfe-edu-spend-gdp/data.csv",
+      "title": "Education spending (% of GDP)",
+      "department": "dfe",
+      "tags": [
+        "dfe",
+        "education",
+        "attainment",
+        "workforce",
+        "funding",
+        "pipeline",
+        "annual",
+        "percent",
+        "schools",
+        "productivity",
+        "public finance"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-education",
+        "https://data.worldbank.org/indicator/SE.XPD.TOTL.GD.ZS?locations=GB"
+      ]
+    },
+    {
+      "id": "dfe-pupil-teacher",
+      "record": "https://egly443.github.io/Govviz/data/series/dfe-pupil-teacher.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dfe-pupil-teacher/data.csv",
+      "title": "Pupil–teacher ratio (primary)",
+      "department": "dfe",
+      "tags": [
+        "dfe",
+        "education",
+        "attainment",
+        "workforce",
+        "funding",
+        "pipeline",
+        "annual",
+        "number",
+        "schools"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-education",
+        "https://data.worldbank.org/indicator/SE.PRM.ENRL.TC.ZS?locations=GB"
+      ]
+    },
+    {
+      "id": "dfe-tertiary-enrol",
+      "record": "https://egly443.github.io/Govviz/data/series/dfe-tertiary-enrol.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dfe-tertiary-enrol/data.csv",
+      "title": "University participation",
+      "department": "dfe",
+      "tags": [
+        "dfe",
+        "education",
+        "attainment",
+        "workforce",
+        "funding",
+        "pipeline",
+        "annual",
+        "uk",
+        "number"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-education",
+        "https://statistics.data.gov.uk/id/statistical-geography/K02000001",
+        "https://data.worldbank.org/indicator/SE.TER.ENRR?locations=GB"
+      ]
+    },
+    {
+      "id": "ho-asylum-backlog",
+      "record": "https://egly443.github.io/Govviz/data/series/ho-asylum-backlog.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/ho-asylum-backlog/data.csv",
+      "title": "Pending asylum seekers",
+      "department": "home-office",
+      "tags": [
+        "home-office",
+        "home office",
+        "throughput",
+        "workforce",
+        "value for money",
+        "service standard",
+        "annual",
+        "number",
+        "migration",
+        "home affairs",
+        "public service backlog"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/home-office",
+        "https://www.unhcr.org/refugee-statistics"
+      ]
+    },
+    {
+      "id": "ho-net-migration",
+      "record": "https://egly443.github.io/Govviz/data/series/ho-net-migration.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/ho-net-migration/data.csv",
+      "title": "Net migration",
+      "department": "home-office",
+      "tags": [
+        "home-office",
+        "home office",
+        "throughput",
+        "workforce",
+        "value for money",
+        "service standard",
+        "annual",
+        "number",
+        "migration",
+        "home affairs",
+        "public service backlog"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/home-office",
+        "https://www.ons.gov.uk/peoplepopulationandcommunity/populationandmigration/internationalmigration"
+      ]
+    },
+    {
+      "id": "ho-charge-rate",
+      "record": "https://egly443.github.io/Govviz/data/series/ho-charge-rate.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/ho-charge-rate/data.csv",
+      "title": "Crimes resulting in a charge",
+      "department": "home-office",
+      "tags": [
+        "home-office",
+        "home office",
+        "throughput",
+        "workforce",
+        "value for money",
+        "service standard",
+        "annual",
+        "percent"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/home-office",
+        "https://www.gov.uk/government/statistical-data-sets/police-recorded-crime-and-outcomes-open-data-tables"
+      ]
+    },
+    {
+      "id": "ho-shoplifting",
+      "record": "https://egly443.github.io/Govviz/data/series/ho-shoplifting.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/ho-shoplifting/data.csv",
+      "title": "Shoplifting offences",
+      "department": "home-office",
+      "tags": [
+        "home-office",
+        "home office",
+        "throughput",
+        "workforce",
+        "value for money",
+        "service standard",
+        "experience",
+        "annual",
+        "number"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/home-office",
+        "https://www.ons.gov.uk/peoplepopulationandcommunity/crimeandjustice/datasets/crimeinenglandandwalesappendixtables"
+      ]
+    },
+    {
+      "id": "ho-caseworker-turnover",
+      "record": "https://egly443.github.io/Govviz/data/series/ho-caseworker-turnover.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/ho-caseworker-turnover/data.csv",
+      "title": "Asylum caseworker turnover",
+      "department": "home-office",
+      "tags": [
+        "home-office",
+        "home office",
+        "throughput",
+        "workforce",
+        "value for money",
+        "service standard",
+        "monthly",
+        "percent",
+        "migration",
+        "home affairs",
+        "public service backlog",
+        "courts backlog",
+        "justice"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/home-office",
+        "https://www.nao.org.uk/reports/asylum-and-protection-transformation-programme/"
+      ]
+    },
+    {
+      "id": "ho-hotel-spend",
+      "record": "https://egly443.github.io/Govviz/data/series/ho-hotel-spend.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/ho-hotel-spend/data.csv",
+      "title": "Asylum hotel contingency spend",
+      "department": "home-office",
+      "tags": [
+        "home-office",
+        "home office",
+        "throughput",
+        "workforce",
+        "value for money",
+        "service standard",
+        "monthly",
+        "gbp per day",
+        "migration",
+        "home affairs",
+        "public service backlog",
+        "productivity",
+        "public finance"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/home-office",
+        "https://www.nao.org.uk/reports/investigation-into-asylum-accommodation/"
+      ]
+    },
+    {
+      "id": "ho-visa-sla",
+      "record": "https://egly443.github.io/Govviz/data/series/ho-visa-sla.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/ho-visa-sla/data.csv",
+      "title": "Visa processing service standard",
+      "department": "home-office",
+      "tags": [
+        "home-office",
+        "home office",
+        "throughput",
+        "workforce",
+        "value for money",
+        "service standard",
+        "monthly",
+        "percent",
+        "migration",
+        "home affairs",
+        "public service backlog"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/home-office",
+        "https://www.gov.uk/government/collections/migration-transparency-data"
+      ]
+    },
+    {
+      "id": "ho-passport-times",
+      "record": "https://egly443.github.io/Govviz/data/series/ho-passport-times.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/ho-passport-times/data.csv",
+      "title": "Passport processing",
+      "department": "home-office",
+      "tags": [
+        "home-office",
+        "home office",
+        "throughput",
+        "workforce",
+        "value for money",
+        "service standard",
+        "quarterly",
+        "percent",
+        "migration",
+        "home affairs",
+        "public service backlog"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/home-office",
+        "https://www.gov.uk/government/organisations/hm-passport-office"
+      ]
+    },
+    {
+      "id": "ho-homicide-rate",
+      "record": "https://egly443.github.io/Govviz/data/series/ho-homicide-rate.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/ho-homicide-rate/data.csv",
+      "title": "Homicide rate",
+      "department": "home-office",
+      "tags": [
+        "home-office",
+        "home office",
+        "throughput",
+        "workforce",
+        "value for money",
+        "service standard",
+        "annual",
+        "number"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/home-office",
+        "https://data.worldbank.org/indicator/VC.IHR.PSRC.P5?locations=GB"
+      ]
+    },
+    {
+      "id": "ho-migrant-stock",
+      "record": "https://egly443.github.io/Govviz/data/series/ho-migrant-stock.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/ho-migrant-stock/data.csv",
+      "title": "Foreign-born population",
+      "department": "home-office",
+      "tags": [
+        "home-office",
+        "home office",
+        "throughput",
+        "workforce",
+        "value for money",
+        "service standard",
+        "annual",
+        "uk",
+        "percent"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/home-office",
+        "https://statistics.data.gov.uk/id/statistical-geography/K02000001",
+        "https://data.worldbank.org/indicator/SM.POP.TOTL.ZS?locations=GB"
+      ]
+    },
+    {
+      "id": "moj-crown-backlog",
+      "record": "https://egly443.github.io/Govviz/data/series/moj-crown-backlog.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/moj-crown-backlog/data.csv",
+      "title": "Crown Court outstanding caseload",
+      "department": "moj",
+      "tags": [
+        "moj",
+        "justice",
+        "backlog",
+        "cost",
+        "workforce",
+        "speed",
+        "monthly",
+        "number",
+        "health",
+        "waiting lists",
+        "nhs performance",
+        "courts backlog"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/ministry-of-justice",
+        "https://www.gov.uk/government/collections/criminal-court-statistics"
+      ]
+    },
+    {
+      "id": "moj-officer-resignations",
+      "record": "https://egly443.github.io/Govviz/data/series/moj-officer-resignations.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/moj-officer-resignations/data.csv",
+      "title": "Prison officer resignation rate",
+      "department": "moj",
+      "tags": [
+        "moj",
+        "justice",
+        "backlog",
+        "cost",
+        "workforce",
+        "speed",
+        "monthly",
+        "percent",
+        "courts backlog"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/ministry-of-justice",
+        "https://www.gov.uk/government/collections/her-majestys-prison-and-probation-service-workforce-quarterly"
+      ]
+    },
+    {
+      "id": "moj-cost-per-prisoner",
+      "record": "https://egly443.github.io/Govviz/data/series/moj-cost-per-prisoner.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/moj-cost-per-prisoner/data.csv",
+      "title": "Average cost per prisoner",
+      "department": "moj",
+      "tags": [
+        "moj",
+        "justice",
+        "backlog",
+        "cost",
+        "workforce",
+        "speed",
+        "annual",
+        "england & wales",
+        "gbp per year",
+        "courts backlog"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/ministry-of-justice",
+        "https://statistics.data.gov.uk/id/statistical-geography/K04000001",
+        "https://www.gov.uk/government/collections/her-majestys-prison-service-annual-report-and-accounts"
+      ]
+    },
+    {
+      "id": "moj-completion-days",
+      "record": "https://egly443.github.io/Govviz/data/series/moj-completion-days.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/moj-completion-days/data.csv",
+      "title": "Crown Court case completion time",
+      "department": "moj",
+      "tags": [
+        "moj",
+        "justice",
+        "backlog",
+        "cost",
+        "workforce",
+        "speed",
+        "quarterly",
+        "days",
+        "courts backlog"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/ministry-of-justice",
+        "https://www.gov.uk/government/collections/criminal-court-statistics"
+      ]
+    },
+    {
+      "id": "mod-personnel-shortfall",
+      "record": "https://egly443.github.io/Govviz/data/series/mod-personnel-shortfall.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/mod-personnel-shortfall/data.csv",
+      "title": "Trained personnel shortfall",
+      "department": "mod",
+      "tags": [
+        "mod",
+        "defence",
+        "people",
+        "procurement",
+        "readiness",
+        "affordability",
+        "quarterly",
+        "percent",
+        "transport",
+        "infrastructure"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/ministry-of-defence",
+        "https://www.gov.uk/government/collections/uk-armed-forces-monthly-service-personnel-statistics-index"
+      ]
+    },
+    {
+      "id": "mod-voluntary-outflow",
+      "record": "https://egly443.github.io/Govviz/data/series/mod-voluntary-outflow.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/mod-voluntary-outflow/data.csv",
+      "title": "Critical trades voluntary outflow",
+      "department": "mod",
+      "tags": [
+        "mod",
+        "defence",
+        "people",
+        "procurement",
+        "readiness",
+        "affordability",
+        "quarterly",
+        "percent"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/ministry-of-defence",
+        "https://www.gov.uk/government/collections/uk-armed-forces-quarterly-service-personnel-statistics-index"
+      ]
+    },
+    {
+      "id": "mod-procurement",
+      "record": "https://egly443.github.io/Govviz/data/series/mod-procurement.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/mod-procurement/data.csv",
+      "title": "MoD major projects delivery confidence",
+      "department": "mod",
+      "tags": [
+        "mod",
+        "defence",
+        "people",
+        "procurement",
+        "readiness",
+        "affordability",
+        "process",
+        "annual",
+        "percent"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/ministry-of-defence",
+        "https://www.gov.uk/government/collections/major-projects-data"
+      ]
+    },
+    {
+      "id": "mod-readiness",
+      "record": "https://egly443.github.io/Govviz/data/series/mod-readiness.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/mod-readiness/data.csv",
+      "title": "Force readiness index",
+      "department": "mod",
+      "tags": [
+        "mod",
+        "defence",
+        "people",
+        "procurement",
+        "readiness",
+        "affordability",
+        "annual",
+        "index"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/ministry-of-defence",
+        "https://www.nao.org.uk/reports/the-equipment-plan-2023-2033/"
+      ]
+    },
+    {
+      "id": "mod-defence-spend-gdp",
+      "record": "https://egly443.github.io/Govviz/data/series/mod-defence-spend-gdp.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/mod-defence-spend-gdp/data.csv",
+      "title": "Defence spending (% of GDP)",
+      "department": "mod",
+      "tags": [
+        "mod",
+        "defence",
+        "people",
+        "procurement",
+        "readiness",
+        "affordability",
+        "annual",
+        "percent",
+        "productivity",
+        "public finance"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/ministry-of-defence",
+        "https://data.worldbank.org/indicator/MS.MIL.XPND.GD.ZS?locations=GB"
+      ]
+    },
+    {
+      "id": "mod-personnel-total",
+      "record": "https://egly443.github.io/Govviz/data/series/mod-personnel-total.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/mod-personnel-total/data.csv",
+      "title": "Armed forces personnel",
+      "department": "mod",
+      "tags": [
+        "mod",
+        "defence",
+        "people",
+        "procurement",
+        "readiness",
+        "affordability",
+        "annual",
+        "uk",
+        "number"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/ministry-of-defence",
+        "https://statistics.data.gov.uk/id/statistical-geography/K02000001",
+        "https://data.worldbank.org/indicator/MS.MIL.TOTL.P1?locations=GB"
+      ]
+    },
+    {
+      "id": "dwp-pip-clearance",
+      "record": "https://egly443.github.io/Govviz/data/series/dwp-pip-clearance.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dwp-pip-clearance/data.csv",
+      "title": "PIP end-to-end clearance time",
+      "department": "dwp",
+      "tags": [
+        "dwp",
+        "work & pensions",
+        "speed",
+        "capacity",
+        "integrity",
+        "backlog",
+        "quarterly",
+        "days"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-work-pensions",
+        "https://www.gov.uk/government/collections/personal-independence-payment-statistics"
+      ]
+    },
+    {
+      "id": "dwp-work-coach-ratio",
+      "record": "https://egly443.github.io/Govviz/data/series/dwp-work-coach-ratio.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dwp-work-coach-ratio/data.csv",
+      "title": "Work coach caseload ratio",
+      "department": "dwp",
+      "tags": [
+        "dwp",
+        "work & pensions",
+        "speed",
+        "capacity",
+        "integrity",
+        "backlog",
+        "quarterly",
+        "number",
+        "courts backlog",
+        "justice"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-work-pensions",
+        "https://www.nao.org.uk/reports/dwp-work-coaches/"
+      ]
+    },
+    {
+      "id": "dwp-fraud-error",
+      "record": "https://egly443.github.io/Govviz/data/series/dwp-fraud-error.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dwp-fraud-error/data.csv",
+      "title": "Fraud & error in benefit spend",
+      "department": "dwp",
+      "tags": [
+        "dwp",
+        "work & pensions",
+        "speed",
+        "capacity",
+        "integrity",
+        "backlog",
+        "annual",
+        "percent",
+        "productivity",
+        "public finance"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-work-pensions",
+        "https://www.gov.uk/government/collections/fraud-and-error-in-the-benefit-system"
+      ]
+    },
+    {
+      "id": "dwp-uc-mr",
+      "record": "https://egly443.github.io/Govviz/data/series/dwp-uc-mr.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dwp-uc-mr/data.csv",
+      "title": "Outstanding UC mandatory reconsiderations",
+      "department": "dwp",
+      "tags": [
+        "dwp",
+        "work & pensions",
+        "speed",
+        "capacity",
+        "integrity",
+        "backlog",
+        "monthly",
+        "number",
+        "health",
+        "waiting lists",
+        "nhs performance",
+        "courts backlog",
+        "justice"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-work-pensions",
+        "https://www.gov.uk/government/collections/mandatory-reconsiderations"
+      ]
+    },
+    {
+      "id": "dwp-pop-65",
+      "record": "https://egly443.github.io/Govviz/data/series/dwp-pop-65.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dwp-pop-65/data.csv",
+      "title": "Population aged 65+",
+      "department": "dwp",
+      "tags": [
+        "dwp",
+        "work & pensions",
+        "speed",
+        "capacity",
+        "integrity",
+        "backlog",
+        "annual",
+        "percent"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-work-pensions",
+        "https://data.worldbank.org/indicator/SP.POP.65UP.TO.ZS?locations=GB"
+      ]
+    },
+    {
+      "id": "dwp-oldage-dependency",
+      "record": "https://egly443.github.io/Govviz/data/series/dwp-oldage-dependency.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dwp-oldage-dependency/data.csv",
+      "title": "Old-age dependency ratio",
+      "department": "dwp",
+      "tags": [
+        "dwp",
+        "work & pensions",
+        "speed",
+        "capacity",
+        "integrity",
+        "backlog",
+        "annual",
+        "uk",
+        "number"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-work-pensions",
+        "https://statistics.data.gov.uk/id/statistical-geography/K02000001",
+        "https://data.worldbank.org/indicator/SP.POP.DPND.OL?locations=GB"
+      ]
+    },
+    {
+      "id": "dwp-female-participation",
+      "record": "https://egly443.github.io/Govviz/data/series/dwp-female-participation.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dwp-female-participation/data.csv",
+      "title": "Female labour participation",
+      "department": "dwp",
+      "tags": [
+        "dwp",
+        "work & pensions",
+        "speed",
+        "capacity",
+        "integrity",
+        "backlog",
+        "annual",
+        "uk",
+        "percent"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-work-pensions",
+        "https://statistics.data.gov.uk/id/statistical-geography/K02000001",
+        "https://data.worldbank.org/indicator/SL.TLF.CACT.FE.ZS?locations=GB"
+      ]
+    },
+    {
+      "id": "dwp-gini",
+      "record": "https://egly443.github.io/Govviz/data/series/dwp-gini.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dwp-gini/data.csv",
+      "title": "Income inequality (Gini)",
+      "department": "dwp",
+      "tags": [
+        "dwp",
+        "work & pensions",
+        "speed",
+        "capacity",
+        "integrity",
+        "backlog",
+        "annual",
+        "uk vs germany & france",
+        "index"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-work-pensions",
+        "https://statistics.data.gov.uk/id/statistical-geography/K02000001",
+        "https://data.worldbank.org/indicator/SI.POV.GINI?locations=GB"
+      ]
+    },
+    {
+      "id": "dwp-youth-unemp",
+      "record": "https://egly443.github.io/Govviz/data/series/dwp-youth-unemp.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dwp-youth-unemp/data.csv",
+      "title": "Youth unemployment",
+      "department": "dwp",
+      "tags": [
+        "dwp",
+        "work & pensions",
+        "speed",
+        "capacity",
+        "integrity",
+        "backlog",
+        "annual",
+        "uk",
+        "percent"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-work-pensions",
+        "https://statistics.data.gov.uk/id/statistical-geography/K02000001",
+        "https://data.worldbank.org/indicator/SL.UEM.1524.ZS?locations=GB"
+      ]
+    },
+    {
+      "id": "dft-rail-cancellations",
+      "record": "https://egly443.github.io/Govviz/data/series/dft-rail-cancellations.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dft-rail-cancellations/data.csv",
+      "title": "Passenger rail cancellation score",
+      "department": "dft",
+      "tags": [
+        "dft",
+        "transport",
+        "reliability",
+        "service",
+        "delivery",
+        "assets",
+        "monthly",
+        "percent",
+        "infrastructure"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-transport",
+        "https://dataportal.orr.gov.uk/statistics/performance/passenger-rail-performance/"
+      ]
+    },
+    {
+      "id": "dft-rail-fares",
+      "record": "https://egly443.github.io/Govviz/data/series/dft-rail-fares.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dft-rail-fares/data.csv",
+      "title": "Rail fares",
+      "department": "dft",
+      "tags": [
+        "dft",
+        "transport",
+        "reliability",
+        "service",
+        "delivery",
+        "assets",
+        "experience",
+        "monthly",
+        "index",
+        "infrastructure"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-transport",
+        "https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/d7ef/mm23"
+      ]
+    },
+    {
+      "id": "dft-local-roads",
+      "record": "https://egly443.github.io/Govviz/data/series/dft-local-roads.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dft-local-roads/data.csv",
+      "title": "Local road condition",
+      "department": "dft",
+      "tags": [
+        "dft",
+        "transport",
+        "reliability",
+        "service",
+        "delivery",
+        "assets",
+        "annual",
+        "percent",
+        "infrastructure"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-transport",
+        "https://www.gov.uk/government/statistical-data-sets/road-condition-statistics-data-tables-rdc"
+      ]
+    },
+    {
+      "id": "dft-dvla-backlog",
+      "record": "https://egly443.github.io/Govviz/data/series/dft-dvla-backlog.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dft-dvla-backlog/data.csv",
+      "title": "DVLA paper application backlog",
+      "department": "dft",
+      "tags": [
+        "dft",
+        "transport",
+        "reliability",
+        "service",
+        "delivery",
+        "assets",
+        "monthly",
+        "number",
+        "infrastructure"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-transport",
+        "https://www.gov.uk/government/organisations/driver-and-vehicle-licensing-agency/about/statistics"
+      ]
+    },
+    {
+      "id": "dft-capital-overrun",
+      "record": "https://egly443.github.io/Govviz/data/series/dft-capital-overrun.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dft-capital-overrun/data.csv",
+      "title": "DfT major projects delivery confidence",
+      "department": "dft",
+      "tags": [
+        "dft",
+        "transport",
+        "reliability",
+        "service",
+        "delivery",
+        "assets",
+        "annual",
+        "percent"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-transport",
+        "https://www.gov.uk/government/collections/major-projects-data"
+      ]
+    },
+    {
+      "id": "dft-srn-degradation",
+      "record": "https://egly443.github.io/Govviz/data/series/dft-srn-degradation.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dft-srn-degradation/data.csv",
+      "title": "Strategic road network condition",
+      "department": "dft",
+      "tags": [
+        "dft",
+        "transport",
+        "reliability",
+        "service",
+        "delivery",
+        "assets",
+        "annual",
+        "percent",
+        "infrastructure"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-transport",
+        "https://www.orr.gov.uk/monitoring-and-regulation/roads-monitoring/annual-assessment-national-highways"
+      ]
+    },
+    {
+      "id": "dft-road-death-rate",
+      "record": "https://egly443.github.io/Govviz/data/series/dft-road-death-rate.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dft-road-death-rate/data.csv",
+      "title": "Road deaths per 100,000",
+      "department": "dft",
+      "tags": [
+        "dft",
+        "transport",
+        "reliability",
+        "service",
+        "delivery",
+        "assets",
+        "annual",
+        "number",
+        "infrastructure"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-transport",
+        "https://data.worldbank.org/indicator/SH.STA.TRAF.P5?locations=GB"
+      ]
+    },
+    {
+      "id": "dft-co2-pc",
+      "record": "https://egly443.github.io/Govviz/data/series/dft-co2-pc.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dft-co2-pc/data.csv",
+      "title": "CO₂ emissions per person",
+      "department": "dft",
+      "tags": [
+        "dft",
+        "transport",
+        "reliability",
+        "service",
+        "delivery",
+        "assets",
+        "annual",
+        "uk vs germany & france",
+        "number",
+        "environment",
+        "sewage",
+        "climate"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-transport",
+        "https://statistics.data.gov.uk/id/statistical-geography/K02000001",
+        "https://data.worldbank.org/indicator/EN.ATM.CO2E.PC?locations=GB"
+      ]
+    },
+    {
+      "id": "hmt-gdp-per-capita",
+      "record": "https://egly443.github.io/Govviz/data/series/hmt-gdp-per-capita.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/hmt-gdp-per-capita/data.csv",
+      "title": "Real GDP per head",
+      "department": "treasury",
+      "tags": [
+        "treasury",
+        "living standards",
+        "debt",
+        "tax",
+        "cost of living",
+        "annual",
+        "uk",
+        "gbp",
+        "productivity",
+        "public finance"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/hm-treasury",
+        "https://statistics.data.gov.uk/id/statistical-geography/K02000001",
+        "https://www.ons.gov.uk/economy/grossdomesticproductgdp"
+      ]
+    },
+    {
+      "id": "hmt-cost-of-living",
+      "record": "https://egly443.github.io/Govviz/data/series/hmt-cost-of-living.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/hmt-cost-of-living/data.csv",
+      "title": "Inflation vs pay growth",
+      "department": "treasury",
+      "tags": [
+        "treasury",
+        "living standards",
+        "debt",
+        "tax",
+        "cost of living",
+        "annual",
+        "percent",
+        "productivity",
+        "public finance"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/hm-treasury",
+        "https://www.ons.gov.uk/economy/inflationandpriceindices"
+      ]
+    },
+    {
+      "id": "hmt-food-prices",
+      "record": "https://egly443.github.io/Govviz/data/series/hmt-food-prices.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/hmt-food-prices/data.csv",
+      "title": "Food prices",
+      "department": "treasury",
+      "tags": [
+        "treasury",
+        "living standards",
+        "debt",
+        "tax",
+        "cost of living",
+        "experience",
+        "monthly",
+        "index"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/hm-treasury",
+        "https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/d7bu/mm23"
+      ]
+    },
+    {
+      "id": "hmt-psnd",
+      "record": "https://egly443.github.io/Govviz/data/series/hmt-psnd.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/hmt-psnd/data.csv",
+      "title": "Public sector net debt",
+      "department": "treasury",
+      "tags": [
+        "treasury",
+        "living standards",
+        "debt",
+        "tax",
+        "cost of living",
+        "annual",
+        "percent",
+        "productivity",
+        "public finance"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/hm-treasury",
+        "https://www.ons.gov.uk/economy/governmentpublicsectorandtaxes/publicsectorfinance"
+      ]
+    },
+    {
+      "id": "hmt-psnd-cash",
+      "record": "https://egly443.github.io/Govviz/data/series/hmt-psnd-cash.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/hmt-psnd-cash/data.csv",
+      "title": "National debt in cash terms",
+      "department": "treasury",
+      "tags": [
+        "treasury",
+        "living standards",
+        "debt",
+        "tax",
+        "cost of living",
+        "annual",
+        "gbp",
+        "productivity",
+        "public finance"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/hm-treasury",
+        "https://www.ons.gov.uk/economy/governmentpublicsectorandtaxes/publicsectorfinance"
+      ]
+    },
+    {
+      "id": "hmt-tax-burden",
+      "record": "https://egly443.github.io/Govviz/data/series/hmt-tax-burden.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/hmt-tax-burden/data.csv",
+      "title": "Total tax take",
+      "department": "treasury",
+      "tags": [
+        "treasury",
+        "living standards",
+        "debt",
+        "tax",
+        "cost of living",
+        "annual",
+        "percent",
+        "productivity",
+        "public finance"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/hm-treasury",
+        "https://data.worldbank.org/indicator/GC.TAX.TOTL.GD.ZS?locations=GB"
+      ]
+    },
+    {
+      "id": "hmt-debt-interest",
+      "record": "https://egly443.github.io/Govviz/data/series/hmt-debt-interest.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/hmt-debt-interest/data.csv",
+      "title": "Debt interest",
+      "department": "treasury",
+      "tags": [
+        "treasury",
+        "living standards",
+        "debt",
+        "tax",
+        "cost of living",
+        "annual",
+        "percent",
+        "productivity",
+        "public finance"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/hm-treasury",
+        "https://data.worldbank.org/indicator/GC.XPN.INTP.RV.ZS?locations=GB"
+      ]
+    },
+    {
+      "id": "hmt-regional-gap",
+      "record": "https://egly443.github.io/Govviz/data/series/hmt-regional-gap.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/hmt-regional-gap/data.csv",
+      "title": "Regional divide",
+      "department": "treasury",
+      "tags": [
+        "treasury",
+        "living standards",
+        "debt",
+        "tax",
+        "cost of living",
+        "annual",
+        "ratio"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/hm-treasury",
+        "https://www.ons.gov.uk/economy/grossvalueaddedgva/datasets/nominalregionalgrossvalueaddedbalancedperheadandincomecomponents"
+      ]
+    },
+    {
+      "id": "hmt-unemployment",
+      "record": "https://egly443.github.io/Govviz/data/series/hmt-unemployment.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/hmt-unemployment/data.csv",
+      "title": "Unemployment rate",
+      "department": "treasury",
+      "tags": [
+        "treasury",
+        "living standards",
+        "debt",
+        "tax",
+        "cost of living",
+        "monthly",
+        "percent"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/hm-treasury",
+        "https://www.ons.gov.uk/employmentandlabourmarket/peoplenotinwork/unemployment"
+      ]
+    },
+    {
+      "id": "hmt-gdp-growth",
+      "record": "https://egly443.github.io/Govviz/data/series/hmt-gdp-growth.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/hmt-gdp-growth/data.csv",
+      "title": "GDP growth",
+      "department": "treasury",
+      "tags": [
+        "treasury",
+        "living standards",
+        "debt",
+        "tax",
+        "cost of living",
+        "annual",
+        "uk",
+        "percent",
+        "productivity",
+        "public finance"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/hm-treasury",
+        "https://statistics.data.gov.uk/id/statistical-geography/K02000001",
+        "https://data.worldbank.org/indicator/NY.GDP.MKTP.KD.ZG?locations=GB"
+      ]
+    },
+    {
+      "id": "hmt-employment-rate",
+      "record": "https://egly443.github.io/Govviz/data/series/hmt-employment-rate.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/hmt-employment-rate/data.csv",
+      "title": "Employment rate",
+      "department": "treasury",
+      "tags": [
+        "treasury",
+        "living standards",
+        "debt",
+        "tax",
+        "cost of living",
+        "annual",
+        "uk",
+        "percent"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/hm-treasury",
+        "https://statistics.data.gov.uk/id/statistical-geography/K02000001",
+        "https://data.worldbank.org/indicator/SL.EMP.TOTL.SP.ZS?locations=GB"
+      ]
+    },
+    {
+      "id": "hmt-participation",
+      "record": "https://egly443.github.io/Govviz/data/series/hmt-participation.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/hmt-participation/data.csv",
+      "title": "Labour force participation",
+      "department": "treasury",
+      "tags": [
+        "treasury",
+        "living standards",
+        "debt",
+        "tax",
+        "cost of living",
+        "annual",
+        "uk",
+        "percent"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/hm-treasury",
+        "https://statistics.data.gov.uk/id/statistical-geography/K02000001",
+        "https://data.worldbank.org/indicator/SL.TLF.CACT.ZS?locations=GB"
+      ]
+    },
+    {
+      "id": "hmt-investment-gdp",
+      "record": "https://egly443.github.io/Govviz/data/series/hmt-investment-gdp.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/hmt-investment-gdp/data.csv",
+      "title": "Investment",
+      "department": "treasury",
+      "tags": [
+        "treasury",
+        "living standards",
+        "debt",
+        "tax",
+        "cost of living",
+        "annual",
+        "uk",
+        "percent",
+        "productivity",
+        "public finance"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/hm-treasury",
+        "https://statistics.data.gov.uk/id/statistical-geography/K02000001",
+        "https://data.worldbank.org/indicator/NE.GDI.TOTL.ZS?locations=GB"
+      ]
+    },
+    {
+      "id": "hmt-trade-gdp",
+      "record": "https://egly443.github.io/Govviz/data/series/hmt-trade-gdp.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/hmt-trade-gdp/data.csv",
+      "title": "Trade openness",
+      "department": "treasury",
+      "tags": [
+        "treasury",
+        "living standards",
+        "debt",
+        "tax",
+        "cost of living",
+        "annual",
+        "uk",
+        "percent",
+        "productivity",
+        "public finance"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/hm-treasury",
+        "https://statistics.data.gov.uk/id/statistical-geography/K02000001",
+        "https://data.worldbank.org/indicator/NE.TRD.GNFS.ZS?locations=GB"
+      ]
+    },
+    {
+      "id": "hmt-savings",
+      "record": "https://egly443.github.io/Govviz/data/series/hmt-savings.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/hmt-savings/data.csv",
+      "title": "Gross savings",
+      "department": "treasury",
+      "tags": [
+        "treasury",
+        "living standards",
+        "debt",
+        "tax",
+        "cost of living",
+        "annual",
+        "uk",
+        "percent",
+        "productivity",
+        "public finance"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/hm-treasury",
+        "https://statistics.data.gov.uk/id/statistical-geography/K02000001",
+        "https://data.worldbank.org/indicator/NY.GNS.ICTR.ZS?locations=GB"
+      ]
+    },
+    {
+      "id": "hmt-current-account",
+      "record": "https://egly443.github.io/Govviz/data/series/hmt-current-account.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/hmt-current-account/data.csv",
+      "title": "Current account balance",
+      "department": "treasury",
+      "tags": [
+        "treasury",
+        "living standards",
+        "debt",
+        "tax",
+        "cost of living",
+        "annual",
+        "uk",
+        "percent",
+        "housing",
+        "housing supply",
+        "homelessness",
+        "productivity",
+        "public finance"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/hm-treasury",
+        "https://statistics.data.gov.uk/id/statistical-geography/K02000001",
+        "https://data.worldbank.org/indicator/BN.CAB.XOKA.GD.ZS?locations=GB"
+      ]
+    },
+    {
+      "id": "hmt-gni-per-capita",
+      "record": "https://egly443.github.io/Govviz/data/series/hmt-gni-per-capita.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/hmt-gni-per-capita/data.csv",
+      "title": "GNI per head (PPP)",
+      "department": "treasury",
+      "tags": [
+        "treasury",
+        "living standards",
+        "debt",
+        "tax",
+        "cost of living",
+        "annual",
+        "uk vs germany & france",
+        "usd"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/hm-treasury",
+        "https://statistics.data.gov.uk/id/statistical-geography/K02000001",
+        "https://data.worldbank.org/indicator/NY.GNP.PCAP.PP.CD?locations=GB"
+      ]
+    },
+    {
+      "id": "hmt-real-income",
+      "record": "https://egly443.github.io/Govviz/data/series/hmt-real-income.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/hmt-real-income/data.csv",
+      "title": "Real household income per head",
+      "department": "treasury",
+      "tags": [
+        "treasury",
+        "living standards",
+        "debt",
+        "tax",
+        "cost of living",
+        "annual",
+        "uk",
+        "gbp"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/hm-treasury",
+        "https://statistics.data.gov.uk/id/statistical-geography/K02000001",
+        "https://www.ons.gov.uk/economy/nationalaccounts"
+      ]
+    },
+    {
+      "id": "hmt-productivity",
+      "record": "https://egly443.github.io/Govviz/data/series/hmt-productivity.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/hmt-productivity/data.csv",
+      "title": "Productivity",
+      "department": "treasury",
+      "tags": [
+        "treasury",
+        "living standards",
+        "debt",
+        "tax",
+        "cost of living",
+        "annual",
+        "index",
+        "productivity",
+        "public finance"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/hm-treasury",
+        "https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/labourproductivity"
+      ]
+    },
+    {
+      "id": "hmt-tax-split",
+      "record": "https://egly443.github.io/Govviz/data/series/hmt-tax-split.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/hmt-tax-split/data.csv",
+      "title": "Direct vs indirect tax",
+      "department": "treasury",
+      "tags": [
+        "treasury",
+        "living standards",
+        "debt",
+        "tax",
+        "cost of living",
+        "annual",
+        "percent",
+        "productivity",
+        "public finance"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/hm-treasury",
+        "https://data.worldbank.org/indicator/GC.TAX.YPKG.RV.ZS?locations=GB"
+      ]
+    },
+    {
+      "id": "hmt-deficit",
+      "record": "https://egly443.github.io/Govviz/data/series/hmt-deficit.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/hmt-deficit/data.csv",
+      "title": "Budget deficit",
+      "department": "treasury",
+      "tags": [
+        "treasury",
+        "living standards",
+        "debt",
+        "tax",
+        "cost of living",
+        "annual",
+        "percent",
+        "productivity",
+        "public finance"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/hm-treasury",
+        "https://www.ons.gov.uk/economy/governmentpublicsectorandtaxes/publicsectorfinance"
+      ]
+    },
+    {
+      "id": "mhclg-temp-accommodation",
+      "record": "https://egly443.github.io/Govviz/data/series/mhclg-temp-accommodation.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/mhclg-temp-accommodation/data.csv",
+      "title": "Households in temporary accommodation",
+      "department": "mhclg",
+      "tags": [
+        "mhclg",
+        "housing, communities & local government",
+        "homelessness",
+        "supply",
+        "affordability",
+        "quarterly",
+        "number",
+        "housing",
+        "housing supply"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/ministry-of-housing-communities-local-government",
+        "https://www.gov.uk/government/statistical-data-sets/live-tables-on-homelessness"
+      ]
+    },
+    {
+      "id": "mhclg-private-rents",
+      "record": "https://egly443.github.io/Govviz/data/series/mhclg-private-rents.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/mhclg-private-rents/data.csv",
+      "title": "Private rents",
+      "department": "mhclg",
+      "tags": [
+        "mhclg",
+        "housing, communities & local government",
+        "homelessness",
+        "supply",
+        "affordability",
+        "experience",
+        "monthly",
+        "index",
+        "housing",
+        "housing supply"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/ministry-of-housing-communities-local-government",
+        "https://www.ons.gov.uk/economy/inflationandpriceindices/datasets/priceindexofprivaterentsukhistoricalseries"
+      ]
+    },
+    {
+      "id": "mhclg-council-tax",
+      "record": "https://egly443.github.io/Govviz/data/series/mhclg-council-tax.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/mhclg-council-tax/data.csv",
+      "title": "Council tax",
+      "department": "mhclg",
+      "tags": [
+        "mhclg",
+        "housing, communities & local government",
+        "homelessness",
+        "supply",
+        "affordability",
+        "experience",
+        "annual",
+        "gbp",
+        "productivity",
+        "public finance"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/ministry-of-housing-communities-local-government",
+        "https://www.gov.uk/government/statistical-data-sets/live-tables-on-council-tax"
+      ]
+    },
+    {
+      "id": "mhclg-rough-sleeping",
+      "record": "https://egly443.github.io/Govviz/data/series/mhclg-rough-sleeping.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/mhclg-rough-sleeping/data.csv",
+      "title": "Rough sleeping",
+      "department": "mhclg",
+      "tags": [
+        "mhclg",
+        "housing, communities & local government",
+        "homelessness",
+        "supply",
+        "affordability",
+        "experience",
+        "annual",
+        "number"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/ministry-of-housing-communities-local-government",
+        "https://www.gov.uk/government/statistical-data-sets/tables-on-rough-sleeping"
+      ]
+    },
+    {
+      "id": "mhclg-net-dwellings",
+      "record": "https://egly443.github.io/Govviz/data/series/mhclg-net-dwellings.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/mhclg-net-dwellings/data.csv",
+      "title": "New homes added",
+      "department": "mhclg",
+      "tags": [
+        "mhclg",
+        "housing, communities & local government",
+        "homelessness",
+        "supply",
+        "affordability",
+        "annual",
+        "number",
+        "housing",
+        "housing supply"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/ministry-of-housing-communities-local-government",
+        "https://www.gov.uk/government/collections/net-supply-of-housing"
+      ]
+    },
+    {
+      "id": "mhclg-affordability",
+      "record": "https://egly443.github.io/Govviz/data/series/mhclg-affordability.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/mhclg-affordability/data.csv",
+      "title": "Housing affordability",
+      "department": "mhclg",
+      "tags": [
+        "mhclg",
+        "housing, communities & local government",
+        "homelessness",
+        "supply",
+        "affordability",
+        "annual",
+        "ratio",
+        "housing",
+        "housing supply"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/ministry-of-housing-communities-local-government",
+        "https://www.ons.gov.uk/peoplepopulationandcommunity/housing/datasets/ratioofhousepricetoworkplacebasedearningslowerquartileandmedian"
+      ]
+    },
+    {
+      "id": "mhclg-social-waitlist",
+      "record": "https://egly443.github.io/Govviz/data/series/mhclg-social-waitlist.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/mhclg-social-waitlist/data.csv",
+      "title": "Social housing waiting list",
+      "department": "mhclg",
+      "tags": [
+        "mhclg",
+        "housing, communities & local government",
+        "homelessness",
+        "supply",
+        "affordability",
+        "annual",
+        "number",
+        "health",
+        "waiting lists",
+        "nhs performance",
+        "housing",
+        "housing supply"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/ministry-of-housing-communities-local-government",
+        "https://www.gov.uk/government/statistical-data-sets/live-tables-on-rents-lettings-and-tenancies"
+      ]
+    },
+    {
+      "id": "defra-recycling",
+      "record": "https://egly443.github.io/Govviz/data/series/defra-recycling.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/defra-recycling/data.csv",
+      "title": "Household recycling rate",
+      "department": "defra",
+      "tags": [
+        "defra",
+        "environment, food & rural affairs",
+        "waste",
+        "air",
+        "water",
+        "annual",
+        "percent"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-environment-food-rural-affairs",
+        "https://www.gov.uk/government/statistics/uk-waste-data"
+      ]
+    },
+    {
+      "id": "defra-pm25",
+      "record": "https://egly443.github.io/Govviz/data/series/defra-pm25.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/defra-pm25/data.csv",
+      "title": "Air pollution (PM2.5)",
+      "department": "defra",
+      "tags": [
+        "defra",
+        "environment, food & rural affairs",
+        "waste",
+        "air",
+        "water",
+        "annual",
+        "uk",
+        "number"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-environment-food-rural-affairs",
+        "https://statistics.data.gov.uk/id/statistical-geography/K02000001",
+        "https://data.worldbank.org/indicator/EN.ATM.PM25.MC.M3?locations=GB"
+      ]
+    },
+    {
+      "id": "defra-forest",
+      "record": "https://egly443.github.io/Govviz/data/series/defra-forest.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/defra-forest/data.csv",
+      "title": "Woodland cover",
+      "department": "defra",
+      "tags": [
+        "defra",
+        "environment, food & rural affairs",
+        "waste",
+        "air",
+        "water",
+        "annual",
+        "uk",
+        "number"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-environment-food-rural-affairs",
+        "https://statistics.data.gov.uk/id/statistical-geography/K02000001",
+        "https://data.worldbank.org/indicator/AG.LND.FRST.ZS?locations=GB"
+      ]
+    },
+    {
+      "id": "defra-bathing-water",
+      "record": "https://egly443.github.io/Govviz/data/series/defra-bathing-water.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/defra-bathing-water/data.csv",
+      "title": "Bathing water quality",
+      "department": "defra",
+      "tags": [
+        "defra",
+        "environment, food & rural affairs",
+        "waste",
+        "air",
+        "water",
+        "annual",
+        "percent",
+        "environment",
+        "sewage",
+        "climate"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-environment-food-rural-affairs",
+        "https://www.gov.uk/government/statistics/bathing-water-quality-statistics"
+      ]
+    },
+    {
+      "id": "defra-sewage-hours",
+      "record": "https://egly443.github.io/Govviz/data/series/defra-sewage-hours.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/defra-sewage-hours/data.csv",
+      "title": "Sewage spill hours",
+      "department": "defra",
+      "tags": [
+        "defra",
+        "environment, food & rural affairs",
+        "waste",
+        "air",
+        "water",
+        "annual",
+        "hours",
+        "environment",
+        "sewage",
+        "climate"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-environment-food-rural-affairs",
+        "https://www.gov.uk/government/statistics/storm-overflow-spill-data"
+      ]
+    },
+    {
+      "id": "desnz-renewables-share",
+      "record": "https://egly443.github.io/Govviz/data/series/desnz-renewables-share.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/desnz-renewables-share/data.csv",
+      "title": "Renewable energy share",
+      "department": "desnz",
+      "tags": [
+        "desnz",
+        "energy security & net zero",
+        "emissions",
+        "renewables",
+        "affordability",
+        "annual",
+        "uk",
+        "percent",
+        "energy bills",
+        "cost of living"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-energy-security-and-net-zero",
+        "https://statistics.data.gov.uk/id/statistical-geography/K02000001",
+        "https://data.worldbank.org/indicator/EG.FEC.RNEW.ZS?locations=GB"
+      ]
+    },
+    {
+      "id": "desnz-ghg-emissions",
+      "record": "https://egly443.github.io/Govviz/data/series/desnz-ghg-emissions.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/desnz-ghg-emissions/data.csv",
+      "title": "Greenhouse gas emissions",
+      "department": "desnz",
+      "tags": [
+        "desnz",
+        "energy security & net zero",
+        "emissions",
+        "renewables",
+        "affordability",
+        "annual",
+        "number",
+        "environment",
+        "sewage",
+        "climate"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-energy-security-and-net-zero",
+        "https://www.gov.uk/government/collections/final-uk-greenhouse-gas-emissions-national-statistics"
+      ]
+    },
+    {
+      "id": "desnz-fuel-poverty",
+      "record": "https://egly443.github.io/Govviz/data/series/desnz-fuel-poverty.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/desnz-fuel-poverty/data.csv",
+      "title": "Households in fuel poverty",
+      "department": "desnz",
+      "tags": [
+        "desnz",
+        "energy security & net zero",
+        "emissions",
+        "renewables",
+        "affordability",
+        "annual",
+        "percent",
+        "energy bills",
+        "cost of living"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-energy-security-and-net-zero",
+        "https://www.gov.uk/government/collections/fuel-poverty-statistics"
+      ]
+    },
+    {
+      "id": "desnz-electricity-price",
+      "record": "https://egly443.github.io/Govviz/data/series/desnz-electricity-price.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/desnz-electricity-price/data.csv",
+      "title": "Domestic electricity price",
+      "department": "desnz",
+      "tags": [
+        "desnz",
+        "energy security & net zero",
+        "emissions",
+        "renewables",
+        "affordability",
+        "quarterly",
+        "number",
+        "energy bills",
+        "cost of living"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-energy-security-and-net-zero",
+        "https://www.gov.uk/government/collections/quarterly-energy-prices"
+      ]
+    },
+    {
+      "id": "desnz-energy-use-pc",
+      "record": "https://egly443.github.io/Govviz/data/series/desnz-energy-use-pc.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/desnz-energy-use-pc/data.csv",
+      "title": "Energy use per person",
+      "department": "desnz",
+      "tags": [
+        "desnz",
+        "energy security & net zero",
+        "emissions",
+        "renewables",
+        "affordability",
+        "annual",
+        "uk",
+        "number",
+        "energy bills",
+        "cost of living"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-energy-security-and-net-zero",
+        "https://statistics.data.gov.uk/id/statistical-geography/K02000001",
+        "https://data.worldbank.org/indicator/EG.USE.PCAP.KG.OE?locations=GB"
+      ]
+    },
+    {
+      "id": "dsit-rd-gdp",
+      "record": "https://egly443.github.io/Govviz/data/series/dsit-rd-gdp.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dsit-rd-gdp/data.csv",
+      "title": "R&D spending",
+      "department": "dsit",
+      "tags": [
+        "dsit",
+        "science, innovation & technology",
+        "research",
+        "connectivity",
+        "talent",
+        "annual",
+        "uk",
+        "percent",
+        "productivity",
+        "public finance"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-science-innovation-and-technology",
+        "https://statistics.data.gov.uk/id/statistical-geography/K02000001",
+        "https://data.worldbank.org/indicator/GB.XPD.RSDV.GD.ZS?locations=GB"
+      ]
+    },
+    {
+      "id": "dsit-researchers",
+      "record": "https://egly443.github.io/Govviz/data/series/dsit-researchers.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dsit-researchers/data.csv",
+      "title": "Researchers in R&D",
+      "department": "dsit",
+      "tags": [
+        "dsit",
+        "science, innovation & technology",
+        "research",
+        "connectivity",
+        "talent",
+        "annual",
+        "uk",
+        "number"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-science-innovation-and-technology",
+        "https://statistics.data.gov.uk/id/statistical-geography/K02000001",
+        "https://data.worldbank.org/indicator/SP.POP.SCIE.RD.P6?locations=GB"
+      ]
+    },
+    {
+      "id": "dsit-gigabit-broadband",
+      "record": "https://egly443.github.io/Govviz/data/series/dsit-gigabit-broadband.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dsit-gigabit-broadband/data.csv",
+      "title": "Gigabit broadband coverage",
+      "department": "dsit",
+      "tags": [
+        "dsit",
+        "science, innovation & technology",
+        "research",
+        "connectivity",
+        "talent",
+        "annual",
+        "percent",
+        "transport",
+        "infrastructure"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-science-innovation-and-technology",
+        "https://www.ofcom.org.uk/phones-and-broadband/coverage-and-speeds/connected-nations-update"
+      ]
+    },
+    {
+      "id": "dsit-internet-users",
+      "record": "https://egly443.github.io/Govviz/data/series/dsit-internet-users.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dsit-internet-users/data.csv",
+      "title": "Internet users",
+      "department": "dsit",
+      "tags": [
+        "dsit",
+        "science, innovation & technology",
+        "research",
+        "connectivity",
+        "talent",
+        "annual",
+        "uk",
+        "percent"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-science-innovation-and-technology",
+        "https://statistics.data.gov.uk/id/statistical-geography/K02000001",
+        "https://data.worldbank.org/indicator/IT.NET.USER.ZS?locations=GB"
+      ]
+    },
+    {
+      "id": "dsit-mobile-subs",
+      "record": "https://egly443.github.io/Govviz/data/series/dsit-mobile-subs.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dsit-mobile-subs/data.csv",
+      "title": "Mobile subscriptions",
+      "department": "dsit",
+      "tags": [
+        "dsit",
+        "science, innovation & technology",
+        "research",
+        "connectivity",
+        "talent",
+        "annual",
+        "uk",
+        "number"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-science-innovation-and-technology",
+        "https://statistics.data.gov.uk/id/statistical-geography/K02000001",
+        "https://data.worldbank.org/indicator/IT.CEL.SETS.P2?locations=GB"
+      ]
+    },
+    {
+      "id": "dbt-exports-gdp",
+      "record": "https://egly443.github.io/Govviz/data/series/dbt-exports-gdp.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dbt-exports-gdp/data.csv",
+      "title": "Exports",
+      "department": "dbt",
+      "tags": [
+        "dbt",
+        "business & trade",
+        "exports",
+        "innovation",
+        "investment",
+        "annual",
+        "uk",
+        "percent",
+        "productivity",
+        "public finance"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-business-and-trade",
+        "https://statistics.data.gov.uk/id/statistical-geography/K02000001",
+        "https://data.worldbank.org/indicator/NE.EXP.GNFS.ZS?locations=GB"
+      ]
+    },
+    {
+      "id": "dbt-hightech-exports",
+      "record": "https://egly443.github.io/Govviz/data/series/dbt-hightech-exports.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dbt-hightech-exports/data.csv",
+      "title": "High-tech exports",
+      "department": "dbt",
+      "tags": [
+        "dbt",
+        "business & trade",
+        "exports",
+        "innovation",
+        "investment",
+        "annual",
+        "uk",
+        "percent"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-business-and-trade",
+        "https://statistics.data.gov.uk/id/statistical-geography/K02000001",
+        "https://data.worldbank.org/indicator/TX.VAL.TECH.MF.ZS?locations=GB"
+      ]
+    },
+    {
+      "id": "dbt-business-investment",
+      "record": "https://egly443.github.io/Govviz/data/series/dbt-business-investment.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dbt-business-investment/data.csv",
+      "title": "Business investment",
+      "department": "dbt",
+      "tags": [
+        "dbt",
+        "business & trade",
+        "exports",
+        "innovation",
+        "investment",
+        "quarterly",
+        "gbp",
+        "productivity",
+        "public finance",
+        "transport",
+        "infrastructure"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-business-and-trade",
+        "https://www.ons.gov.uk/economy/grossdomesticproductgdp/timeseries/npel/cxnv"
+      ]
+    },
+    {
+      "id": "dbt-retail-sales",
+      "record": "https://egly443.github.io/Govviz/data/series/dbt-retail-sales.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dbt-retail-sales/data.csv",
+      "title": "Retail sales",
+      "department": "dbt",
+      "tags": [
+        "dbt",
+        "business & trade",
+        "exports",
+        "innovation",
+        "investment",
+        "monthly",
+        "index",
+        "energy bills",
+        "cost of living"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-business-and-trade",
+        "https://www.ons.gov.uk/businessindustryandtrade/retailindustry/timeseries/j5ek/drsi"
+      ]
+    },
+    {
+      "id": "dbt-fdi",
+      "record": "https://egly443.github.io/Govviz/data/series/dbt-fdi.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dbt-fdi/data.csv",
+      "title": "Foreign direct investment",
+      "department": "dbt",
+      "tags": [
+        "dbt",
+        "business & trade",
+        "exports",
+        "innovation",
+        "investment",
+        "annual",
+        "uk",
+        "percent",
+        "productivity",
+        "public finance"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-business-and-trade",
+        "https://statistics.data.gov.uk/id/statistical-geography/K02000001",
+        "https://data.worldbank.org/indicator/BX.KLT.DINV.WD.GD.ZS?locations=GB"
+      ]
+    },
+    {
+      "id": "dcms-tourism-arrivals",
+      "record": "https://egly443.github.io/Govviz/data/series/dcms-tourism-arrivals.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dcms-tourism-arrivals/data.csv",
+      "title": "Inbound tourism",
+      "department": "dcms",
+      "tags": [
+        "dcms",
+        "culture, media & sport",
+        "creative economy",
+        "tourism",
+        "participation",
+        "annual",
+        "uk",
+        "number"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-culture-media-and-sport",
+        "https://statistics.data.gov.uk/id/statistical-geography/K02000001",
+        "https://data.worldbank.org/indicator/ST.INT.ARVL?locations=GB"
+      ]
+    },
+    {
+      "id": "dcms-creative-gva",
+      "record": "https://egly443.github.io/Govviz/data/series/dcms-creative-gva.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dcms-creative-gva/data.csv",
+      "title": "Creative industries GVA",
+      "department": "dcms",
+      "tags": [
+        "dcms",
+        "culture, media & sport",
+        "creative economy",
+        "tourism",
+        "participation",
+        "annual",
+        "gbp",
+        "energy bills",
+        "cost of living"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-culture-media-and-sport",
+        "https://www.gov.uk/government/collections/dcms-sectors-economic-estimates"
+      ]
+    },
+    {
+      "id": "dcms-sport-participation",
+      "record": "https://egly443.github.io/Govviz/data/series/dcms-sport-participation.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/dcms-sport-participation/data.csv",
+      "title": "Adult sport participation",
+      "department": "dcms",
+      "tags": [
+        "dcms",
+        "culture, media & sport",
+        "creative economy",
+        "tourism",
+        "participation",
+        "annual",
+        "percent"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/department-for-culture-media-and-sport",
+        "https://www.sportengland.org/research-and-data/data/active-lives"
+      ]
+    },
+    {
+      "id": "fcdo-oda-gni",
+      "record": "https://egly443.github.io/Govviz/data/series/fcdo-oda-gni.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/fcdo-oda-gni/data.csv",
+      "title": "Aid spending (ODA)",
+      "department": "fcdo",
+      "tags": [
+        "fcdo",
+        "foreign, commonwealth & development office",
+        "development",
+        "commitment",
+        "annual",
+        "percent",
+        "productivity",
+        "public finance"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/foreign-commonwealth-development-office",
+        "https://www.gov.uk/government/collections/statistics-on-international-development"
+      ]
+    },
+    {
+      "id": "fcdo-oda-total",
+      "record": "https://egly443.github.io/Govviz/data/series/fcdo-oda-total.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/fcdo-oda-total/data.csv",
+      "title": "Total ODA",
+      "department": "fcdo",
+      "tags": [
+        "fcdo",
+        "foreign, commonwealth & development office",
+        "development",
+        "commitment",
+        "annual",
+        "gbp",
+        "energy bills",
+        "cost of living"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/foreign-commonwealth-development-office",
+        "https://www.gov.uk/government/collections/statistics-on-international-development"
+      ]
+    },
+    {
+      "id": "cab-gmpp-confidence",
+      "record": "https://egly443.github.io/Govviz/data/series/cab-gmpp-confidence.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/cab-gmpp-confidence/data.csv",
+      "title": "Major projects delivery confidence",
+      "department": "cabinet-office",
+      "tags": [
+        "cabinet-office",
+        "cabinet office",
+        "delivery",
+        "workforce",
+        "transparency",
+        "process",
+        "annual",
+        "percent"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/cabinet-office",
+        "https://www.gov.uk/government/collections/major-projects-data"
+      ]
+    },
+    {
+      "id": "cab-civil-service-headcount",
+      "record": "https://egly443.github.io/Govviz/data/series/cab-civil-service-headcount.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/cab-civil-service-headcount/data.csv",
+      "title": "Civil service headcount",
+      "department": "cabinet-office",
+      "tags": [
+        "cabinet-office",
+        "cabinet office",
+        "delivery",
+        "workforce",
+        "transparency",
+        "process",
+        "annual",
+        "number"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/cabinet-office",
+        "https://www.gov.uk/government/collections/civil-service-statistics"
+      ]
+    },
+    {
+      "id": "cab-foi-intime",
+      "record": "https://egly443.github.io/Govviz/data/series/cab-foi-intime.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/cab-foi-intime/data.csv",
+      "title": "FOI requests answered in time",
+      "department": "cabinet-office",
+      "tags": [
+        "cabinet-office",
+        "cabinet office",
+        "delivery",
+        "workforce",
+        "transparency",
+        "quarterly",
+        "percent"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/cabinet-office",
+        "https://www.gov.uk/government/collections/government-foi-statistics"
+      ]
+    },
+    {
+      "id": "hmrc-call-wait",
+      "record": "https://egly443.github.io/Govviz/data/series/hmrc-call-wait.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/hmrc-call-wait/data.csv",
+      "title": "Phone wait times",
+      "department": "hmrc",
+      "tags": [
+        "hmrc",
+        "hm revenue & customs",
+        "service",
+        "compliance",
+        "experience",
+        "monthly",
+        "minutes"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/hm-revenue-customs",
+        "https://www.gov.uk/government/collections/hmrc-monthly-performance-reports"
+      ]
+    },
+    {
+      "id": "hmrc-tax-gap",
+      "record": "https://egly443.github.io/Govviz/data/series/hmrc-tax-gap.json",
+      "latest": "https://egly443.github.io/Govviz/data/series/hmrc-tax-gap/data.csv",
+      "title": "Tax gap",
+      "department": "hmrc",
+      "tags": [
+        "hmrc",
+        "hm revenue & customs",
+        "service",
+        "compliance",
+        "process",
+        "annual",
+        "percent",
+        "productivity",
+        "public finance"
+      ],
+      "subjectUris": [
+        "https://www.gov.uk/government/organisations/hm-revenue-customs",
+        "https://www.gov.uk/government/statistics/measuring-tax-gaps"
+      ]
+    }
+  ]
+}

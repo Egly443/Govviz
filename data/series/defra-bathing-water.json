@@ -1,0 +1,100 @@
+{
+  "@context": "https://egly443.github.io/Govviz/data/profile.json",
+  "id": "https://egly443.github.io/Govviz/data/series/defra-bathing-water.json",
+  "title": "Bathing water quality",
+  "description": "% of designated bathing waters rated Good or Excellent, England",
+  "producer": "Defra / Environment Agency bathing water classifications",
+  "statisticType": "Official Statistic",
+  "measure": "% of designated bathing waters rated Good or Excellent, England",
+  "unit": "percent",
+  "unitMultiplier": 0,
+  "unitLabel": "percent (%)",
+  "geography": null,
+  "geographyLabel": null,
+  "periodicity": "P1Y",
+  "validRange": {
+    "min": 40,
+    "max": 100
+  },
+  "suppressionScheme": "https://egly443.github.io/Govviz/data/suppression/v1",
+  "revisionStatus": "final",
+  "licence": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+  "provenance": {
+    "source": "Defra / Environment Agency bathing water classifications",
+    "methodology": "https://www.gov.uk/government/statistics/bathing-water-quality-statistics",
+    "derivation": "Direct from source; latest value validated against validRange",
+    "upstreamUrl": "https://assets.publishing.service.gov.uk/media/69205a9da0e0fb4c2936ab72/EMBARGOED_EA_National_Bathing_Waters_Classification_Results_2025.ods",
+    "fetchedAt": "2026-07-02",
+    "contentHash": "8c3dde92f3",
+    "sourceBytesHash": "6e7d26965574",
+    "compiledBy": "Govviz"
+  },
+  "semanticTags": [
+    "defra",
+    "environment, food & rural affairs",
+    "waste",
+    "air",
+    "water",
+    "annual",
+    "percent",
+    "environment",
+    "sewage",
+    "climate"
+  ],
+  "subjectUris": [
+    "https://www.gov.uk/government/organisations/department-for-environment-food-rural-affairs",
+    "https://www.gov.uk/government/statistics/bathing-water-quality-statistics"
+  ],
+  "qualityDimensions": {
+    "accuracy": "Not asserted by Govviz; upstream producer methodology remains authoritative.",
+    "completeness": "10 observations emitted in the tidy data file.",
+    "uniqueness": "One observation per period/ref_area key in the emitted tidy table.",
+    "consistency": "Compiled by the same source-specific parser and emitted through one CSVW schema.",
+    "timeliness": "Latest observed period 2025 is within the expected annual cadence; latest source fetch recorded 2026-07-02.",
+    "validity": "Latest source values passed the published validRange 40 to 100."
+  },
+  "compiler": {
+    "name": "Govviz",
+    "url": "https://egly443.github.io/Govviz",
+    "conformanceVersion": "ai-ready-series-profile-v0.2",
+    "compiledAt": "2026-07-02T16:51:32.950Z",
+    "pipelineCommit": "90aea5d6665231b8497666afb12794279c7826d6",
+    "sourceBytesHash": "6e7d26965574"
+  },
+  "upstreamConformance": "not-asserted-by-primary-publisher",
+  "publisherClaim": "not-asserted-by-primary-publisher",
+  "nextRelease": null,
+  "nextReleaseEstimated": false,
+  "expectedCadence": "annual",
+  "latestObservedPeriod": "2025",
+  "latestFetchedAt": "2026-07-02",
+  "estimatedNextPeriod": "2026-12-31",
+  "freshnessStatus": "current",
+  "freshnessReason": "Latest observed period 2025 is within the expected annual cadence; latest source fetch recorded 2026-07-02.",
+  "conformanceLevel": "M5-reference-rendering",
+  "limitations": [
+    "Govviz is a downstream compiler, not the primary publisher.",
+    "The primary producer may not publish the same tidy structure, stable id, CSVW metadata, or validation range upstream.",
+    "Freshness metadata is inferred from observed periods and fetch timestamps; it is not an official release calendar.",
+    "The contact and accountability route remains the primary producer's published route, not a Govviz official statistics contact.",
+    "No upstream policy-as-code conformance assertion has been made by the primary producer."
+  ],
+  "latest": "https://egly443.github.io/Govviz/data/series/defra-bathing-water/data.csv",
+  "distribution": [
+    "https://egly443.github.io/Govviz/data/series/defra-bathing-water/data.csv",
+    "https://egly443.github.io/Govviz/data/series/defra-bathing-water/data-c05fed29b7bd.csv",
+    "https://egly443.github.io/Govviz/data/series/defra-bathing-water/data.csv-metadata.json",
+    "https://egly443.github.io/Govviz/data/series/defra-bathing-water.json"
+  ],
+  "csvw": "https://egly443.github.io/Govviz/data/series/defra-bathing-water/data.csv-metadata.json",
+  "agent": "https://egly443.github.io/Govviz/data/mcp.json",
+  "basis": null,
+  "caveat": null,
+  "lens": null,
+  "goodDirection": "up",
+  "department": {
+    "code": "defra",
+    "name": "Environment, Food & Rural Affairs"
+  },
+  "observationCount": 10
+}

@@ -1,0 +1,98 @@
+{
+  "@context": "https://egly443.github.io/Govviz/data/profile.json",
+  "id": "https://egly443.github.io/Govviz/data/series/cab-civil-service-headcount.json",
+  "title": "Civil service headcount",
+  "description": "Full-time-equivalent civil servants",
+  "producer": "Cabinet Office / ONS, Civil Service Statistics",
+  "statisticType": "Official Statistic",
+  "measure": "Full-time-equivalent civil servants",
+  "unit": "number",
+  "unitMultiplier": 0,
+  "unitLabel": "number",
+  "geography": null,
+  "geographyLabel": null,
+  "periodicity": "P1Y",
+  "validRange": {
+    "min": 300000,
+    "max": 600000
+  },
+  "suppressionScheme": "https://egly443.github.io/Govviz/data/suppression/v1",
+  "revisionStatus": "final",
+  "licence": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+  "provenance": {
+    "source": "Cabinet Office / ONS, Civil Service Statistics",
+    "methodology": "https://www.gov.uk/government/collections/civil-service-statistics",
+    "derivation": "Direct from source; latest value validated against validRange",
+    "upstreamUrl": "https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/publicsectorpersonnel/timeseries/g7g6/pse/data",
+    "fetchedAt": "2026-07-02",
+    "contentHash": "2fcfa73ee1",
+    "sourceBytesHash": "cdb5e2b710a6",
+    "compiledBy": "Govviz"
+  },
+  "semanticTags": [
+    "cabinet-office",
+    "cabinet office",
+    "delivery",
+    "workforce",
+    "transparency",
+    "process",
+    "annual",
+    "number"
+  ],
+  "subjectUris": [
+    "https://www.gov.uk/government/organisations/cabinet-office",
+    "https://www.gov.uk/government/collections/civil-service-statistics"
+  ],
+  "qualityDimensions": {
+    "accuracy": "Not asserted by Govviz; upstream producer methodology remains authoritative.",
+    "completeness": "109 observations emitted in the tidy data file.",
+    "uniqueness": "One observation per period/ref_area key in the emitted tidy table.",
+    "consistency": "Compiled by the same source-specific parser and emitted through one CSVW schema.",
+    "timeliness": "Latest observed period 2026 is within the expected annual cadence; latest source fetch recorded 2026-07-02.",
+    "validity": "Latest source values passed the published validRange 300000 to 600000."
+  },
+  "compiler": {
+    "name": "Govviz",
+    "url": "https://egly443.github.io/Govviz",
+    "conformanceVersion": "ai-ready-series-profile-v0.2",
+    "compiledAt": "2026-07-02T16:51:32.973Z",
+    "pipelineCommit": "90aea5d6665231b8497666afb12794279c7826d6",
+    "sourceBytesHash": "cdb5e2b710a6"
+  },
+  "upstreamConformance": "not-asserted-by-primary-publisher",
+  "publisherClaim": "not-asserted-by-primary-publisher",
+  "nextRelease": null,
+  "nextReleaseEstimated": false,
+  "expectedCadence": "annual",
+  "latestObservedPeriod": "2026",
+  "latestFetchedAt": "2026-07-02",
+  "estimatedNextPeriod": "2027-12-31",
+  "freshnessStatus": "current",
+  "freshnessReason": "Latest observed period 2026 is within the expected annual cadence; latest source fetch recorded 2026-07-02.",
+  "conformanceLevel": "M5-reference-rendering",
+  "limitations": [
+    "Govviz is a downstream compiler, not the primary publisher.",
+    "The primary producer may not publish the same tidy structure, stable id, CSVW metadata, or validation range upstream.",
+    "Freshness metadata is inferred from observed periods and fetch timestamps; it is not an official release calendar.",
+    "The contact and accountability route remains the primary producer's published route, not a Govviz official statistics contact.",
+    "No upstream policy-as-code conformance assertion has been made by the primary producer."
+  ],
+  "latest": "https://egly443.github.io/Govviz/data/series/cab-civil-service-headcount/data.csv",
+  "distribution": [
+    "https://egly443.github.io/Govviz/data/series/cab-civil-service-headcount/data.csv",
+    "https://egly443.github.io/Govviz/data/series/cab-civil-service-headcount/data-97699b91e0bf.csv",
+    "https://egly443.github.io/Govviz/data/series/cab-civil-service-headcount/data.csv-metadata.json",
+    "https://egly443.github.io/Govviz/data/series/cab-civil-service-headcount.json"
+  ],
+  "csvw": "https://egly443.github.io/Govviz/data/series/cab-civil-service-headcount/data.csv-metadata.json",
+  "agent": "https://egly443.github.io/Govviz/data/mcp.json",
+  "basis": null,
+  "caveat": null,
+  "lens": "process",
+  "goodDirection": "down",
+  "department": {
+    "code": "cabinet-office",
+    "name": "Cabinet Office"
+  },
+  "observationCount": 109
+}

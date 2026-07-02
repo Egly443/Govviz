@@ -1,0 +1,100 @@
+{
+  "@context": "https://egly443.github.io/Govviz/data/profile.json",
+  "id": "https://egly443.github.io/Govviz/data/series/defra-sewage-hours.json",
+  "title": "Sewage spill hours",
+  "description": "Storm overflow spill duration, England, million hours/yr",
+  "producer": "Environment Agency storm overflow EDM annual returns",
+  "statisticType": "Official Statistic",
+  "measure": "Storm overflow spill duration, England, million hours/yr",
+  "unit": "hours",
+  "unitMultiplier": 0,
+  "unitLabel": "hours",
+  "geography": null,
+  "geographyLabel": null,
+  "periodicity": "P1Y",
+  "validRange": {
+    "min": 500000,
+    "max": 6000000
+  },
+  "suppressionScheme": "https://egly443.github.io/Govviz/data/suppression/v1",
+  "revisionStatus": "final",
+  "licence": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+  "provenance": {
+    "source": "Environment Agency storm overflow EDM annual returns",
+    "methodology": "https://www.gov.uk/government/statistics/storm-overflow-spill-data",
+    "derivation": "Direct from source; latest value validated against validRange",
+    "upstreamUrl": "https://environment.data.gov.uk/api/file/download?fileDataSetId=c55e170e-3c75-49a5-8026-a961ff94c8e0&fileName=EDM_2025_Storm_Overflow_Annual_Return.zip",
+    "fetchedAt": "2026-07-02",
+    "contentHash": "a722dd2cc1",
+    "sourceBytesHash": "0515ac6536e0",
+    "compiledBy": "Govviz"
+  },
+  "semanticTags": [
+    "defra",
+    "environment, food & rural affairs",
+    "waste",
+    "air",
+    "water",
+    "annual",
+    "hours",
+    "environment",
+    "sewage",
+    "climate"
+  ],
+  "subjectUris": [
+    "https://www.gov.uk/government/organisations/department-for-environment-food-rural-affairs",
+    "https://www.gov.uk/government/statistics/storm-overflow-spill-data"
+  ],
+  "qualityDimensions": {
+    "accuracy": "Not asserted by Govviz; upstream producer methodology remains authoritative.",
+    "completeness": "6 observations emitted in the tidy data file.",
+    "uniqueness": "One observation per period/ref_area key in the emitted tidy table.",
+    "consistency": "Compiled by the same source-specific parser and emitted through one CSVW schema.",
+    "timeliness": "Latest observed period 2025 is within the expected annual cadence; latest source fetch recorded 2026-07-02.",
+    "validity": "Latest source values passed the published validRange 500000 to 6000000."
+  },
+  "compiler": {
+    "name": "Govviz",
+    "url": "https://egly443.github.io/Govviz",
+    "conformanceVersion": "ai-ready-series-profile-v0.2",
+    "compiledAt": "2026-07-02T16:51:32.951Z",
+    "pipelineCommit": "90aea5d6665231b8497666afb12794279c7826d6",
+    "sourceBytesHash": "0515ac6536e0"
+  },
+  "upstreamConformance": "not-asserted-by-primary-publisher",
+  "publisherClaim": "not-asserted-by-primary-publisher",
+  "nextRelease": null,
+  "nextReleaseEstimated": false,
+  "expectedCadence": "annual",
+  "latestObservedPeriod": "2025",
+  "latestFetchedAt": "2026-07-02",
+  "estimatedNextPeriod": "2026-12-31",
+  "freshnessStatus": "current",
+  "freshnessReason": "Latest observed period 2025 is within the expected annual cadence; latest source fetch recorded 2026-07-02.",
+  "conformanceLevel": "M5-reference-rendering",
+  "limitations": [
+    "Govviz is a downstream compiler, not the primary publisher.",
+    "The primary producer may not publish the same tidy structure, stable id, CSVW metadata, or validation range upstream.",
+    "Freshness metadata is inferred from observed periods and fetch timestamps; it is not an official release calendar.",
+    "The contact and accountability route remains the primary producer's published route, not a Govviz official statistics contact.",
+    "No upstream policy-as-code conformance assertion has been made by the primary producer."
+  ],
+  "latest": "https://egly443.github.io/Govviz/data/series/defra-sewage-hours/data.csv",
+  "distribution": [
+    "https://egly443.github.io/Govviz/data/series/defra-sewage-hours/data.csv",
+    "https://egly443.github.io/Govviz/data/series/defra-sewage-hours/data-fb785635ed73.csv",
+    "https://egly443.github.io/Govviz/data/series/defra-sewage-hours/data.csv-metadata.json",
+    "https://egly443.github.io/Govviz/data/series/defra-sewage-hours.json"
+  ],
+  "csvw": "https://egly443.github.io/Govviz/data/series/defra-sewage-hours/data.csv-metadata.json",
+  "agent": "https://egly443.github.io/Govviz/data/mcp.json",
+  "basis": null,
+  "caveat": null,
+  "lens": null,
+  "goodDirection": "down",
+  "department": {
+    "code": "defra",
+    "name": "Environment, Food & Rural Affairs"
+  },
+  "observationCount": 6
+}

@@ -1,0 +1,99 @@
+{
+  "@context": "https://egly443.github.io/Govviz/data/profile.json",
+  "id": "https://egly443.github.io/Govviz/data/series/dhsc-spend-per-life-year.json",
+  "title": "Health spend per year of life",
+  "description": "Annual health spend ($/person) ÷ life expectancy — lower = more longevity per $",
+  "producer": "World Bank (WHO) ÷ ONS national life tables",
+  "statisticType": "Aggregated international statistic",
+  "measure": "Annual health spend ($/person) ÷ life expectancy — lower = more longevity per $",
+  "unit": "USD",
+  "unitMultiplier": 0,
+  "unitLabel": "US$",
+  "geography": null,
+  "geographyLabel": null,
+  "periodicity": "P1Y",
+  "suppressionScheme": "https://egly443.github.io/Govviz/data/suppression/v1",
+  "revisionStatus": "final",
+  "licence": "https://creativecommons.org/licenses/by/4.0/",
+  "provenance": {
+    "source": "World Bank (WHO) ÷ ONS national life tables",
+    "methodology": "Computed as Health spending per person ÷ Life expectancy at birth, aligned by year.",
+    "derivation": "Computed from dhsc-health-spend-pc, life-expectancy: Computed as Health spending per person ÷ Life expectancy at birth, aligned by year.",
+    "upstreamUrl": "https://data.worldbank.org/indicator/SH.XPD.CHEX.PC.CD?locations=GB",
+    "fetchedAt": "2026-07-02",
+    "contentHash": "66f4d31bcff9",
+    "sourceBytesHash": null,
+    "compiledBy": "Govviz"
+  },
+  "semanticTags": [
+    "dhsc",
+    "health & social care",
+    "waiting list",
+    "urgent care",
+    "workforce",
+    "capital",
+    "annual",
+    "usd",
+    "health",
+    "waiting lists",
+    "nhs performance",
+    "productivity",
+    "public finance"
+  ],
+  "subjectUris": [
+    "https://www.gov.uk/government/organisations/department-of-health-and-social-care",
+    "https://data.worldbank.org/indicator/SH.XPD.CHEX.PC.CD?locations=GB"
+  ],
+  "qualityDimensions": {
+    "accuracy": "Not asserted by Govviz; upstream producer methodology remains authoritative.",
+    "completeness": "25 observations emitted in the tidy data file.",
+    "uniqueness": "One observation per period/ref_area key in the emitted tidy table.",
+    "consistency": "Compiled by the same source-specific parser and emitted through one CSVW schema.",
+    "timeliness": "Latest observed period 2024 is older than the expected annual cadence projection 2025-12-31; latest source fetch recorded 2026-07-02.",
+    "validity": "No validRange was available for this derived or locally unavailable series."
+  },
+  "compiler": {
+    "name": "Govviz",
+    "url": "https://egly443.github.io/Govviz",
+    "conformanceVersion": "ai-ready-series-profile-v0.2",
+    "compiledAt": "2026-07-02T16:51:32.841Z",
+    "pipelineCommit": "90aea5d6665231b8497666afb12794279c7826d6",
+    "sourceBytesHash": null
+  },
+  "upstreamConformance": "not-asserted-by-primary-publisher",
+  "publisherClaim": "not-asserted-by-primary-publisher",
+  "nextRelease": null,
+  "nextReleaseEstimated": false,
+  "expectedCadence": "annual",
+  "latestObservedPeriod": "2024",
+  "latestFetchedAt": "2026-07-02",
+  "estimatedNextPeriod": "2025-12-31",
+  "freshnessStatus": "aged",
+  "freshnessReason": "Latest observed period 2024 is older than the expected annual cadence projection 2025-12-31; latest source fetch recorded 2026-07-02.",
+  "conformanceLevel": "M5-reference-rendering",
+  "limitations": [
+    "Govviz is a downstream compiler, not the primary publisher.",
+    "The primary producer may not publish the same tidy structure, stable id, CSVW metadata, or validation range upstream.",
+    "Freshness metadata is inferred from observed periods and fetch timestamps; it is not an official release calendar.",
+    "The contact and accountability route remains the primary producer's published route, not a Govviz official statistics contact.",
+    "No upstream policy-as-code conformance assertion has been made by the primary producer."
+  ],
+  "latest": "https://egly443.github.io/Govviz/data/series/dhsc-spend-per-life-year/data.csv",
+  "distribution": [
+    "https://egly443.github.io/Govviz/data/series/dhsc-spend-per-life-year/data.csv",
+    "https://egly443.github.io/Govviz/data/series/dhsc-spend-per-life-year/data-66f4d31bcff9.csv",
+    "https://egly443.github.io/Govviz/data/series/dhsc-spend-per-life-year/data.csv-metadata.json",
+    "https://egly443.github.io/Govviz/data/series/dhsc-spend-per-life-year.json"
+  ],
+  "csvw": "https://egly443.github.io/Govviz/data/series/dhsc-spend-per-life-year/data.csv-metadata.json",
+  "agent": "https://egly443.github.io/Govviz/data/mcp.json",
+  "basis": null,
+  "caveat": null,
+  "lens": null,
+  "goodDirection": "down",
+  "department": {
+    "code": "dhsc",
+    "name": "Health & Social Care"
+  },
+  "observationCount": 25
+}

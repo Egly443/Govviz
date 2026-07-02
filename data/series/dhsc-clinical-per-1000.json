@@ -1,0 +1,101 @@
+{
+  "@context": "https://egly443.github.io/Govviz/data/profile.json",
+  "id": "https://egly443.github.io/Govviz/data/series/dhsc-clinical-per-1000.json",
+  "title": "Clinical workforce per 1,000 people",
+  "description": "Doctors vs nurses, per 1,000 population",
+  "producer": "World Bank (OECD/WHO)",
+  "statisticType": "Aggregated international statistic",
+  "measure": "Doctors vs nurses, per 1,000 population",
+  "unit": "number",
+  "unitMultiplier": 0,
+  "unitLabel": "number",
+  "geography": null,
+  "geographyLabel": null,
+  "periodicity": "P1Y",
+  "validRange": {
+    "min": 0.5,
+    "max": 6
+  },
+  "suppressionScheme": "https://egly443.github.io/Govviz/data/suppression/v1",
+  "revisionStatus": "final",
+  "licence": "https://creativecommons.org/licenses/by/4.0/",
+  "provenance": {
+    "source": "World Bank (OECD/WHO)",
+    "methodology": "https://data.worldbank.org/indicator/SH.MED.PHYS.ZS?locations=GB",
+    "derivation": "Direct from source; latest value validated against validRange",
+    "upstreamUrl": "https://api.worldbank.org/v2/country/GBR/indicator/SH.MED.PHYS.ZS?format=json&per_page=20000",
+    "fetchedAt": "2026-07-02",
+    "contentHash": "8ca61b893c",
+    "sourceBytesHash": "564dad8175ee",
+    "compiledBy": "Govviz"
+  },
+  "semanticTags": [
+    "dhsc",
+    "health & social care",
+    "waiting list",
+    "urgent care",
+    "workforce",
+    "capital",
+    "annual",
+    "number",
+    "health",
+    "waiting lists",
+    "nhs performance"
+  ],
+  "subjectUris": [
+    "https://www.gov.uk/government/organisations/department-of-health-and-social-care",
+    "https://data.worldbank.org/indicator/SH.MED.PHYS.ZS?locations=GB"
+  ],
+  "qualityDimensions": {
+    "accuracy": "Not asserted by Govviz; upstream producer methodology remains authoritative.",
+    "completeness": "78 observations emitted in the tidy data file.",
+    "uniqueness": "One observation per period/ref_area key in the emitted tidy table.",
+    "consistency": "Compiled by the same source-specific parser and emitted through one CSVW schema.",
+    "timeliness": "Latest observed period 2023 is older than the expected annual cadence projection 2024-12-31; latest source fetch recorded 2026-07-02.",
+    "validity": "Latest source values passed the published validRange 0.5 to 6."
+  },
+  "compiler": {
+    "name": "Govviz",
+    "url": "https://egly443.github.io/Govviz",
+    "conformanceVersion": "ai-ready-series-profile-v0.2",
+    "compiledAt": "2026-07-02T16:51:32.845Z",
+    "pipelineCommit": "90aea5d6665231b8497666afb12794279c7826d6",
+    "sourceBytesHash": "564dad8175ee"
+  },
+  "upstreamConformance": "not-asserted-by-primary-publisher",
+  "publisherClaim": "not-asserted-by-primary-publisher",
+  "nextRelease": null,
+  "nextReleaseEstimated": false,
+  "expectedCadence": "annual",
+  "latestObservedPeriod": "2023",
+  "latestFetchedAt": "2026-07-02",
+  "estimatedNextPeriod": "2024-12-31",
+  "freshnessStatus": "aged",
+  "freshnessReason": "Latest observed period 2023 is older than the expected annual cadence projection 2024-12-31; latest source fetch recorded 2026-07-02.",
+  "conformanceLevel": "M5-reference-rendering",
+  "limitations": [
+    "Govviz is a downstream compiler, not the primary publisher.",
+    "The primary producer may not publish the same tidy structure, stable id, CSVW metadata, or validation range upstream.",
+    "Freshness metadata is inferred from observed periods and fetch timestamps; it is not an official release calendar.",
+    "The contact and accountability route remains the primary producer's published route, not a Govviz official statistics contact.",
+    "No upstream policy-as-code conformance assertion has been made by the primary producer."
+  ],
+  "latest": "https://egly443.github.io/Govviz/data/series/dhsc-clinical-per-1000/data.csv",
+  "distribution": [
+    "https://egly443.github.io/Govviz/data/series/dhsc-clinical-per-1000/data.csv",
+    "https://egly443.github.io/Govviz/data/series/dhsc-clinical-per-1000/data-6f3d39d3860c.csv",
+    "https://egly443.github.io/Govviz/data/series/dhsc-clinical-per-1000/data.csv-metadata.json",
+    "https://egly443.github.io/Govviz/data/series/dhsc-clinical-per-1000.json"
+  ],
+  "csvw": "https://egly443.github.io/Govviz/data/series/dhsc-clinical-per-1000/data.csv-metadata.json",
+  "agent": "https://egly443.github.io/Govviz/data/mcp.json",
+  "basis": null,
+  "caveat": null,
+  "lens": null,
+  "goodDirection": "up",
+  "department": {
+    "code": "dhsc",
+    "name": "Health & Social Care"
+  },
+  "observationCount": 78
+}

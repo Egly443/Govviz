@@ -1,0 +1,99 @@
+{
+  "@context": "https://egly443.github.io/Govviz/data/profile.json",
+  "id": "https://egly443.github.io/Govviz/data/series/ho-hotel-spend.json",
+  "title": "Asylum hotel contingency spend",
+  "description": "Daily run-rate, £ million per day",
+  "producer": "Home Office accounts / NAO asylum costs",
+  "statisticType": "Official Statistic",
+  "measure": "Daily run-rate, £ million per day",
+  "unit": "GBP per day",
+  "unitMultiplier": 6,
+  "unitLabel": "£ million per day",
+  "geography": null,
+  "geographyLabel": null,
+  "periodicity": "P1M",
+  "suppressionScheme": "https://egly443.github.io/Govviz/data/suppression/v1",
+  "revisionStatus": "final",
+  "licence": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+  "provenance": {
+    "source": "Home Office accounts / NAO asylum costs",
+    "methodology": "https://www.nao.org.uk/reports/investigation-into-asylum-accommodation/",
+    "derivation": "Direct from source; latest value validated against validRange",
+    "upstreamUrl": "https://www.nao.org.uk/reports/investigation-into-asylum-accommodation/",
+    "fetchedAt": null,
+    "contentHash": "a82cb24951da",
+    "sourceBytesHash": null,
+    "compiledBy": "Govviz"
+  },
+  "semanticTags": [
+    "home-office",
+    "home office",
+    "throughput",
+    "workforce",
+    "value for money",
+    "service standard",
+    "monthly",
+    "gbp per day",
+    "migration",
+    "home affairs",
+    "public service backlog",
+    "productivity",
+    "public finance"
+  ],
+  "subjectUris": [
+    "https://www.gov.uk/government/organisations/home-office",
+    "https://www.nao.org.uk/reports/investigation-into-asylum-accommodation/"
+  ],
+  "qualityDimensions": {
+    "accuracy": "Not asserted by Govviz; upstream producer methodology remains authoritative.",
+    "completeness": "No observations were available in this build.",
+    "uniqueness": "One observation per period/ref_area key in the emitted tidy table.",
+    "consistency": "Compiled by the same source-specific parser and emitted through one CSVW schema.",
+    "timeliness": "No observations were available in this build.",
+    "validity": "No validRange was available for this derived or locally unavailable series."
+  },
+  "compiler": {
+    "name": "Govviz",
+    "url": "https://egly443.github.io/Govviz",
+    "conformanceVersion": "ai-ready-series-profile-v0.2",
+    "compiledAt": "2026-07-02T16:51:32.881Z",
+    "pipelineCommit": "90aea5d6665231b8497666afb12794279c7826d6",
+    "sourceBytesHash": null
+  },
+  "upstreamConformance": "not-asserted-by-primary-publisher",
+  "publisherClaim": "not-asserted-by-primary-publisher",
+  "nextRelease": null,
+  "nextReleaseEstimated": false,
+  "expectedCadence": "monthly",
+  "latestObservedPeriod": null,
+  "latestFetchedAt": null,
+  "estimatedNextPeriod": null,
+  "freshnessStatus": "unknown",
+  "freshnessReason": "No observations were available in this build.",
+  "conformanceLevel": "M5-reference-rendering",
+  "limitations": [
+    "Govviz is a downstream compiler, not the primary publisher.",
+    "The primary producer may not publish the same tidy structure, stable id, CSVW metadata, or validation range upstream.",
+    "Freshness metadata is inferred from observed periods and fetch timestamps; it is not an official release calendar.",
+    "The contact and accountability route remains the primary producer's published route, not a Govviz official statistics contact.",
+    "No upstream policy-as-code conformance assertion has been made by the primary producer."
+  ],
+  "latest": "https://egly443.github.io/Govviz/data/series/ho-hotel-spend/data.csv",
+  "distribution": [
+    "https://egly443.github.io/Govviz/data/series/ho-hotel-spend/data.csv",
+    "https://egly443.github.io/Govviz/data/series/ho-hotel-spend/data-a82cb24951da.csv",
+    "https://egly443.github.io/Govviz/data/series/ho-hotel-spend/data.csv-metadata.json",
+    "https://egly443.github.io/Govviz/data/series/ho-hotel-spend.json"
+  ],
+  "csvw": "https://egly443.github.io/Govviz/data/series/ho-hotel-spend/data.csv-metadata.json",
+  "agent": "https://egly443.github.io/Govviz/data/mcp.json",
+  "basis": null,
+  "caveat": null,
+  "lens": null,
+  "goodDirection": "down",
+  "department": {
+    "code": "home-office",
+    "name": "Home Office"
+  },
+  "observationCount": 0
+}

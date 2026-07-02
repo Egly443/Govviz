@@ -1,0 +1,104 @@
+{
+  "@context": "https://egly443.github.io/Govviz/data/profile.json",
+  "id": "https://egly443.github.io/Govviz/data/series/dft-rail-cancellations.json",
+  "title": "Passenger rail cancellation score",
+  "description": "% of services cancelled (ORR cancellation score)",
+  "producer": "Office of Rail and Road, cancellation statistics",
+  "statisticType": "Official Statistic",
+  "measure": "% of services cancelled (ORR cancellation score)",
+  "unit": "percent",
+  "unitMultiplier": 0,
+  "unitLabel": "percent (%)",
+  "geography": null,
+  "geographyLabel": null,
+  "periodicity": "P1M",
+  "validRange": {
+    "min": 0,
+    "max": 25
+  },
+  "suppressionScheme": "https://egly443.github.io/Govviz/data/suppression/v1",
+  "revisionStatus": "final",
+  "licence": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+  "provenance": {
+    "source": "Office of Rail and Road, cancellation statistics",
+    "methodology": "https://dataportal.orr.gov.uk/statistics/performance/passenger-rail-performance/",
+    "derivation": "Direct from source; latest value validated against validRange",
+    "upstreamUrl": "https://dataportal.orr.gov.uk/media/2177/table-3123-trains-planned-and-cancellations-by-operator-and-cause.ods",
+    "fetchedAt": "2026-07-02",
+    "contentHash": "915f89d85c",
+    "sourceBytesHash": "6b716e6a4a39",
+    "compiledBy": "Govviz"
+  },
+  "semanticTags": [
+    "dft",
+    "transport",
+    "reliability",
+    "service",
+    "delivery",
+    "assets",
+    "monthly",
+    "percent",
+    "infrastructure"
+  ],
+  "subjectUris": [
+    "https://www.gov.uk/government/organisations/department-for-transport",
+    "https://dataportal.orr.gov.uk/statistics/performance/passenger-rail-performance/"
+  ],
+  "qualityDimensions": {
+    "accuracy": "Not asserted by Govviz; upstream producer methodology remains authoritative.",
+    "completeness": "28 observations emitted in the tidy data file.",
+    "uniqueness": "One observation per period/ref_area key in the emitted tidy table.",
+    "consistency": "Compiled by the same source-specific parser and emitted through one CSVW schema.",
+    "timeliness": "Latest observed period 2026-03 is older than the expected monthly cadence projection 2026-04-01; latest source fetch recorded 2026-07-02.",
+    "validity": "Latest source values passed the published validRange 0 to 25."
+  },
+  "compiler": {
+    "name": "Govviz",
+    "url": "https://egly443.github.io/Govviz",
+    "conformanceVersion": "ai-ready-series-profile-v0.2",
+    "compiledAt": "2026-07-02T16:51:32.905Z",
+    "pipelineCommit": "90aea5d6665231b8497666afb12794279c7826d6",
+    "sourceBytesHash": "6b716e6a4a39"
+  },
+  "upstreamConformance": "not-asserted-by-primary-publisher",
+  "publisherClaim": "not-asserted-by-primary-publisher",
+  "nextRelease": null,
+  "nextReleaseEstimated": false,
+  "expectedCadence": "monthly",
+  "latestObservedPeriod": "2026-03",
+  "latestFetchedAt": "2026-07-02",
+  "estimatedNextPeriod": "2026-04-01",
+  "freshnessStatus": "aged",
+  "freshnessReason": "Latest observed period 2026-03 is older than the expected monthly cadence projection 2026-04-01; latest source fetch recorded 2026-07-02.",
+  "conformanceLevel": "M5-reference-rendering",
+  "limitations": [
+    "Govviz is a downstream compiler, not the primary publisher.",
+    "The primary producer may not publish the same tidy structure, stable id, CSVW metadata, or validation range upstream.",
+    "Freshness metadata is inferred from observed periods and fetch timestamps; it is not an official release calendar.",
+    "The contact and accountability route remains the primary producer's published route, not a Govviz official statistics contact.",
+    "No upstream policy-as-code conformance assertion has been made by the primary producer."
+  ],
+  "latest": "https://egly443.github.io/Govviz/data/series/dft-rail-cancellations/data.csv",
+  "distribution": [
+    "https://egly443.github.io/Govviz/data/series/dft-rail-cancellations/data.csv",
+    "https://egly443.github.io/Govviz/data/series/dft-rail-cancellations/data-00bc867d4ec7.csv",
+    "https://egly443.github.io/Govviz/data/series/dft-rail-cancellations/data.csv-metadata.json",
+    "https://egly443.github.io/Govviz/data/series/dft-rail-cancellations.json"
+  ],
+  "csvw": "https://egly443.github.io/Govviz/data/series/dft-rail-cancellations/data.csv-metadata.json",
+  "agent": "https://egly443.github.io/Govviz/data/mcp.json",
+  "basis": null,
+  "caveat": null,
+  "lens": null,
+  "goodDirection": "down",
+  "target": {
+    "value": 3,
+    "label": "2018-19 level",
+    "kind": "reference"
+  },
+  "department": {
+    "code": "dft",
+    "name": "Transport"
+  },
+  "observationCount": 28
+}

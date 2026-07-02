@@ -1,0 +1,99 @@
+{
+  "@context": "https://egly443.github.io/Govviz/data/profile.json",
+  "id": "https://egly443.github.io/Govviz/data/series/dsit-gigabit-broadband.json",
+  "title": "Gigabit broadband coverage",
+  "description": "% of UK premises with gigabit-capable broadband available",
+  "producer": "Ofcom, Connected Nations",
+  "statisticType": "Official Statistic",
+  "measure": "% of UK premises with gigabit-capable broadband available",
+  "unit": "percent",
+  "unitMultiplier": 0,
+  "unitLabel": "percent (%)",
+  "geography": null,
+  "geographyLabel": null,
+  "periodicity": "P1Y",
+  "validRange": {
+    "min": 0,
+    "max": 100
+  },
+  "suppressionScheme": "https://egly443.github.io/Govviz/data/suppression/v1",
+  "revisionStatus": "final",
+  "licence": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+  "provenance": {
+    "source": "Ofcom, Connected Nations",
+    "methodology": "https://www.ofcom.org.uk/phones-and-broadband/coverage-and-speeds/connected-nations-update",
+    "derivation": "Direct from source; latest value validated against validRange",
+    "upstreamUrl": "https://www.ofcom.org.uk/phones-and-broadband/coverage-and-speeds/connected-nations-update",
+    "fetchedAt": "2026-07-02",
+    "contentHash": "78fae9f134",
+    "sourceBytesHash": "28e4b493adda",
+    "compiledBy": "Govviz"
+  },
+  "semanticTags": [
+    "dsit",
+    "science, innovation & technology",
+    "research",
+    "connectivity",
+    "talent",
+    "annual",
+    "percent",
+    "transport",
+    "infrastructure"
+  ],
+  "subjectUris": [
+    "https://www.gov.uk/government/organisations/department-for-science-innovation-and-technology",
+    "https://www.ofcom.org.uk/phones-and-broadband/coverage-and-speeds/connected-nations-update"
+  ],
+  "qualityDimensions": {
+    "accuracy": "Not asserted by Govviz; upstream producer methodology remains authoritative.",
+    "completeness": "3 observations emitted in the tidy data file.",
+    "uniqueness": "One observation per period/ref_area key in the emitted tidy table.",
+    "consistency": "Compiled by the same source-specific parser and emitted through one CSVW schema.",
+    "timeliness": "Latest observed period 2025 is within the expected annual cadence; latest source fetch recorded 2026-07-02.",
+    "validity": "Latest source values passed the published validRange 0 to 100."
+  },
+  "compiler": {
+    "name": "Govviz",
+    "url": "https://egly443.github.io/Govviz",
+    "conformanceVersion": "ai-ready-series-profile-v0.2",
+    "compiledAt": "2026-07-02T16:51:32.959Z",
+    "pipelineCommit": "90aea5d6665231b8497666afb12794279c7826d6",
+    "sourceBytesHash": "28e4b493adda"
+  },
+  "upstreamConformance": "not-asserted-by-primary-publisher",
+  "publisherClaim": "not-asserted-by-primary-publisher",
+  "nextRelease": null,
+  "nextReleaseEstimated": false,
+  "expectedCadence": "annual",
+  "latestObservedPeriod": "2025",
+  "latestFetchedAt": "2026-07-02",
+  "estimatedNextPeriod": "2026-12-31",
+  "freshnessStatus": "current",
+  "freshnessReason": "Latest observed period 2025 is within the expected annual cadence; latest source fetch recorded 2026-07-02.",
+  "conformanceLevel": "M5-reference-rendering",
+  "limitations": [
+    "Govviz is a downstream compiler, not the primary publisher.",
+    "The primary producer may not publish the same tidy structure, stable id, CSVW metadata, or validation range upstream.",
+    "Freshness metadata is inferred from observed periods and fetch timestamps; it is not an official release calendar.",
+    "The contact and accountability route remains the primary producer's published route, not a Govviz official statistics contact.",
+    "No upstream policy-as-code conformance assertion has been made by the primary producer."
+  ],
+  "latest": "https://egly443.github.io/Govviz/data/series/dsit-gigabit-broadband/data.csv",
+  "distribution": [
+    "https://egly443.github.io/Govviz/data/series/dsit-gigabit-broadband/data.csv",
+    "https://egly443.github.io/Govviz/data/series/dsit-gigabit-broadband/data-0c9d5d1d32b6.csv",
+    "https://egly443.github.io/Govviz/data/series/dsit-gigabit-broadband/data.csv-metadata.json",
+    "https://egly443.github.io/Govviz/data/series/dsit-gigabit-broadband.json"
+  ],
+  "csvw": "https://egly443.github.io/Govviz/data/series/dsit-gigabit-broadband/data.csv-metadata.json",
+  "agent": "https://egly443.github.io/Govviz/data/mcp.json",
+  "basis": null,
+  "caveat": null,
+  "lens": null,
+  "goodDirection": "up",
+  "department": {
+    "code": "dsit",
+    "name": "Science, Innovation & Technology"
+  },
+  "observationCount": 3
+}
