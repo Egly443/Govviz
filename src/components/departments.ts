@@ -1531,6 +1531,38 @@ const hoShoplifting: TrendSeries = {
   annotations: [{ date: "2022-01-01", label: "Post-pandemic surge" }],
 };
 
+// Home Office — crime against adults, the victimisation-based Crime Survey
+// (CSEW). The long-comparable "is crime actually falling?" series (excludes
+// fraud & computer misuse for continuity), and — unlike police-recorded crime —
+// it publishes a 95% confidence interval, so the chart shows a real uncertainty
+// band. ~19M incidents at the mid-90s peak → ~4.5M now.
+const hoCsewCrime: TrendSeries = {
+  id: "ho-csew-crime",
+  lens: "experience",
+  title: "Crime against adults (Crime Survey)",
+  subtitle: "CSEW incidents, excluding fraud & computer misuse",
+  coverage: "England & Wales",
+  unit: "count",
+  format: (v) => `${(v / 1e6).toFixed(2)}M`,
+  shortFormat: (v) => `${(v / 1e6).toFixed(1)}M`,
+  yFormat: (v) => `${(v / 1e6).toFixed(0)}M`,
+  deltaFormat: (v) => `${v > 0 ? "+" : ""}${(v / 1e6).toFixed(2)}M`,
+  goodDirection: "down",
+  source: "ONS Crime Survey for England & Wales (CSEW appendix tables)",
+  sourceUrl:
+    "https://www.ons.gov.uk/peoplepopulationandcommunity/crimeandjustice/datasets/crimeinenglandandwalesappendixtables",
+  cadence: "annual",
+  points: realPoints("ho-csew-crime"),
+  definition:
+    "Estimated number of incidents of crime experienced by adults aged 16+ from the victimisation survey; excludes fraud and computer misuse for long-run comparability.",
+  caveat:
+    "Survey estimate with sampling uncertainty — the shaded band is the published 95% confidence interval. Unlike police-recorded crime it is not affected by recording-practice changes or reporting rates.",
+  annotations: [
+    { date: "1995-01-01", label: "Crime peak" },
+    { date: "2020-03-01", label: "Covid-19", break: true },
+  ],
+};
+
 // MHCLG — council tax (the bill that rises every year). MHCLG live tables,
 // average Band D, England, financial year since 1993-94.
 const mhclgCouncilTax: TrendSeries = {
@@ -1747,7 +1779,7 @@ export const departments: Department[] = [
     themes: ["Throughput", "Workforce", "Value for money", "Service standard"],
     hero: hoAsylumBacklog,
     core: [hoNetMigration, hoChargeRate, hoShoplifting, hoCaseworkerTurnover, hoHotelSpend, hoVisaSla],
-    supporting: [hoPassportTimes, hoHomicideRate, hoMigrantStock],
+    supporting: [hoCsewCrime, hoPassportTimes, hoHomicideRate, hoMigrantStock],
   },
   {
     code: "moj",

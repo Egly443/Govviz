@@ -3323,6 +3323,96 @@ const SOURCES = [
     },
   },
 
+  // Home Office — CSEW total crime EXCLUDING fraud & computer misuse: the long
+  // victimisation series (the "is crime actually falling?" measure), and — unlike
+  // police-recorded counts — it publishes a 95% CI, so the chart shows a real
+  // uncertainty band. Both the excl-fraud (~4.5M) and incl-fraud (~9.4M) totals
+  // fall inside the guard, so the row MUST be anchored on an "excluding fraud"
+  // label — never a bare "total", which could silently pick the headline
+  // (incl-fraud) series. Appendix figures are in thousands. Layout varies, so try
+  // a years-DOWN table (estimate + lower/upper CI cols → ciFromRow) then a
+  // years-ACROSS total row (estimate only); diagnostics dump the structure.
+  {
+    id: "ho-csew-crime",
+    min: 3_000_000,
+    max: 25_000_000,
+    get: async () => {
+      const { url, book } = await onsLandingXlsx(
+        "https://www.ons.gov.uk/peoplepopulationandcommunity/crimeandjustice/datasets/crimeinenglandandwalesappendixtables",
+      );
+      console.log(`  csew xlsx=${url.split("/").pop()} sheets=[${book.SheetNames.join("|")}]`);
+      const toIncidents = (v) => (Number.isFinite(v) ? (v >= 1e6 ? v : v * 1000) : NaN);
+      const inRange = (v) => Number.isFinite(v) && v >= 3_000_000 && v <= 25_000_000;
+      // Must say "excluding fraud" (and not "including"); rejects the headline row.
+      const exclRe = /(excl|excluding)\s+fraud/i;
+      const inclRe = /includ\w*\s+fraud|headline/i;
+      let dumped = 0;
+      for (const sn of book.SheetNames) {
+        if (/cover|content|notes?|metadata|definition|guidance|contact/i.test(sn)) continue;
+        const rows = (await sheetRows(book, sn)).map((r) => Array.from(r ?? []));
+        if (!rows.length) continue;
+        const sheetHasExcl = rows.slice(0, 30).some((r) => r.some((c) => exclRe.test(String(c ?? ""))));
+
+        // Strategy A: years-DOWN table with estimate + lower/upper CI columns.
+        if (sheetHasExcl) {
+          for (let h = 0; h < Math.min(rows.length, 15); h++) {
+            const header = rows[h].map((c) => String(c ?? "").toLowerCase());
+            const ci0 = ciFromRow(header, header.map(() => "1")); // cheap: do CI cols exist?
+            const hasCi = header.some((c) => /lower/.test(c)) && header.some((c) => /upper/.test(c));
+            if (!hasCi && !ci0) continue;
+            let perCol = -1;
+            for (let j = 0; j < Math.min(rows[h].length, 4); j++) { let n = 0; for (const r of rows.slice(h + 1)) if (parsePeriodEnd(r[j])) n++; if (n >= 8) { perCol = j; break; } }
+            if (perCol < 0) continue;
+            const estCol = header.findIndex((c) => /estimate|number|incidents|thousand/.test(c));
+            const eCol = estCol >= 0 ? estCol : perCol + 1;
+            const pts = [];
+            for (const r of rows.slice(h + 1)) {
+              const d = parsePeriodEnd(r[perCol]); if (!d) continue;
+              const est = toIncidents(parseFloat(String(r[eCol] ?? "").replace(/[, ]/g, "")));
+              if (!inRange(est)) continue;
+              const ci = ciFromRow(header, r);
+              const p = { date: d, value: Math.round(est) };
+              if (ci) { const lo = toIncidents(ci.lo), hi = toIncidents(ci.hi); if (lo <= est && est <= hi) { p.lo = Math.round(lo); p.hi = Math.round(hi); } }
+              pts.push(p);
+            }
+            if (pts.length >= 8) {
+              pts.sort((a, b) => (a.date < b.date ? -1 : 1));
+              const withCi = pts.filter((p) => p.lo != null).length;
+              console.log(`  csew ${pts.length} pts via "${sn}" (A: est+CI cols, ${withCi} with CI) latest=${pts[pts.length - 1].date}:${pts[pts.length - 1].value}`);
+              return pts;
+            }
+          }
+        }
+
+        // Strategy B: years-ACROSS, an "excluding fraud" total row over period cols.
+        const totalRow = rows.findIndex((r) => {
+          const lbl = `${r[0] ?? ""} ${r[1] ?? ""}`;
+          return exclRe.test(lbl) && !inclRe.test(lbl);
+        });
+        if (totalRow >= 0) {
+          let periodCols = [];
+          for (let i = 0; i < totalRow; i++) {
+            const pc = rows[i].map((c, idx) => [idx, parsePeriodEnd(c)]).filter(([, d]) => d);
+            if (pc.length > periodCols.length) periodCols = pc;
+          }
+          const pts = [];
+          for (const [idx, d] of periodCols) {
+            const v = toIncidents(parseFloat(String(rows[totalRow][idx] ?? "").replace(/[, ]/g, "")));
+            if (inRange(v)) pts.push({ date: d, value: Math.round(v) });
+          }
+          if (pts.length >= 8) {
+            pts.sort((a, b) => (a.date < b.date ? -1 : 1));
+            console.log(`  csew ${pts.length} pts via "${sn}" (B: years-across total row "${String(rows[totalRow][0] ?? rows[totalRow][1]).slice(0, 48)}", NO CI) latest=${pts[pts.length - 1].date}:${pts[pts.length - 1].value}`);
+            return pts;
+          }
+        }
+
+        if (dumped < 4) { dumped++; console.log(`  csew DUMP "${sn}" excl=${sheetHasExcl} rows=${rows.length} head=${JSON.stringify(rows.slice(0, 6).map((r) => r.slice(0, 8))).slice(0, 360)}`); }
+      }
+      throw new Error("csew: no 'excluding fraud' total series found");
+    },
+  },
+
   // ── Citizen-experience indicators (Phase 2b — gov.uk statistical-data-set ODS) ──
   // Council tax (the bill that rises every year): MHCLG live tables, average
   // Band D council tax, England, financial year since 1993-94. £568 (1993) →
